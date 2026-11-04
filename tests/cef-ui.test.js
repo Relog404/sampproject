@@ -81,9 +81,9 @@ test('Pawn fallback waits for page handshake, download progress cannot extend lo
     const mode=fs.readFileSync('server/gamemodes/railway.pwn','latin1');
     const progress=mode.slice(mode.indexOf('public OnCefDownloadProgress'),mode.indexOf('public OnCefDownloadFinish'));
     assert.ok(!progress.includes('SetTimerEx'));
-    const nativeKeys=mode.slice(mode.indexOf('public OnPlayerKeyStateChange'));
-    assert.ok(nativeKeys.includes('gCefReady[playerid] ||'));
-    assert.ok(nativeKeys.includes('KEY_LOOK_RIGHT'));
+    assert.ok(!mode.includes('KEY_LOOK_RIGHT'),'old GTA E/Look Right action must no longer toggle the engine');
+    const commands=fs.readFileSync('server/pawno/include/railway/commands.inc','latin1');
+    assert.ok(commands.includes('RW_EngineCommand(playerid)'),'text command remains available without CEF');
 });
 test('backslash binding: reset, label and physical Backslash use VK 220',()=>{
     const ui=boot('railway_control');
@@ -94,7 +94,7 @@ test('backslash binding: reset, label and physical Backslash use VK 220',()=>{
     // Cannot duplicate the menu binding.
     assert.notEqual(ui.emitted.at(-1)[0],'control:bind');
     ui.elements.content.children.at(-1).onclick();
-    assert.deepEqual(Array.from(ui.emitted.at(-1)),['control:bind',76,69,220]);
+    assert.deepEqual(Array.from(ui.emitted.at(-1)),['control:bind',76,221,220]);
 });
 test('CEF auth hides registration for existing accounts and submits login only',()=>{
     const ui=boot('railway_auth');
@@ -149,4 +149,43 @@ test('late auth page is kept alive during fallback and can replace the native di
     assert.ok(ready.includes('ShowPlayerDialog(playerid, -1'));
     assert.ok(ready.includes('RW_UI_OpenAuth(playerid)'));
     assert.ok(ready.includes('if (gLogged[playerid]) return 1'));
+});
+test('engine default is physical BracketRight, displayed as Ъ / ], in both layouts',()=>{
+    const ui=boot('railway_control');
+    ui.events['control:settings'](76,221,220);
+    assert.equal(ui.elements.content.children[1].children[1].textContent,'Ъ / ]');
+    // Select another key first, then rebind through the physical code in Russian layout.
+    ui.events['control:settings'](76,69,220);
+    ui.elements.content.children[1].onclick();
+    ui.domEvents.keydown({key:'ъ',code:'BracketRight',keyCode:0,preventDefault(){},stopPropagation(){}});
+    assert.deepEqual(Array.from(ui.emitted.at(-1)),['control:bind',76,221,220]);
+    const pawn=fs.readFileSync('server/pawno/include/railway/interaction.inc','latin1');
+    assert.ok(pawn.includes('gControlKeys[playerid][1] = 221;'));
+    assert.ok(pawn.includes('|| key == 221'));
+});
+test('settings and vehicle menu confirm actual opening, not just page readiness',()=>{
+    const ui=boot('railway_control');
+    assert.equal(ui.emitted.at(-1)[0],'control:ready');
+    ui.events['control:settings'](76,221,220);
+    assert.equal(ui.emitted.at(-1)[0],'control:opened');
+    ui.events['control:vehicle']('Sultan',0,false);
+    assert.equal(ui.emitted.at(-1)[0],'control:opened');
+    ui.domEvents.keydown({key:'Escape',preventDefault(){}});
+    assert.equal(ui.elements.panel.hidden,true);
+    assert.equal(ui.emitted.at(-1)[0],'control:close');
+});
+test('menu uses model bounds, has bounded retries and frees capture after failure',()=>{
+    const pawn=fs.readFileSync('server/pawno/include/railway/interaction.inc','latin1');
+    const target=pawn.slice(pawn.indexOf('stock RW_ControlTarget'),pawn.indexOf('stock RW_ControlPublish'));
+    assert.ok(target.includes('VEHICLE_MODEL_INFO_SIZE'));
+    assert.ok(target.includes('GetVehicleZAngle'));
+    assert.equal((target.match(/RW_RayAxis\(/g)||[]).length,3);
+    assert.ok(target.includes('IsPlayerInRangeOfPoint'));
+    const timeout=pawn.slice(pawn.indexOf('public RW_ControlTimeout'));
+    assert.ok(timeout.includes('attempt >= 2'));
+    assert.ok(timeout.includes('RW_ControlClose(playerid, CONTROL_BROWSER)'));
+    assert.ok(timeout.includes('CEF_ReloadBrowser'));
+    const mode=fs.readFileSync('server/gamemodes/railway.pwn','latin1');
+    const disconnect=mode.slice(mode.indexOf('public OnPlayerDisconnect'),mode.indexOf('public OnPlayerRequestClass'));
+    assert.ok(disconnect.includes('RW_ControlCancelWait'));
 });

@@ -144,6 +144,7 @@ public OnPlayerConnect(playerid)
 
 public OnPlayerDisconnect(playerid, reason)
 {
+    RW_ControlCancelWait(playerid);
     RW_SaveAccount(playerid);
     RW_Veh_OnPlayerDisconnect(playerid);
 
@@ -497,18 +498,6 @@ public OnCefBrowserCreated(playerid, browserid, bool:success, E_CEF_CREATE_STATU
             gAuthBrowserCreated[playerid] = false;
             RW_AuthFallbackNow(playerid, "браузер входа не создан");
         }
-    }
-    return 1;
-}
-
-public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
-{
-    // Default GTA vehicle Look Right is E. Physical rebindings apply once CEF is ready.
-    if (gCefReady[playerid] || !gLogged[playerid] || gControlMode[playerid] != 0) return 1;
-    if ((newkeys & KEY_LOOK_RIGHT) && !(oldkeys & KEY_LOOK_RIGHT) && GetPlayerState(playerid) == PLAYER_STATE_DRIVER) {
-        if (GetTickCount() - gControlTick[playerid] < 250) return 1;
-        gControlTick[playerid] = GetTickCount();
-        RW_EngineCommand(playerid);
     }
     return 1;
 }
