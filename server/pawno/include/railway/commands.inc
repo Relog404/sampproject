@@ -211,6 +211,17 @@ stock RW_CommandProcess(playerid, cmdtext[])
     }
 
     if (!strcmp(cmd, "cefstatus", true)) return RW_CefStatus(playerid);
+    if (!strcmp(cmd, "authcef", true)) {
+        if (gLogged[playerid]) return 1;
+        if (!gCefReady[playerid]) return RW_CefStatus(playerid);
+        RW_UI_CloseAuth(playerid);
+        CEF_DestroyBrowser(playerid, CEF_BROWSER_AUTH);
+        gAuthBrowserCreated[playerid] = false;
+        gAuthPageReady[playerid] = false;
+        ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
+        gAuthFallbackSent[playerid] = false;
+        return RW_UI_OpenAuth(playerid);
+    }
 
     if (!gLogged[playerid]) {
         RW_Error(playerid, "Сначала войдите в аккаунт.");

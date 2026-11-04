@@ -41,16 +41,20 @@ stock RW_UI_OpenAuth(playerid)
         return 1;
     }
 
-    CEF_CreateBrowser(playerid, CEF_BROWSER_AUTH, CEF_AUTH_URL, true, true, 0.0, 0.0);
+    if (!gAuthBrowserCreated[playerid]) {
+        gAuthBrowserCreated[playerid] = true;
+        gAuthPageReady[playerid] = false;
+        CEF_CreateBrowser(playerid, CEF_BROWSER_AUTH, CEF_AUTH_URL, true, true, 0.0, 0.0);
+    }
     CEF_SetBrowserLayer(playerid, CEF_BROWSER_AUTH, CEF_LAYER_AUTH);
     CEF_SetBrowserVisible(playerid, CEF_BROWSER_AUTH, true);
     CEF_FocusBrowser(playerid, CEF_BROWSER_AUTH, true);
     CEF_ToggleChatInput(playerid, false);
     CEF_SetEscapeMenuMode(playerid, CEF_ESCAPE_MENU_DISABLED);
 
-    gAuthPageReady[playerid] = false;
     if (gFallbackTimer[playerid] != 0) KillTimer(gFallbackTimer[playerid]);
-    gFallbackTimer[playerid] = SetTimerEx("RW_AuthFallback", 10000, false, "i", playerid);
+    gFallbackTimer[playerid] = 0;
+    if (!gAuthPageReady[playerid]) gFallbackTimer[playerid] = SetTimerEx("RW_AuthFallback", 10000, false, "i", playerid);
     gAuthBrowserShown[playerid] = true;
     return 1;
 }
@@ -137,6 +141,10 @@ public RW_OnSpeedoReady(playerid, browserid)
     if (browserid != CEF_BROWSER_SPEEDO) {
         return 0;
     }
+    CEF_EmitEvent(playerid, CEF_BROWSER_SPEEDO, "railway:ack");
+    // A real JS callback proves CEF works even if its earlier ready signal was missed.
+    if (!gCefReady[playerid]) OnCefReady(playerid);
+    RW_InteractionInit(playerid);
     if (gSpeedoVehicle[playerid] == INVALID_VEHICLE_ID) {
         return 0;
     }
@@ -147,11 +155,16 @@ public RW_OnSpeedoReady(playerid, browserid)
 
 stock RW_UI_OnBrowserCreated(playerid, browserid, bool:success)
 {
-    #pragma unused playerid
-    #pragma unused browserid
 
     if (!success) {
         return 0;
+    }
+
+    if (browserid == CEF_BROWSER_AUTH) {
+        new bool:show = !gLogged[playerid] && gAuthBrowserShown[playerid];
+        CEF_SetBrowserVisible(playerid, browserid, show);
+        CEF_SetBrowserLayer(playerid, browserid, CEF_LAYER_AUTH);
+        CEF_FocusBrowser(playerid, browserid, show);
     }
 
     /* —траница сама сообщит о готовности событием auth:ready,
@@ -162,6 +175,7 @@ stock RW_UI_OnBrowserCreated(playerid, browserid, bool:success)
 stock RW_UI_Reset(playerid)
 {
     gAuthBrowserShown[playerid] = false;
+    gAuthBrowserCreated[playerid] = false;
     gSpeedoShown[playerid] = false;
     gSpeedoVehicle[playerid] = INVALID_VEHICLE_ID;
     return 1;

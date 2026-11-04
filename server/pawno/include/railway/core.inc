@@ -67,6 +67,7 @@
 
 #define DIALOG_LOGIN                 (9100)
 #define DIALOG_REGISTER              (9101)
+#define DIALOG_MAP_TELEPORT          (9102)
 
 /* ------------------------------------------------------------------ слоты авто */
 enum E_VEHICLE_SLOT
@@ -84,6 +85,8 @@ enum E_VEHICLE_SLOT
 };
 
 /* ------------------------------------------------------------------ состояние */
+new bool:gMapPending[MAX_PLAYERS];
+new Float:gMapPoint[MAX_PLAYERS][3];
 new DB:gDB;
 
 new gVeh[VEHICLE_SLOTS][E_VEHICLE_SLOT];
@@ -98,6 +101,7 @@ new gMoney[MAX_PLAYERS];
 
 new gCefStage[MAX_PLAYERS], gCefStarted[MAX_PLAYERS], gCefPercent[MAX_PLAYERS], gCefReason[MAX_PLAYERS];
 new bool:gAuthPageReady[MAX_PLAYERS];
+new bool:gAuthBrowserCreated[MAX_PLAYERS];
 new bool:gCefReady[MAX_PLAYERS];       /* клиент CEF подключен и готов       */
 new bool:gAuthBrowserShown[MAX_PLAYERS];
 new bool:gAuthFallbackSent[MAX_PLAYERS];

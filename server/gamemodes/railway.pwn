@@ -119,6 +119,7 @@ public OnPlayerConnect(playerid)
     gMoney[playerid] = DEFAULT_MONEY;
     RW_Speedo_ResetPlayer(playerid);
     RW_InteractionReset(playerid);
+    gMapPending[playerid] = false;
 
     RW_GetNick(playerid, nick);
 
@@ -217,6 +218,7 @@ public OnPlayerDeath(playerid, killerid, reason)
 {
     if (gControlMode[playerid] != 0) RW_ControlClose(playerid, CONTROL_BROWSER);
     RW_UI_SpeedoHide(playerid);
+    gMapPending[playerid] = false;
     gNoDrive[playerid] = false;
     return 1;
 }
@@ -373,47 +375,40 @@ public OnRconCommand(cmd[])
 
 public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 {
-    if (gLogged[playerid]) {
-        return 0;
+    if (dialogid == DIALOG_MAP_TELEPORT) {
+        if (!gMapPending[playerid]) return 1;
+        gMapPending[playerid] = false;
+        if (!response || !gLogged[playerid] || GetPlayerState(playerid) != PLAYER_STATE_ONFOOT) return 1;
+        if (GetPlayerInterior(playerid) != 0 || GetPlayerVirtualWorld(playerid) != 0) return 1;
+        SetPlayerPosFindZ(playerid, gMapPoint[playerid][0], gMapPoint[playerid][1], gMapPoint[playerid][2] + 1.0);
+        SetCameraBehindPlayer(playerid);
+        RW_Ok(playerid, "Вы телепортировались к метке.");
+        return 1;
     }
-
-    switch (dialogid) {
-        case DIALOG_LOGIN: {
-            if (!response) {
-                ShowPlayerDialog(playerid, DIALOG_REGISTER, DIALOG_STYLE_PASSWORD, "Регистрация",
-                    "Придумайте пароль (минимум 6 символов).", "Создать", "Назад");
-                return 1;
-            }
-            if (inputtext[0] == EOS) {
-                RW_ShowLoginDialog(playerid);
-                return 1;
-            }
-            RW_AuthSubmit(playerid, false, inputtext, "");
-            return 1;
-        }
-
-        case DIALOG_REGISTER: {
-            if (!response) {
-                RW_ShowLoginDialog(playerid);
-                return 1;
-            }
-            if (strlen(inputtext) < 6) {
-                ShowPlayerDialog(playerid, DIALOG_REGISTER, DIALOG_STYLE_PASSWORD, "Регистрация",
-                    "Пароль слишком короткий (нужно минимум 6 символов).\nПридумайте пароль:", "Создать", "Назад");
-                return 1;
-            }
-            if (strlen(inputtext) > 64) {
-                ShowPlayerDialog(playerid, DIALOG_REGISTER, DIALOG_STYLE_PASSWORD, "Регистрация",
-                    "Максимальная длина пароля — 64 символа.\nПридумайте пароль:", "Создать", "Назад");
-                return 1;
-            }
-
-            RW_AuthSubmit(playerid, true, inputtext, inputtext);
-            return 1;
-        }
+    if (gLogged[playerid]) return 0;
+    if (dialogid != DIALOG_LOGIN && dialogid != DIALOG_REGISTER) return 0;
+    if (!response) { Kick(playerid); return 1; }
+    new nick[MAX_PLAYER_NAME];
+    RW_GetNick(playerid, nick);
+    new bool:exists = RW_DB_AccountExists(nick);
+    if ((dialogid == DIALOG_REGISTER && exists) || (dialogid == DIALOG_LOGIN && !exists)) {
+        RW_ShowLoginDialog(playerid);
+        return 1;
     }
+    RW_AuthSubmit(playerid, !exists, inputtext, inputtext);
+    return 1;
+}
 
-    return 0;
+public OnPlayerClickMap(playerid, Float:fX, Float:fY, Float:fZ)
+{
+    if (!gLogged[playerid] || GetPlayerState(playerid) != PLAYER_STATE_ONFOOT) return 1;
+    if (GetPlayerInterior(playerid) != 0 || GetPlayerVirtualWorld(playerid) != 0) return 1;
+    if (gControlMode[playerid] != 0) return 1;
+    if (!(fX >= -3000.0 && fX <= 3000.0 && fY >= -3000.0 && fY <= 3000.0 && fZ >= -100.0 && fZ <= 1500.0)) return 1;
+    gMapPoint[playerid][0] = fX; gMapPoint[playerid][1] = fY; gMapPoint[playerid][2] = fZ;
+    gMapPending[playerid] = true;
+    ShowPlayerDialog(playerid, DIALOG_MAP_TELEPORT, DIALOG_STYLE_MSGBOX, "Телепорт по метке", "Телепортироваться к выбранной метке на карте?", "Да", "Нет");
+    return 1;
 }
 
 /* ------------------------------------------------------------------ CEF */
@@ -480,7 +475,6 @@ public OnCefReady(playerid)
         gAuthFallbackSent[playerid] = false;
         RW_UI_OpenAuth(playerid);
     } else if (GetPlayerState(playerid) == PLAYER_STATE_DRIVER) {
-        gSpeedoShown[playerid] = false;
         RW_UI_SpeedoShow(playerid, GetPlayerVehicleID(playerid));
     }
     return 1;
@@ -490,6 +484,7 @@ public OnCefBrowserCreated(playerid, browserid, bool:success, E_CEF_CREATE_STATU
 {
     printf("[railway:cef] browser player=%d browser=%d success=%d code=%d reason=%s", playerid, browserid, _:success, _:code, reason);
     RW_UI_OnBrowserCreated(playerid, browserid, success);
+    if (browserid == CEF_BROWSER_SPEEDO && !success) gSpeedoShown[playerid] = false;
     if (browserid == CONTROL_BROWSER && !success) {
         gControlCreated[playerid] = false;
         gControlReady[playerid] = false;
@@ -499,6 +494,7 @@ public OnCefBrowserCreated(playerid, browserid, bool:success, E_CEF_CREATE_STATU
         printf("[railway] Браузер %d не создан у игрока %d: %s", browserid, playerid, reason);
 
         if (browserid == CEF_BROWSER_AUTH) {
+            gAuthBrowserCreated[playerid] = false;
             RW_AuthFallbackNow(playerid, "браузер входа не создан");
         }
     }

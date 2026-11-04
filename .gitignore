@@ -16,3 +16,6 @@ server/samp-server.exe.pdb
 *.log
 Thumbs.db
 desktop.ini
+
+# Python test caches
+__pycache__/

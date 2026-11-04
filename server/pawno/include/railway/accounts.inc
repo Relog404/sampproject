@@ -604,15 +604,16 @@ stock RW_ShowAuthDialog(playerid, bool:registerMode, const note[])
         format(head, sizeof head, "{FF8080}%s{FFFFFF}\n\n", note);
     }
 
+    registerMode = !RW_DB_AccountExists(nick);
     if (registerMode) {
         format(info, sizeof info,
             "%sАккаунт для {F5B04C}%s{FFFFFF} ещё не создан.\nПридумайте пароль (минимум 6 символов).",
             head, nick);
-        ShowPlayerDialog(playerid, DIALOG_REGISTER, DIALOG_STYLE_PASSWORD, "Регистрация", info, "Создать", "Вход");
+        ShowPlayerDialog(playerid, DIALOG_REGISTER, DIALOG_STYLE_PASSWORD, "Регистрация", info, "Создать", "Выход");
     } else {
         format(info, sizeof info,
             "%sАккаунт {F5B04C}%s{FFFFFF} найден.\nВведите пароль для входа.", head, nick);
-        ShowPlayerDialog(playerid, DIALOG_LOGIN, DIALOG_STYLE_PASSWORD, "Вход", info, "Войти", "Регистрация");
+        ShowPlayerDialog(playerid, DIALOG_LOGIN, DIALOG_STYLE_PASSWORD, "Вход", info, "Войти", "Выход");
     }
     return 1;
 }
@@ -640,12 +641,9 @@ stock RW_AuthDialogRespond(playerid, bool:ok, const code[])
 
     SendClientMessage(playerid, COLOR_ERROR, text);
 
-    if (strcmp(code, "err:mismatch", true) == 0 || strcmp(code, "err:short", true) == 0
-        || strcmp(code, "err:long", true) == 0 || strcmp(code, "err:chars", true) == 0) {
-        RW_ShowAuthDialog(playerid, true, text);
-    } else {
-        RW_ShowAuthDialog(playerid, false, text);
-    }
+    new nick[MAX_PLAYER_NAME];
+    RW_GetNick(playerid, nick);
+    RW_ShowAuthDialog(playerid, !RW_DB_AccountExists(nick), text);
     return 1;
 }
 
@@ -673,7 +671,7 @@ stock RW_AuthFallbackNow(playerid, const reason[])
     SendClientMessage(playerid, COLOR_GREY, "CEF-интерфейс недоступен — вход через диалог.");
 
     RW_UI_CloseAuth(playerid);
-    CEF_DestroyBrowser(playerid, CEF_BROWSER_AUTH);
+    // Keep the page loading in the background; late auth:ready can restore it.
     RW_ShowLoginDialog(playerid);
     return 1;
 }
@@ -707,8 +705,13 @@ stock RW_ArmFallback(playerid)
 
 public RW_OnAuthReady(playerid, browserid)
 {
-    if (browserid != CEF_BROWSER_AUTH || gLogged[playerid]) return 0;
+    if (browserid != CEF_BROWSER_AUTH) return 0;
+    CEF_EmitEvent(playerid, CEF_BROWSER_AUTH, "railway:ack");
+    if (gLogged[playerid]) return 1;
     gAuthPageReady[playerid] = true;
+    ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
+    gAuthFallbackSent[playerid] = false;
+    RW_UI_OpenAuth(playerid);
     printf("[railway:cef] auth JS ready player=%d", playerid);
     if (gFallbackTimer[playerid] != 0) {
         KillTimer(gFallbackTimer[playerid]);

@@ -1,8 +1,8 @@
 (function () {
     'use strict';
-    var api = window.cef || { on: function () {}, emit: function () {} };
+    var api = window.railwayCef || window.cef || { on: function () {}, emit: function () {} };
     var panel = document.getElementById('panel'), content = document.getElementById('content');
-    var keys = [76, 69, 71], waiting = -1;
+    var keys = [76, 69, 220], waiting = -1;
     function on(name, fn) { api.on(name, fn); }
     function toast(text) {
         var host = document.getElementById('toasts');
@@ -21,19 +21,19 @@
         ['Двери', 'Зажигание', 'Меню взаимодействия'].forEach(function (label, i) {
             var b = document.createElement('button'); b.className = 'binding' + (waiting === i ? ' wait' : '');
             var span = document.createElement('span'); span.textContent = label; b.appendChild(span);
-            var key = document.createElement('b'); key.textContent = waiting === i ? '…' : String.fromCharCode(keys[i]); b.appendChild(key);
+            var key = document.createElement('b'); key.textContent = waiting === i ? '…' : (keys[i] === 220 ? String.fromCharCode(92) : String.fromCharCode(keys[i])); b.appendChild(key);
             b.onclick = function () { waiting = i; bindings(); }; content.appendChild(b);
         });
-        var reset = document.createElement('button'); reset.className = 'action'; reset.textContent = 'По умолчанию · L / E / G';
-        reset.onclick = function () { keys = [76, 69, 71]; waiting = -1; bindings(); api.emit('control:bind', keys[0], keys[1], keys[2]); }; content.appendChild(reset);
+        var reset = document.createElement('button'); reset.className = 'action'; reset.textContent = 'По умолчанию · L / E / ' + String.fromCharCode(92);
+        reset.onclick = function () { keys = [76, 69, 220]; waiting = -1; bindings(); api.emit('control:bind', keys[0], keys[1], keys[2]); }; content.appendChild(reset);
     }
     document.addEventListener('keydown', function (e) {
         if (panel.hidden) return;
         if (e.key === 'Escape') { e.preventDefault(); close(); return; }
         if (waiting < 0) return;
         e.preventDefault(); e.stopPropagation();
-        var k = e.keyCode;
-        if (k < 65 || k > 90 || k === 84) return toast('Выберите A–Z. T занята чатом.');
+        var k = e.code === 'Backslash' || e.key === String.fromCharCode(92) ? 220 : e.keyCode;
+        if ((k !== 220 && (k < 65 || k > 90)) || k === 84) return toast('Выберите A–Z. T занята чатом.');
         if (keys.some(function (v, i) { return i !== waiting && v === k; })) return toast('Эта клавиша уже используется.');
         keys[waiting] = k; waiting = -1; bindings(); api.emit('control:bind', keys[0], keys[1], keys[2]);
     });

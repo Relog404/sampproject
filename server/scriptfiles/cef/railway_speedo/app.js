@@ -15,7 +15,7 @@
 
     /* ------------------------------------------------------------ плагин */
 
-    var cefApi = (typeof window.cef !== 'undefined' && window.cef) ? window.cef : null;
+    var cefApi = window.railwayCef || (typeof window.cef !== 'undefined' && window.cef) ? window.cef : null;
     var isPreview = !cefApi;
 
     if (!cefApi) {

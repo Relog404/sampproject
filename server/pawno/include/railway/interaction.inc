@@ -26,13 +26,14 @@ stock RW_InteractionReset(playerid)
     gCefPercent[playerid] = 0;
     gCefReason[playerid] = 0;
     gAuthPageReady[playerid] = false;
+    gAuthBrowserCreated[playerid] = false;
     gControlCreated[playerid] = false;
     gControlReady[playerid] = false;
     gControlMode[playerid] = 0;
     gControlVehicle[playerid] = INVALID_VEHICLE_ID;
     gControlKeys[playerid][0] = 76;
     gControlKeys[playerid][1] = 69;
-    gControlKeys[playerid][2] = 71;
+    gControlKeys[playerid][2] = 220;
     gControlTick[playerid] = 0;
 }
 stock RW_InteractionInit(playerid)
@@ -43,6 +44,7 @@ stock RW_InteractionInit(playerid)
         gControlCreated[playerid] = true;
         CEF_CreateBrowser(playerid, CONTROL_BROWSER, "http://cef/railway_control/index.html", false, false, 0.0, 0.0);
         CEF_SetBrowserLayer(playerid, CONTROL_BROWSER, 30);
+        CEF_SetBrowserVisible(playerid, CONTROL_BROWSER, true);
     }
 }
 stock RW_ControlNotify(playerid, const text[])
@@ -97,24 +99,24 @@ stock RW_ControlOpen(playerid, bool:settings)
 {
     if (!gLogged[playerid]) return 1;
     if (!gCefReady[playerid]) return RW_CefStatus(playerid);
-    if (!gControlReady[playerid]) return RW_ControlNotify(playerid, "Ресурсы CEF готовы, страница меню ещё не ответила. /cefstatus");
+    RW_InteractionInit(playerid);
     if (!settings) {
         new v = RW_ControlTarget(playerid);
         if (v == INVALID_VEHICLE_ID || gVehSlotOf[v] < 0) return 1;
         gControlVehicle[playerid] = v;
     }
     gControlMode[playerid] = settings ? 1 : 2;
-    CEF_FocusBrowser(playerid, CONTROL_BROWSER, true);
-    CEF_ToggleChatInput(playerid, false);
-    CEF_SetEscapeMenuMode(playerid, CEF_ESCAPE_MENU_DISABLED);
-    RW_ControlPublish(playerid);
+    if (gControlReady[playerid]) RW_ControlActivate(playerid);
+    else RW_ControlNotify(playerid, "Открываем CEF-меню…");
     return 1;
 }
 public RW_ControlReady(playerid, browserid)
 {
     if (browserid != CONTROL_BROWSER) return 0;
     gControlReady[playerid] = true;
-    RW_ControlPublish(playerid);
+    if (!gCefReady[playerid]) OnCefReady(playerid);
+    CEF_EmitEvent(playerid, CONTROL_BROWSER, "railway:ack");
+    if (gControlMode[playerid] != 0) RW_ControlActivate(playerid);
     return 1;
 }
 public RW_ControlClose(playerid, browserid)
@@ -170,7 +172,7 @@ public RW_ControlAction(playerid, browserid, action, target)
 public RW_ControlBind(playerid, browserid, door, engine, menu)
 {
     if (browserid != CONTROL_BROWSER || gControlMode[playerid] != 1 || !gLogged[playerid]) return 0;
-    if (door < 65 || door > 90 || engine < 65 || engine > 90 || menu < 65 || menu > 90 || door == engine || door == menu || engine == menu) return RW_ControlNotify(playerid, "Выберите разные клавиши A–Z.");
+    if (!RW_ControlValidKey(door) || !RW_ControlValidKey(engine) || !RW_ControlValidKey(menu) || door == engine || door == menu || engine == menu) return RW_ControlNotify(playerid, "Выберите разные клавиши A–Z или обратный слеш.");
     if (door == 84 || engine == 84 || menu == 84) return RW_ControlNotify(playerid, "T занята чатом.");
     for (new i; i < 3; i++) CEF_EnableKey(playerid, gControlKeys[playerid][i], false);
     gControlKeys[playerid][0] = door; gControlKeys[playerid][1] = engine; gControlKeys[playerid][2] = menu;
@@ -211,4 +213,18 @@ stock RW_EngineCommand(playerid)
 {
     if (!IsPlayerInAnyVehicle(playerid)) return RW_ControlNotify(playerid, "Сядьте за руль.");
     return RW_ControlExecute(playerid, GetPlayerVehicleID(playerid), 1);
+}
+
+stock bool:RW_ControlValidKey(key)
+{
+    return (key >= 65 && key <= 90 && key != 84) || key == 220;
+}
+stock RW_ControlActivate(playerid)
+{
+    CEF_SetBrowserVisible(playerid, CONTROL_BROWSER, true);
+    CEF_SetBrowserLayer(playerid, CONTROL_BROWSER, 30);
+    CEF_FocusBrowser(playerid, CONTROL_BROWSER, true);
+    CEF_ToggleChatInput(playerid, false);
+    CEF_SetEscapeMenuMode(playerid, CEF_ESCAPE_MENU_DISABLED);
+    return RW_ControlPublish(playerid);
 }

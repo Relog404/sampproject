@@ -7,6 +7,9 @@ function boot(resource) {
     const elements = {}, events = {}, emitted = [], timers = [];
     function element() {
         return {style:{setProperty(){}}, children:[], hidden:true, attrs:{}, textContent:'',
+            dataset:{},value:'',listeners:{},
+            addEventListener(k,fn){this.listeners[k]=fn;},focus(){},select(){},
+            querySelector(){return null;},querySelectorAll(){return [];},
             classList:{add(){},remove(){},toggle(){}},
             setAttribute(k,v){this.attrs[k]=v;}, appendChild(el){this.children.push(el);},
             removeChild(el){this.children.splice(this.children.indexOf(el),1);}, remove(){},
@@ -18,7 +21,7 @@ function boot(resource) {
         documentElement:element(), addEventListener(k,fn){domEvents[k]=fn;}};
     let frame;
     const context = {document, window:{cef:{on(k,fn){events[k]=fn;},emit(...args){emitted.push(args);}}},
-        setTimeout(fn,ms){timers.push({fn,ms});}, requestAnimationFrame(fn){frame=fn;}, console};
+        setTimeout(fn,ms){timers.push({fn,ms});}, clearTimeout(){}, requestAnimationFrame(fn){frame=fn;}, console};
     vm.runInNewContext(fs.readFileSync(`server/scriptfiles/cef/${resource}/app.js`,'utf8'),context);
     return {elements,events,emitted,timers,domEvents,frame:()=>frame()};
 }
@@ -81,4 +84,69 @@ test('Pawn fallback waits for page handshake, download progress cannot extend lo
     const nativeKeys=mode.slice(mode.indexOf('public OnPlayerKeyStateChange'));
     assert.ok(nativeKeys.includes('gCefReady[playerid] ||'));
     assert.ok(nativeKeys.includes('KEY_LOOK_RIGHT'));
+});
+test('backslash binding: reset, label and physical Backslash use VK 220',()=>{
+    const ui=boot('railway_control');
+    ui.events['control:settings'](76,69,220);
+    assert.equal(ui.elements.content.children[2].children[1].textContent,'\\');
+    ui.elements.content.children[0].onclick();
+    ui.domEvents.keydown({key:'\\',code:'Backslash',keyCode:220,preventDefault(){},stopPropagation(){}});
+    // Cannot duplicate the menu binding.
+    assert.notEqual(ui.emitted.at(-1)[0],'control:bind');
+    ui.elements.content.children.at(-1).onclick();
+    assert.deepEqual(Array.from(ui.emitted.at(-1)),['control:bind',76,69,220]);
+});
+test('CEF auth hides registration for existing accounts and submits login only',()=>{
+    const ui=boot('railway_auth');
+    ui.events['auth:init']('Existing_Player',true,'1.0');
+    assert.equal(ui.elements.tabs.hidden,true);
+    assert.equal(ui.elements['submit-label'].textContent,'Войти на вокзал');
+    ui.elements.tabs.listeners.click({target:{closest(){return {dataset:{mode:'register'}};}}});
+    assert.equal(ui.elements['submit-label'].textContent,'Войти на вокзал');
+    ui.elements.pass.value='secret123';
+    ui.elements.form.listeners.submit({preventDefault(){}});
+    assert.deepEqual(Array.from(ui.emitted.at(-1)),['auth:login','secret123']);
+});
+test('CEF auth offers registration only for an absent SQLite account',()=>{
+    const ui=boot('railway_auth');
+    ui.events['auth:init']('New_Player',false,'1.0');
+    assert.equal(ui.elements['submit-label'].textContent,'Создать аккаунт');
+    ui.elements.pass.value='secret123'; ui.elements.pass2.value='secret123';
+    ui.elements.form.listeners.submit({preventDefault(){}});
+    assert.deepEqual(Array.from(ui.emitted.at(-1)),['auth:register','secret123','secret123']);
+});
+test('bridge waits for late CEF injection, registers handlers before ready and retries until ACK',()=>{
+    const intervals=[], cleared=new Set(), window={}, calls=[], handlers={};
+    const context={window,setInterval(fn){intervals.push(fn);return intervals.length-1;},clearInterval(id){cleared.add(id);}};
+    vm.runInNewContext(fs.readFileSync('server/scriptfiles/cef/railway_control/bridge.js','utf8'),context);
+    window.railwayCef.on('control:settings',()=>{});
+    window.railwayCef.emit('control:ready');
+    for(let i=0;i<150;i++) intervals[1](); // More than three minutes without native bridge.
+    assert.equal(cleared.size,0,'late injection must still be accepted');
+    window.cef={on(k,fn){handlers[k]=fn;calls.push(['on',k]);},emit(k){calls.push(['emit',k]);}};
+    intervals[0]();
+    assert.ok(calls.findIndex(v=>v[1]==='control:settings') < calls.findIndex(v=>v[0]==='emit'));
+    intervals[1]();
+    assert.equal(calls.filter(v=>v[0]==='emit').length,2);
+    handlers['railway:ack'](); intervals[1]();
+    assert.ok(cleared.has(1));
+});
+test('map teleport requires confirmation and revalidates state on response',()=>{
+    const source=fs.readFileSync('server/gamemodes/railway.pwn','latin1');
+    const click=source.slice(source.indexOf('public OnPlayerClickMap'),source.indexOf('public OnCefInitialize'));
+    assert.ok(click.includes('gMapPending[playerid] = true'));
+    assert.ok(!click.includes('SetPlayerPosFindZ'));
+    const response=source.slice(source.indexOf('if (dialogid == DIALOG_MAP_TELEPORT)'),source.indexOf('public OnPlayerClickMap'));
+    assert.ok(response.includes('!response || !gLogged[playerid]'));
+    assert.ok(response.includes('PLAYER_STATE_ONFOOT'));
+    assert.ok(response.includes('gMapPending[playerid] = false'));
+});
+test('late auth page is kept alive during fallback and can replace the native dialog',()=>{
+    const source=fs.readFileSync('server/pawno/include/railway/accounts.inc','latin1');
+    const fallback=source.slice(source.indexOf('stock RW_AuthFallbackNow'),source.indexOf('forward RW_AuthFallback'));
+    assert.ok(!fallback.includes('CEF_DestroyBrowser'));
+    const ready=source.slice(source.indexOf('public RW_OnAuthReady'),source.indexOf('public RW_OnAuthLogin'));
+    assert.ok(ready.includes('ShowPlayerDialog(playerid, -1'));
+    assert.ok(ready.includes('RW_UI_OpenAuth(playerid)'));
+    assert.ok(ready.includes('if (gLogged[playerid]) return 1'));
 });

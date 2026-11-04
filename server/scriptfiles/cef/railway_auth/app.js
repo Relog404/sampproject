@@ -9,7 +9,7 @@
 
     /* ------------------------------------------------------------ плагин */
 
-    var cefApi = (typeof window.cef !== 'undefined' && window.cef) ? window.cef : null;
+    var cefApi = window.railwayCef || (typeof window.cef !== 'undefined' && window.cef) ? window.cef : null;
     var isPreview = !cefApi;
 
     if (!cefApi) {
@@ -63,6 +63,7 @@
     var toastText  = document.getElementById('toast-text');
 
     var mode = 'login';
+    var accountExists = null;
     var busy = false;
     var ready = false;
     var toastTimer = 0;
@@ -152,6 +153,7 @@
     /* ------------------------------------------------------------ режимы */
 
     function setMode(next, focus) {
+        if (accountExists !== null) next = accountExists ? 'login' : 'register';
         mode = next;
         var register = (next === 'register');
 
@@ -259,12 +261,16 @@
             fieldError(fieldRepeat, codeMessage(code));
             pass2.focus();
         } else if (code === 'err:exists') {
+            accountExists = true; setMode('login', false);
             pass.focus();
             pass.select();
         } else if (code === 'err:badpass' || code.indexOf('err:badpass') === 0) {
             fieldError(fieldPass, 'Проверьте раскладку и Caps Lock.');
             pass.focus();
             pass.select();
+        } else if (code === 'err:noaccount') {
+            accountExists = false; setMode('register', false);
+            pass.focus();
         } else {
             pass.focus();
         }
@@ -273,6 +279,9 @@
     /* ------------------------------------------------------------ события сервера */
 
     cefApi.on('auth:init', function (nick, hasAccount, version) {
+        accountExists = !!hasAccount;
+        tabs.hidden = true;
+        stage.classList.remove('is-leaving');
         ready = true;
         card.classList.add('is-ready');
 
