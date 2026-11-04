@@ -25,28 +25,112 @@ forward RW_ShowLoginDialog(playerid);
 
 /* ------------------------------------------------------------------ база */
 
+/*  Все запросы идут через эти обёртки: db_query() возвращает дескриптор
+ *  результата, который обязательно нужно освобождать, иначе они копятся. */
+stock bool:RW_DB_Exec(query[])
+{
+    new DBResult:res = db_query(gDB, query);
+    if (res != DBResult:0) {
+        db_free_result(res);
+    }
+    return true;
+}
+
+stock bool:RW_DB_TableExists(const name[])
+{
+    new query[160];
+    new DBResult:res;
+    new bool:found = false;
+
+    format(query, sizeof query,
+        "SELECT `name` FROM `sqlite_master` WHERE `type`='table' AND `name`='%s'", name);
+
+    res = db_query(gDB, query);
+    if (res != DBResult:0) {
+        found = (db_num_rows(res) > 0);
+        db_free_result(res);
+    }
+    return found;
+}
+
+/*  Самопроверка схемы: пишем и сразу читаем служебную строку тем же набором
+ *  колонок, что и настоящая регистрация. Так видно, что база реально пишется. */
+stock bool:RW_DB_Probe()
+{
+    new DBResult:res;
+    new bool:ok = false;
+
+    RW_DB_Exec("DELETE FROM `accounts` WHERE `name` = '__probe__'");
+
+    res = db_query(gDB,
+        "INSERT INTO `accounts` (`name`,`hash`,`salt`,`skin`,`money`,`admin`,`created`,`last_login`,`last_ip`) VALUES ('__probe__','probe','probe',0,0,0,0,0,'127.0.0.1')");
+    if (res != DBResult:0) {
+        db_free_result(res);
+    }
+
+    res = db_query(gDB, "SELECT `id` FROM `accounts` WHERE `name` = '__probe__' LIMIT 1");
+    if (res != DBResult:0) {
+        ok = (db_num_rows(res) > 0);
+        db_free_result(res);
+    }
+
+    RW_DB_Exec("DELETE FROM `accounts` WHERE `name` = '__probe__'");
+    return ok;
+}
+
+stock RW_DB_CreateTable()
+{
+    RW_DB_Exec("CREATE TABLE IF NOT EXISTS `accounts` (`id` INTEGER PRIMARY KEY AUTOINCREMENT,`name` TEXT NOT NULL UNIQUE COLLATE NOCASE,`hash` TEXT NOT NULL,`salt` TEXT NOT NULL,`skin` INTEGER NOT NULL DEFAULT 0,`money` INTEGER NOT NULL DEFAULT 2500,`admin` INTEGER NOT NULL DEFAULT 0,`created` INTEGER NOT NULL DEFAULT 0,`last_login` INTEGER NOT NULL DEFAULT 0,`last_ip` TEXT NOT NULL DEFAULT '')");
+    return 1;
+}
+
 stock RW_DB_Init()
 {
-    /*  db_open() ищет файл ВНУТРИ scriptfiles/, поэтому префикс scriptfiles/
-     *  давал scriptfiles/scriptfiles/railway.db и открыть базу не удавалось. */
+    /*  db_open() сам ищет файл ВНУТРИ scriptfiles/, поэтому путь с префиксом
+     *  scriptfiles/ превращался в scriptfiles/scriptfiles/railway.db. */
     gDB = db_open("railway.db");
+
     if (gDB == DB:0) {
         /*  запасной вариант — если сервер разрешает путь от своего корня */
         gDB = db_open("scriptfiles/railway.db");
     }
+
     if (gDB == DB:0) {
-        print("[railway] Не удалось открыть базу scriptfiles/railway.db");
+        print("[railway] База: не удалось открыть scriptfiles/railway.db.");
         print("[railway] Проверьте, что папка scriptfiles есть и доступна на запись.");
         return 0;
     }
 
-    db_query(gDB, "PRAGMA journal_mode = WAL");
+    printf("[railway] База: соединение открыто (handle %d).", _:gDB);
 
-    db_query(gDB,
-        "CREATE TABLE IF NOT EXISTS `accounts` (`id` INTEGER PRIMARY KEY AUTOINCREMENT,`name` TEXT NOT NULL UNIQUE COLLATE NOCASE,`hash` TEXT NOT NULL,`salt` TEXT NOT NULL,`skin` INTEGER NOT NULL DEFAULT 0,`money` INTEGER NOT NULL DEFAULT 2500,`admin` INTEGER NOT NULL DEFAULT 0,`created` INTEGER NOT NULL DEFAULT 0,`last_login` INTEGER NOT NULL DEFAULT 0,`last_ip` TEXT NOT NULL DEFAULT '')");
+    RW_DB_Exec("PRAGMA journal_mode = WAL");
+    RW_DB_CreateTable();
 
-    print("[railway] База данных готова.");
-    return 1;
+    if (!RW_DB_TableExists("accounts")) {
+        print("[railway] База: таблица accounts не создалась (файл только для чтения?).");
+        return 0;
+    }
+
+    if (RW_DB_Probe()) {
+        print("[railway] База данных готова.");
+        return 1;
+    }
+
+    /*  Таблица есть, но запись не проходит: обычно это старая схема, оставшаяся
+     *  от прежней версии. Уводим её в сторону и создаём таблицу заново. */
+    print("[railway] База: таблица accounts не подходит под текущую схему, пересоздаю.");
+    RW_DB_Exec("ALTER TABLE `accounts` RENAME TO `accounts_backup_old`");
+    RW_DB_CreateTable();
+
+    if (RW_DB_Probe()) {
+        print("[railway] База: пересоздана, старая таблица сохранена как accounts_backup_old.");
+        print("[railway] База данных готова.");
+        return 1;
+    }
+
+    print("[railway] База: запись в accounts не работает.");
+    print("[railway] Удалите файл scriptfiles/railway.db и перезапустите сервер.");
+    return 0;
 }
 
 stock RW_DB_AccountCount()
@@ -239,11 +323,19 @@ stock RW_DoRegister(playerid, const nick[], const password[])
         "INSERT INTO `accounts` (`name`,`hash`,`salt`,`skin`,`money`,`admin`,`created`,`last_login`,`last_ip`) VALUES ('%s','%s','%s',%d,%d,0,%d,0,'%s')",
         nick, hash, salt, DEFAULT_SKIN, DEFAULT_MONEY, gettime(), ip);
 
-    db_query(gDB, query);
+    RW_DB_Exec(query);
 
     if (!RW_DB_AccountExists(nick)) {
         RW_Respond(playerid, false, "err:db");
-        print("[railway] Ошибка INSERT при регистрации аккаунта.");
+        printf("[railway] Регистрация: запись '%s' не сохранилась (handle %d).", nick, _:gDB);
+
+        if (gDB == DB:0) {
+            print("[railway] Причина: база не открыта — смотрите сообщения при старте сервера.");
+        } else if (!RW_DB_TableExists("accounts")) {
+            print("[railway] Причина: нет таблицы accounts.");
+        } else {
+            print("[railway] Причина: таблица есть, но INSERT не сохраняет строку.");
+        }
         return 0;
     }
 
@@ -391,7 +483,7 @@ stock RW_SaveAccount(playerid)
         "UPDATE `accounts` SET `skin`=%d,`money`=%d,`last_login`=%d,`last_ip`='%s' WHERE `id`=%d",
         gSkinId[playerid], gMoney[playerid], gettime(), ip, gAccountId[playerid]);
 
-    db_query(gDB, query);
+    RW_DB_Exec(query);
     return 1;
 }
 

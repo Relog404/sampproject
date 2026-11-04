@@ -341,6 +341,22 @@ public OnRconCommand(cmd[])
         return 1;
     }
 
+    if (!strcmp(cmdName, "dbcheck", true)) {
+        printf("База: handle=%d, аккаунтов=%d", _:gDB, RW_DB_AccountCount());
+
+        if (gDB == DB:0) {
+            print("База: соединение НЕ открыто (смотрите сообщения при старте сервера).");
+        } else if (!RW_DB_TableExists("accounts")) {
+            print("База: нет таблицы accounts.");
+        } else if (RW_DB_Probe()) {
+            print("База: запись и чтение работают.");
+        } else {
+            print("База: таблица есть, но запись не сохраняется.");
+            print("Удалите scriptfiles/railway.db и перезапустите сервер.");
+        }
+        return 1;
+    }
+
     return 0;
 }
 

@@ -121,7 +121,7 @@ stock RW_AdminSetLevel(const nick[], level)
     }
 
     format(query, sizeof query, "UPDATE `accounts` SET `admin`=%d WHERE `name`='%s'", level, nick);
-    db_query(gDB, query);
+    RW_DB_Exec(query);
 
     for (new i = 0; i < MAX_PLAYERS; i++) {
         if (!IsPlayerConnected(i) || !gLogged[i]) {
