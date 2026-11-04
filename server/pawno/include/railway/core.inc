@@ -59,7 +59,8 @@
 #define KEY_RANGE                   (6.0)    /* радиус взаимодействия с авто */
 #define SPEEDO_INTERVAL             (150)    /* мс, частота обновления HUD   */
 #define ENFORCE_INTERVAL            (400)    /* мс, проверка права на езду   */
-#define AUTH_FALLBACK_DELAY         (12000)  /* мс до текстового резерва     */
+#define AUTH_FALLBACK_DELAY         (3000)   /* мс ожидания CEF до диалога   */
+#define AUTH_CEF_RETRY_DELAY        (3000)   /* мс, продление при загрузке   */
 #define DEFAULT_SKIN                (0)
 #define DEFAULT_MONEY               (2500)
 #define MAX_LOGIN_ATTEMPTS          (5)

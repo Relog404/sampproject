@@ -413,8 +413,9 @@ public OnCefInitialize(playerid, bool:success, E_CEF_INIT_REASON:reason, const m
 {
     if (!success) {
         printf("[railway] CEF не инициализирован у игрока %d (reason=%d): %s", playerid, _:reason, message);
-        SendClientMessage(playerid, COLOR_ERROR, " лиент CEF не найден Ч доступен только текстовый вход.");
         gCefReady[playerid] = false;
+        /* Ќе ждЄм таймер: сразу даЄм текстовый вход. */
+        RW_AuthFallbackNow(playerid, "CEF не инициализирован");
         return 1;
     }
     return 1;
@@ -424,6 +425,21 @@ public OnCefDownloadProgress(playerid, const fileName[], filePercent, totalPerce
     fileDownloadedKb, fileTotalKb, totalDownloadedKb, totalKb)
 {
     /* “ихий режим: не засор€ем чат, прогресс видит сам клиент. */
+    #pragma unused fileName
+    #pragma unused filePercent
+    #pragma unused totalPercent
+    #pragma unused fileDownloadedKb
+    #pragma unused fileTotalKb
+    #pragma unused totalDownloadedKb
+    #pragma unused totalKb
+
+    /*  лиент качает файлы CEF Ч это долго, диалог не показываем, продлеваем ожидание. */
+    if (!gLogged[playerid] && !gAuthFallbackSent[playerid]) {
+        if (gFallbackTimer[playerid] != 0) {
+            KillTimer(gFallbackTimer[playerid]);
+        }
+        gFallbackTimer[playerid] = SetTimerEx("RW_AuthFallback", AUTH_CEF_RETRY_DELAY, false, "i", playerid);
+    }
     return 1;
 }
 
@@ -441,7 +457,7 @@ public OnCefReady(playerid)
         gFallbackTimer[playerid] = 0;
     }
 
-    if (!gLogged[playerid]) {
+    if (!gLogged[playerid] && !gAuthFallbackSent[playerid]) {
         RW_UI_OpenAuth(playerid);
     }
     return 1;
@@ -453,6 +469,10 @@ public OnCefBrowserCreated(playerid, browserid, bool:success, E_CEF_CREATE_STATU
 
     if (!success) {
         printf("[railway] Ѕраузер %d не создан у игрока %d: %s", browserid, playerid, reason);
+
+        if (browserid == CEF_BROWSER_AUTH) {
+            RW_AuthFallbackNow(playerid, "браузер входа не создан");
+        }
     }
     return 1;
 }

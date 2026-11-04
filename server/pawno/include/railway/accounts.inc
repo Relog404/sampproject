@@ -248,6 +248,11 @@ stock RW_Respond(playerid, bool:ok, const code[])
     gAuthBusy[playerid] = false;
     RW_UI_AuthBusy(playerid, false);
     RW_UI_AuthResult(playerid, ok, code, nick);
+
+    /* Если CEF недоступен и игрок входит через диалог — отвечаем диалогом. */
+    if (gAuthFallbackSent[playerid]) {
+        RW_AuthDialogRespond(playerid, ok, code);
+    }
     return 1;
 }
 
@@ -341,6 +346,11 @@ stock RW_DoRegister(playerid, const nick[], const password[])
 
     RW_Respond(playerid, true, "ok:register");
     RW_DoLogin(playerid, nick, password, true);
+
+    /* Диалоговый режим: молчаливый вход мог не сработать — показываем вход. */
+    if (!gLogged[playerid] && gAuthFallbackSent[playerid]) {
+        RW_ShowAuthDialog(playerid, false, "Аккаунт создан. Введите пароль, чтобы войти.");
+    }
     return 1;
 }
 
@@ -541,20 +551,129 @@ stock RW_StartAuthCamera(playerid)
 
 /* ------------------------------------------------------------------ резервные диалоги */
 
-stock RW_ShowLoginDialog(playerid)
+/*  Текст для кодов, которыми обмениваются Pawn и CEF-страница. */
+stock RW_AuthCodeText(const code[], dest[], size)
+{
+    if (!strcmp(code, "ok:register", true)) {
+        format(dest, size, "Аккаунт создан.");
+    } else if (!strcmp(code, "ok:login", true)) {
+        format(dest, size, "Вход выполнен.");
+    } else if (!strcmp(code, "err:short", true)) {
+        format(dest, size, "Слишком короткий пароль (минимум 6 символов).");
+    } else if (!strcmp(code, "err:long", true)) {
+        format(dest, size, "Слишком длинный пароль (максимум 64 символа).");
+    } else if (!strcmp(code, "err:chars", true)) {
+        format(dest, size, "В пароле есть недопустимые символы.");
+    } else if (!strcmp(code, "err:mismatch", true)) {
+        format(dest, size, "Пароли не совпадают.");
+    } else if (!strcmp(code, "err:exists", true)) {
+        format(dest, size, "Такой ник уже зарегистрирован.");
+    } else if (!strcmp(code, "err:noaccount", true)) {
+        format(dest, size, "Аккаунт не найден.");
+    } else if (!strcmp(code, "err:inuse", true)) {
+        format(dest, size, "Этот аккаунт уже в игре.");
+    } else if (!strcmp(code, "err:nick", true)) {
+        format(dest, size, "Ник не подходит для аккаунта.");
+    } else if (!strcmp(code, "err:db", true)) {
+        format(dest, size, "Ошибка базы данных. Попробуйте позже.");
+    } else if (!strcmp(code, "err:badpass", true, 11)) {
+        format(dest, size, "Неверный пароль. Проверьте раскладку и Caps Lock.");
+    } else if (!strcmp(code, "err:cooldown", true)) {
+        format(dest, size, "Слишком часто. Подождите секунду.");
+    } else if (!strcmp(code, "err:attempts", true)) {
+        format(dest, size, "Слишком много попыток входа.");
+    } else {
+        format(dest, size, "%s", code);
+    }
+    return 1;
+}
+
+/*  Показывает диалог входа или регистрации. note — строка-пояснение сверху
+ *  (например, текст ошибки или «Аккаунт создан, войдите»). */
+stock RW_ShowAuthDialog(playerid, bool:registerMode, const note[])
 {
     new nick[MAX_PLAYER_NAME];
-    new info[256];
+    new info[320];
+    new head[160];
 
     RW_GetNick(playerid, nick);
 
-    if (RW_DB_AccountExists(nick)) {
-        format(info, sizeof info, "Аккаунт {F5B04C}%s{FFFFFF} найден.\nВведите пароль для входа.", nick);
-        ShowPlayerDialog(playerid, DIALOG_LOGIN, DIALOG_STYLE_PASSWORD, "Вход", info, "Войти", "Регистрация");
+    if (note[0] == EOS) {
+        head[0] = EOS;
+    } else {
+        format(head, sizeof head, "{FF8080}%s{FFFFFF}\n\n", note);
+    }
+
+    if (registerMode) {
+        format(info, sizeof info,
+            "%sАккаунт для {F5B04C}%s{FFFFFF} ещё не создан.\nПридумайте пароль (минимум 6 символов).",
+            head, nick);
+        ShowPlayerDialog(playerid, DIALOG_REGISTER, DIALOG_STYLE_PASSWORD, "Регистрация", info, "Создать", "Вход");
     } else {
         format(info, sizeof info,
-            "Аккаунт для {F5B04C}%s{FFFFFF} ещё не создан.\nПридумайте пароль (минимум 6 символов).", nick);
-        ShowPlayerDialog(playerid, DIALOG_REGISTER, DIALOG_STYLE_PASSWORD, "Регистрация", info, "Создать", "Вход");
+            "%sАккаунт {F5B04C}%s{FFFFFF} найден.\nВведите пароль для входа.", head, nick);
+        ShowPlayerDialog(playerid, DIALOG_LOGIN, DIALOG_STYLE_PASSWORD, "Вход", info, "Войти", "Регистрация");
+    }
+    return 1;
+}
+
+stock RW_ShowLoginDialog(playerid)
+{
+    new nick[MAX_PLAYER_NAME];
+    RW_GetNick(playerid, nick);
+    return RW_ShowAuthDialog(playerid, !RW_DB_AccountExists(nick), "");
+}
+
+/*  Ответ на попытку входа/регистрации в диалоговом режиме. */
+stock RW_AuthDialogRespond(playerid, bool:ok, const code[])
+{
+    new text[192];
+
+    RW_AuthCodeText(code, text, sizeof text);
+
+    if (ok) {
+        if (!strcmp(code, "ok:register", true)) {
+            SendClientMessage(playerid, COLOR_WHITE, text);
+        }
+        return 1;
+    }
+
+    SendClientMessage(playerid, COLOR_ERROR, text);
+
+    if (strcmp(code, "err:mismatch", true) == 0 || strcmp(code, "err:short", true) == 0
+        || strcmp(code, "err:long", true) == 0 || strcmp(code, "err:chars", true) == 0) {
+        RW_ShowAuthDialog(playerid, true, text);
+    } else {
+        RW_ShowAuthDialog(playerid, false, text);
+    }
+    return 1;
+}
+
+/*  Немедленно переводит игрока на текстовый вход (CEF не работает). */
+stock RW_AuthFallbackNow(playerid, const reason[])
+{
+    if (!IsPlayerConnected(playerid) || gLogged[playerid]) {
+        return 0;
+    }
+    if (gAuthFallbackSent[playerid]) {
+        return 1;   /* диалог уже показан */
+    }
+
+    gAuthFallbackSent[playerid] = true;
+
+    if (gFallbackTimer[playerid] != 0) {
+        KillTimer(gFallbackTimer[playerid]);
+        gFallbackTimer[playerid] = 0;
+    }
+
+    if (reason[0] != EOS) {
+        printf("[railway] Игрок %d: текстовый вход (%s).", playerid, reason);
+    }
+
+    SendClientMessage(playerid, COLOR_GREY, "CEF-интерфейс недоступен — вход через диалог.");
+
+    if (!gAuthBrowserShown[playerid]) {
+        RW_ShowLoginDialog(playerid);
     }
     return 1;
 }
@@ -568,13 +687,11 @@ public RW_AuthFallback(playerid)
         return 0;
     }
 
-    if (gAuthBrowserShown[playerid]) {
-        return 0;
+    if (gAuthBrowserShown[playerid] || gCefReady[playerid]) {
+        return 0;   /* CEF успел подняться */
     }
 
-    gAuthFallbackSent[playerid] = true;
-    RW_ShowLoginDialog(playerid);
-    return 1;
+    return RW_AuthFallbackNow(playerid, "CEF не ответил за 3 с");
 }
 
 stock RW_ArmFallback(playerid)
