@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
     Railway — «Железнодорожный вокзал»
     ------------------------------------------------------------------
@@ -88,6 +88,25 @@ function Get-RemoteFile([pscustomobject]$Asset) {
     $ProgressPreference = 'Continue'
     try {
         Invoke-WebRequest -Uri $Asset.Url -OutFile $target -UseBasicParsing -Headers @{ 'User-Agent' = 'railway-setup' }
+    } catch {
+        $ProgressPreference = $progress
+        Write-Host ''
+        Write-Bad "Не удалось скачать $($Asset.File)"
+        Write-Host "  Причина: $($_.Exception.Message)" -ForegroundColor Gray
+        Write-Host ''
+        Write-Host '  Без этого файла сервер НЕ запустится: в server_log.txt будет' -ForegroundColor Yellow
+        Write-Host '      Loading plugin: cef' -ForegroundColor Yellow
+        Write-Host '       Failed.' -ForegroundColor Yellow
+        Write-Host '      Script[gamemodes/railway.amx]: Run time error 19' -ForegroundColor Yellow
+        Write-Host ''
+        Write-Host '  Что сделать вручную:' -ForegroundColor White
+        Write-Host "    1. Откройте $($Asset.Url)"
+        Write-Host "    2. Скачайте $($Asset.File)  (~1 МБ)"
+        Write-Host "    3. Распакуйте и положите cef.dll из архива в server\plugins\cef.dll"
+        Write-Host '    4. Запустите setup.ps1 ещё раз — он найдёт файл в кэше и проверит SHA-256'
+        Write-Host "       (архив кладётся в $CacheDir , имя файла — как в ссылке)"
+        Write-Host ''
+        throw
     } finally {
         $ProgressPreference = $progress
     }
@@ -134,6 +153,23 @@ Copy-Item -LiteralPath $inc.FullName -Destination (Join-Path $includeDir 'cef.in
 Write-Ok 'server\plugins\cef.dll'
 Write-Ok 'server\pawno\include\cef.inc'
 
+# --- быстрая проверка, что скопированный плагин действительно 32-битная DLL ---
+$dllPath = Join-Path $pluginsDir 'cef.dll'
+try {
+    $dllBytes = [System.IO.File]::ReadAllBytes($dllPath)
+    $dllPe = [System.BitConverter]::ToInt32($dllBytes, 0x3C)
+    $dllMachine = [System.BitConverter]::ToUInt16($dllBytes, $dllPe + 4)
+    $dllSize = (Get-Item -LiteralPath $dllPath).Length
+    if ($dllMachine -eq 0x014C) {
+        Write-Ok ("cef.dll: {0:N0} байт, 32-битный — сервер его загрузит" -f $dllSize)
+    } else {
+        Write-Warn2 ("cef.dll: разрядность 0x{0:X4} вместо x86 (0x014C)." -f $dllMachine)
+        Write-Warn2 'SA-MP-сервер 32-битный: возьмите из архива именно cef.dll для SA-MP.'
+    }
+} catch {
+    Write-Warn2 'Не удалось прочитать PE-заголовок cef.dll — перекачайте архив (-Force).'
+}
+
 Remove-Item -LiteralPath $temp -Recurse -Force
 
 # ------------------------------------------------------------------ клиент
@@ -160,6 +196,9 @@ Write-Host '  Дальше:' -ForegroundColor Yellow
 Write-Host '    1) откройте server\server.cfg и смените rcon_password;'
 Write-Host '    2) запустите server\samp-server.exe (порт 7777, CEF — UDP 7779);'
 Write-Host '    3) если сервер в интернете — разрешите входящие UDP 7777 и 7779.'
+Write-Host ''
+Write-Host '  Если сервер пишет "Loading plugin: cef" -> "Failed.", запустите:' -ForegroundColor Gray
+Write-Host '    server\tools\check-plugin.cmd' -ForegroundColor Gray
 Write-Host ''
 Write-Host '  Подробная инструкция: docs\УСТАНОВКА.md' -ForegroundColor DarkGray
 Write-Host ''

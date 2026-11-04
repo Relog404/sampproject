@@ -148,6 +148,7 @@ setup.ps1 — установка CEF-компонентов одной кома�
 │  ├─ server.cfg                   порт, хостнейм, plugins cef, ключ ресурсов CEF
 │  ├─ plugins\cef.dll              появляется после setup.ps1
 │  ├─ plugins\README.txt
+│  ├─ tools\check-plugin.cmd      диагностика: почему плагин не грузится
 │  ├─ gamemodes\railway.pwn        исходник (Windows-1251) + railway.amx
 │  ├─ pawno\include\               a_samp.inc, a_sampdb.inc, cef.inc ...
 │  │  └─ railway\                  core / ui / accounts / vehicles / speedo / commands
@@ -181,8 +182,8 @@ setup.ps1 — установка CEF-компонентов одной кома�
 
 | Симптом | Причина / решение |
 |---|---|
-| В логе `Failed (plugins/cef.dll)` | не выполнен `setup.ps1` либо файл заблокирован антивирусом |
-| `Script[gamemodes/railway.amx]: Run time error 19` | нет `plugins\cef.dll` (нативы CEF не зарегистрированы) |
+| В логе `Loading plugin: cef` → `Failed.` | не выполнен `setup.ps1` (нет `server\plugins\cef.dll`) либо файл не загружается Windows. Проверка: `server\tools\check-plugin.cmd` |
+| `Script[gamemodes/railway.amx]: Run time error 19: "File or function is not found"` | плагин CEF не загрузился, поэтому нативы CEF неизвестны. Сначала лечите строку выше |
 | CEF-меню не появляется, в чате «Клиент CEF не найден» | в GTA нет `cef.asi` / папки `cef\` / ASI loader |
 | Меню появляется, но пустое | ресурсы не отдаются: проверьте `scriptfiles\cef\railway_auth\` и `cef_resources_loader_mode cef` |
 | Открывается только текст-диалог входа | это резервный режим (CEF не поднялся за 12 с) — смотрите пункт выше |
@@ -190,6 +191,20 @@ setup.ps1 — установка CEF-компонентов одной кома�
 | Спидометр не обновляется | заблокирован UDP 7779 (`port + 2`) |
 
 ---
+
+### Если плагин не грузится
+
+`server\tools\check-plugin.cmd` (или `check-plugin.ps1`) показывает, что именно не так:
+есть ли файл, 32-битный ли он, на месте ли экспорты `Supports/Load/Unload/AmxLoad`
+и какой код ошибки отдаёт Windows при попытке загрузки:
+
+| Код | Что значит | Что делать |
+|---|---|---|
+| 126 | не найдена зависимость / битый файл | `setup.ps1 -Force`, положить оригинальный `cef.dll` |
+| 127 | в системе нет нужной функции DLL | обновить Windows; взять оригинальный архив v1.4.0 |
+| 193 | DLL не той разрядности (64-бит) | нужен `cef-samp-v1.4.0.zip` (x86) |
+| 1114 | упал `DllMain` | антивирус/битый файл — перекачать |
+| 14001 | нет Visual C++ Redistributable | поставить «VC++ 2015-2022 (x86)» |
 
 ## Сборка гейммода
 

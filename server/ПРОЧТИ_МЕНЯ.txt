@@ -24,4 +24,14 @@
 /mycar       — состояние машины
 /help        — помощь
 
+Если в server_log.txt видно
+
+    Loading plugin: cef
+     Failed.
+
+и дальше "Run time error 19", значит cef.dll нет или он не загрузился.
+Запустите проверку:
+
+    server\tools\check-plugin.cmd
+
 Подробности — в docs\ (УСТАНОВКА.md, КОМАНДЫ.md, АРХИТЕКТУРА.md).

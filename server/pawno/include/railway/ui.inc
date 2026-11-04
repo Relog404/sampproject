@@ -68,9 +68,13 @@ stock RW_UI_CloseAuth(playerid)
     return 1;
 }
 
-stock RW_UI_AuthResult(playerid, bool:ok, const message[])
+stock RW_UI_AuthResult(playerid, bool:ok, const message[], const nick[] = "")
 {
-    CEF_EmitEvent(playerid, CEF_BROWSER_AUTH, "auth:result", CEF_BOOL(ok), CEF_STR(message));
+    if (nick[0] == EOS) {
+        CEF_EmitEvent(playerid, CEF_BROWSER_AUTH, "auth:result", CEF_BOOL(ok), CEF_STR(message));
+    } else {
+        CEF_EmitEvent(playerid, CEF_BROWSER_AUTH, "auth:result", CEF_BOOL(ok), CEF_STR(message), CEF_STR(nick));
+    }
     return 1;
 }
 
