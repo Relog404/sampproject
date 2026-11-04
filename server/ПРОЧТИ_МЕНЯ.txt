@@ -34,4 +34,8 @@
 
     server\tools\check-plugin.cmd
 
+Если в логе "Run time error 20: Invalid index parameter (bad entry point)" —
+значит railway.amx собран без main(). Пересоберите его:
+server\tools\build-gamemode.ps1 (скрипт проверяет точку входа сам).
+
 Подробности — в docs\ (УСТАНОВКА.md, КОМАНДЫ.md, АРХИТЕКТУРА.md).

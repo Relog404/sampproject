@@ -27,9 +27,16 @@ forward RW_ShowLoginDialog(playerid);
 
 stock RW_DB_Init()
 {
-    gDB = db_open("scriptfiles/railway.db");
+    /*  db_open() ищет файл ВНУТРИ scriptfiles/, поэтому префикс scriptfiles/
+     *  давал scriptfiles/scriptfiles/railway.db и открыть базу не удавалось. */
+    gDB = db_open("railway.db");
     if (gDB == DB:0) {
-        print("[railway] Не удалось открыть scriptfiles/railway.db");
+        /*  запасной вариант — если сервер разрешает путь от своего корня */
+        gDB = db_open("scriptfiles/railway.db");
+    }
+    if (gDB == DB:0) {
+        print("[railway] Не удалось открыть базу scriptfiles/railway.db");
+        print("[railway] Проверьте, что папка scriptfiles есть и доступна на запись.");
         return 0;
     }
 

@@ -256,11 +256,29 @@ if (-not (Test-Path -LiteralPath $cfgPath)) {
 }
 
 $amxPath = Join-Path $serverDir 'gamemodes\railway.amx'
-if (Test-Path -LiteralPath $amxPath) {
+if (-not (Test-Path -LiteralPath $amxPath)) {
+    Write-Bad 'Нет server\gamemodes\railway.amx — гейммод не скомпилирован.'
+} else {
     $amxLen = (Get-Item -LiteralPath $amxPath).Length
     Write-Ok ("gamemodes\railway.amx: {0:N0} байт" -f $amxLen)
-} else {
-    Write-Bad 'Нет server\gamemodes\railway.amx — гейммод не скомпилирован.'
+
+    $amxBytes = [System.IO.File]::ReadAllBytes($amxPath)
+    $amxVersion = [int]$amxBytes[6]
+    $amxCip = [System.BitConverter]::ToInt32($amxBytes, 28)
+
+    if ($amxVersion -ne 8) {
+        Write-Bad ("AMX файловой версии {0} — сервер 0.3.7 принимает только 8." -f $amxVersion)
+        Write-Note 'Пересоберите: server\tools\build-gamemode.ps1'
+    } else {
+        Write-Ok 'AMX файловой версии 8 — сервер 0.3.7 его прочитает.'
+    }
+
+    if ($amxCip -lt 0) {
+        Write-Bad 'В .amx нет точки входа main() — будет "Run time error 20: Invalid index parameter".'
+        Write-Note 'Пересоберите гейммод: server\tools\build-gamemode.ps1'
+    } else {
+        Write-Ok 'Точка входа main() на месте.'
+    }
 }
 
 Write-Host ''
