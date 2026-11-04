@@ -109,7 +109,7 @@ Write-Host ''
 $known = @(
     [pscustomobject]@{ Timestamp = 0x5542F47A; Size = 0x330000; Version = '0.3.7-R1' },
     [pscustomobject]@{ Timestamp = 0x5C0B4243; Size = 0x27E000; Version = '0.3.7-R3-1' },
-    [pscustomobject]@{ Timestamp = 0x6372C39E; Size = 0x27E000; Version = '0.3.7-R5-1' },
+    [pscustomobject]@{ Timestamp = 0x6372C39E; Size = 0x27E000; Version = '0.3.7-R5-1 / R5-2' },
     [pscustomobject]@{ Timestamp = 0x5A6A3130; Size = 0x2BE000; Version = '0.3.DL-R1' }
 )
 
