@@ -1,0 +1,45 @@
+﻿RAILWAY — «Железнодорожный вокзал» (SA-MP 0.3.7 R5-2, Windows)
+=============================================================
+
+ВАЖНО: перед первым запуском выполните из корня проекта
+
+    powershell -ExecutionPolicy Bypass -File .\setup.ps1
+
+Скрипт скачает официальный CEF-плагин (aurora-mp/omp-cef v1.4.0),
+проверит SHA-256 и положит сюда plugins\cef.dll и pawno\include\cef.inc.
+Без cef.dll гейммод не загрузится: он использует нативы CEF.
+
+Запуск сервера
+--------------
+1. Откройте server.cfg и смените rcon_password.
+2. Запустите samp-server.exe (порт 7777, CEF — UDP 7779).
+3. Клиент: SA-MP 0.3.7 R5-2 + cef.asi и папка cef\ в папке GTA
+   (ставится скриптом client\install-client.ps1 или setup.ps1).
+
+Команды в игре
+--------------
+/spcar <id>  — машина (владелец — вы)
+/door        — открыть/закрыть двери
+/key         — вставить ключ и завести двигатель
+/mycar       — состояние машины
+/help        — помощь
+
+Если в server_log.txt видно
+
+    Loading plugin: cef
+     Failed.
+
+и дальше "Run time error 19", значит cef.dll нет или он не загрузился.
+Запустите проверку:
+
+    server\tools\check-plugin.cmd
+
+Если в логе "Run time error 20: Invalid index parameter (bad entry point)" —
+значит railway.amx собран без main(). Пересоберите его:
+server\tools\build-gamemode.ps1 (скрипт проверяет точку входа сам).
+
+Если регистрация не проходит, при старте сервера ищите строки "[railway] База:".
+Проверить на живом сервере: в rcon-консоли набрать dbcheck.
+Крайняя мера: остановить сервер, удалить scriptfiles\railway.db, запустить снова.
+
+Подробности — в docs\ (УСТАНОВКА.md, КОМАНДЫ.md, АРХИТЕКТУРА.md).
