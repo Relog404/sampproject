@@ -48,6 +48,9 @@ stock RW_UI_OpenAuth(playerid)
     CEF_ToggleChatInput(playerid, false);
     CEF_SetEscapeMenuMode(playerid, CEF_ESCAPE_MENU_DISABLED);
 
+    gAuthPageReady[playerid] = false;
+    if (gFallbackTimer[playerid] != 0) KillTimer(gFallbackTimer[playerid]);
+    gFallbackTimer[playerid] = SetTimerEx("RW_AuthFallback", 10000, false, "i", playerid);
     gAuthBrowserShown[playerid] = true;
     return 1;
 }

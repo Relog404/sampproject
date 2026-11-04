@@ -420,6 +420,9 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 
 public OnCefInitialize(playerid, bool:success, E_CEF_INIT_REASON:reason, const message[])
 {
+    gCefStage[playerid] = success ? 1 : -1;
+    gCefReason[playerid] = _:reason;
+    printf("[railway:cef] initialize player=%d success=%d reason=%d elapsed=%dms message=%s", playerid, _:success, _:reason, GetTickCount()-gCefStarted[playerid], message);
     if (!success) {
         printf("[railway] CEF не инициализирован у игрока %d (reason=%d): %s", playerid, _:reason, message);
         gCefReady[playerid] = false;
@@ -430,35 +433,40 @@ public OnCefInitialize(playerid, bool:success, E_CEF_INIT_REASON:reason, const m
     return 1;
 }
 
+public OnCefDownloadStart(playerid)
+{
+    gCefStage[playerid] = 2;
+    printf("[railway:cef] download start player=%d elapsed=%dms", playerid, GetTickCount()-gCefStarted[playerid]);
+    return 1;
+}
+
 public OnCefDownloadProgress(playerid, const fileName[], filePercent, totalPercent,
     fileDownloadedKb, fileTotalKb, totalDownloadedKb, totalKb)
 {
-    /* “ихий режим: не засор€ем чат, прогресс видит сам клиент. */
-    #pragma unused fileName
     #pragma unused filePercent
-    #pragma unused totalPercent
     #pragma unused fileDownloadedKb
     #pragma unused fileTotalKb
-    #pragma unused totalDownloadedKb
-    #pragma unused totalKb
-
-    /*  лиент качает файлы CEF Ч это долго, диалог не показываем, продлеваем ожидание. */
-    if (!gLogged[playerid] && !gAuthFallbackSent[playerid]) {
-        if (gFallbackTimer[playerid] != 0) {
-            KillTimer(gFallbackTimer[playerid]);
-        }
-        gFallbackTimer[playerid] = SetTimerEx("RW_AuthFallback", AUTH_CEF_RETRY_DELAY, false, "i", playerid);
+    if (gCefStage[playerid] != 2 || totalPercent/10 != gCefPercent[playerid]/10) {
+        printf("[railway:cef] download player=%d elapsed=%dms total=%d%% kb=%d/%d file=%s", playerid, GetTickCount()-gCefStarted[playerid], totalPercent, totalDownloadedKb, totalKb, fileName);
     }
+    gCefStage[playerid] = 2;
+    gCefPercent[playerid] = totalPercent;
+    // Do not postpone fallback forever while the transfer trickles in.
     return 1;
 }
 
 public OnCefDownloadFinish(playerid)
 {
+    gCefStage[playerid] = 3;
+    gCefPercent[playerid] = 100;
+    printf("[railway:cef] download finish player=%d elapsed=%dms", playerid, GetTickCount()-gCefStarted[playerid]);
     return 1;
 }
 
 public OnCefReady(playerid)
 {
+    gCefStage[playerid] = 4;
+    printf("[railway:cef] ready player=%d elapsed=%dms", playerid, GetTickCount()-gCefStarted[playerid]);
     gCefReady[playerid] = true;
     RW_InteractionInit(playerid);
 
@@ -480,7 +488,12 @@ public OnCefReady(playerid)
 
 public OnCefBrowserCreated(playerid, browserid, bool:success, E_CEF_CREATE_STATUS:code, const reason[])
 {
+    printf("[railway:cef] browser player=%d browser=%d success=%d code=%d reason=%s", playerid, browserid, _:success, _:code, reason);
     RW_UI_OnBrowserCreated(playerid, browserid, success);
+    if (browserid == CONTROL_BROWSER && !success) {
+        gControlCreated[playerid] = false;
+        gControlReady[playerid] = false;
+    }
 
     if (!success) {
         printf("[railway] Ѕраузер %d не создан у игрока %d: %s", browserid, playerid, reason);
@@ -488,6 +501,18 @@ public OnCefBrowserCreated(playerid, browserid, bool:success, E_CEF_CREATE_STATU
         if (browserid == CEF_BROWSER_AUTH) {
             RW_AuthFallbackNow(playerid, "браузер входа не создан");
         }
+    }
+    return 1;
+}
+
+public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
+{
+    // Default GTA vehicle Look Right is E. Physical rebindings apply once CEF is ready.
+    if (gCefReady[playerid] || !gLogged[playerid] || gControlMode[playerid] != 0) return 1;
+    if ((newkeys & KEY_LOOK_RIGHT) && !(oldkeys & KEY_LOOK_RIGHT) && GetPlayerState(playerid) == PLAYER_STATE_DRIVER) {
+        if (GetTickCount() - gControlTick[playerid] < 250) return 1;
+        gControlTick[playerid] = GetTickCount();
+        RW_EngineCommand(playerid);
     }
     return 1;
 }

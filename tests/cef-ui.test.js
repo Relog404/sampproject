@@ -58,3 +58,27 @@ test('bindings reject duplicates and toasts drain for three seconds',()=>{
     press(75);
     assert.deepEqual(Array.from(ui.emitted.at(-1)),['control:bind',75,69,71]);
 });
+test('Pawn key filter allows Num/Caps Lock, blocks only Shift/Ctrl/Alt',()=>{
+    const source=fs.readFileSync('server/pawno/include/railway/interaction.inc','latin1');
+    const handler=source.slice(source.indexOf('public OnCefPressKey'));
+    const match=handler.match(/modifiers & (\d+)/);
+    assert.ok(match,'key handler must mask modifiers instead of rejecting every flag');
+    const mask=Number(match[1]);
+    assert.equal(mask & 1,0,'Caps Lock must not block E');
+    assert.equal(mask & 256,0,'Num Lock must not block E');
+    assert.equal(mask & (1|256),0);
+    for (const flag of [2,4,8]) assert.ok(mask & flag);
+    assert.ok(handler.includes('CEF_IsChatInputOpen(playerid)'));
+});
+test('Pawn fallback waits for page handshake, download progress cannot extend login indefinitely',()=>{
+    const auth=fs.readFileSync('server/pawno/include/railway/accounts.inc','latin1');
+    const fallback=auth.slice(auth.indexOf('public RW_AuthFallback('),auth.indexOf('stock RW_ArmFallback'));
+    assert.ok(fallback.includes('gAuthPageReady[playerid]'));
+    assert.ok(!fallback.includes('|| gCefReady[playerid]'));
+    const mode=fs.readFileSync('server/gamemodes/railway.pwn','latin1');
+    const progress=mode.slice(mode.indexOf('public OnCefDownloadProgress'),mode.indexOf('public OnCefDownloadFinish'));
+    assert.ok(!progress.includes('SetTimerEx'));
+    const nativeKeys=mode.slice(mode.indexOf('public OnPlayerKeyStateChange'));
+    assert.ok(nativeKeys.includes('gCefReady[playerid] ||'));
+    assert.ok(nativeKeys.includes('KEY_LOOK_RIGHT'));
+});

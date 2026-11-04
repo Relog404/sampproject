@@ -210,6 +210,8 @@ stock RW_CommandProcess(playerid, cmdtext[])
         return RW_CommandHelp(playerid);
     }
 
+    if (!strcmp(cmd, "cefstatus", true)) return RW_CefStatus(playerid);
+
     if (!gLogged[playerid]) {
         RW_Error(playerid, "Сначала войдите в аккаунт.");
         return 1;
@@ -218,6 +220,7 @@ stock RW_CommandProcess(playerid, cmdtext[])
     if (!strcmp(cmd, "spcar", true) || !strcmp(cmd, "veh", true) || !strcmp(cmd, "car", true)) {
         return RW_Veh_CommandSpcar(playerid, params);
     }
+    if (!strcmp(cmd, "engine", true)) return RW_EngineCommand(playerid);
     if (!strcmp(cmd, "settings", true)) {
         return RW_ControlOpen(playerid, true);
     }

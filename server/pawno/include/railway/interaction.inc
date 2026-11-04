@@ -21,6 +21,11 @@ stock RW_InteractionRegister()
 }
 stock RW_InteractionReset(playerid)
 {
+    gCefStage[playerid] = 0;
+    gCefStarted[playerid] = GetTickCount();
+    gCefPercent[playerid] = 0;
+    gCefReason[playerid] = 0;
+    gAuthPageReady[playerid] = false;
     gControlCreated[playerid] = false;
     gControlReady[playerid] = false;
     gControlMode[playerid] = 0;
@@ -90,7 +95,9 @@ stock RW_ControlPublish(playerid)
 }
 stock RW_ControlOpen(playerid, bool:settings)
 {
-    if (!gLogged[playerid] || !gCefReady[playerid]) return RW_ControlNotify(playerid, "CEF ещё загружается.");
+    if (!gLogged[playerid]) return 1;
+    if (!gCefReady[playerid]) return RW_CefStatus(playerid);
+    if (!gControlReady[playerid]) return RW_ControlNotify(playerid, "Ресурсы CEF готовы, страница меню ещё не ответила. /cefstatus");
     if (!settings) {
         new v = RW_ControlTarget(playerid);
         if (v == INVALID_VEHICLE_ID || gVehSlotOf[v] < 0) return 1;
@@ -173,7 +180,8 @@ public RW_ControlBind(playerid, browserid, door, engine, menu)
 public OnCefPressKey(playerid, key, scancode, modifiers, bool:down, bool:repeat)
 {
     if (CEF_IsChatInputOpen(playerid)) return 1;
-    if (!down || repeat || modifiers || !gLogged[playerid] || gControlMode[playerid] != 0) return 1;
+    // CEF flags: Shift=2, Ctrl=4, Alt=8. Lock/mouse flags are NOT modifiers to block.
+    if (!down || repeat || (modifiers & 14) || !gLogged[playerid] || gControlMode[playerid] != 0) return 1;
     if (GetTickCount() - gControlTick[playerid] < 250) return 1;
     gControlTick[playerid] = GetTickCount();
     if (key == gControlKeys[playerid][2]) return RW_ControlOpen(playerid, false);
@@ -181,4 +189,26 @@ public OnCefPressKey(playerid, key, scancode, modifiers, bool:down, bool:repeat)
     if (key == gControlKeys[playerid][0]) RW_ControlExecute(playerid, v, 0);
     if (key == gControlKeys[playerid][1]) RW_ControlExecute(playerid, v, 1);
     return 1;
+}
+
+stock RW_CefStatus(playerid)
+{
+    new stage[96], text[220];
+    switch (gCefStage[playerid]) {
+        case -1: format(stage, sizeof stage, "ошибка инициализации (код %d)", gCefReason[playerid]);
+        case 0: format(stage, sizeof stage, "нет соединения CEF; проверьте cef.asi и UDP 7779");
+        case 1: format(stage, sizeof stage, "соединение есть, ожидаются ресурсы");
+        case 2: format(stage, sizeof stage, "скачивание ресурсов: %d%%", gCefPercent[playerid]);
+        case 3: format(stage, sizeof stage, "ресурсы скачаны, ожидается OnCefReady");
+        case 4: format(stage, sizeof stage, "CEF готов; меню JS=%d, вход JS=%d", _:gControlReady[playerid], _:gAuthPageReady[playerid]);
+    }
+    format(text, sizeof text, "CEF [%d сек]: %s", (GetTickCount()-gCefStarted[playerid])/1000, stage);
+    SendClientMessage(playerid, COLOR_INFO, text);
+    printf("[railway:cef] player=%d stage=%d elapsed=%dms percent=%d reason=%d controlJS=%d authJS=%d", playerid, gCefStage[playerid], GetTickCount()-gCefStarted[playerid], gCefPercent[playerid], gCefReason[playerid], _:gControlReady[playerid], _:gAuthPageReady[playerid]);
+    return 1;
+}
+stock RW_EngineCommand(playerid)
+{
+    if (!IsPlayerInAnyVehicle(playerid)) return RW_ControlNotify(playerid, "Сядьте за руль.");
+    return RW_ControlExecute(playerid, GetPlayerVehicleID(playerid), 1);
 }

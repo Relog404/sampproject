@@ -687,11 +687,11 @@ public RW_AuthFallback(playerid)
         return 0;
     }
 
-    if (gAuthBrowserShown[playerid] || gCefReady[playerid]) {
+    if (gAuthPageReady[playerid]) {
         return 0;   /* CEF успел подняться */
     }
 
-    return RW_AuthFallbackNow(playerid, "CEF не ответил за 3 с");
+    return RW_AuthFallbackNow(playerid, "CEF/страница входа не ответили вовремя");
 }
 
 stock RW_ArmFallback(playerid)
@@ -707,6 +707,13 @@ stock RW_ArmFallback(playerid)
 
 public RW_OnAuthReady(playerid, browserid)
 {
+    if (browserid != CEF_BROWSER_AUTH || gLogged[playerid]) return 0;
+    gAuthPageReady[playerid] = true;
+    printf("[railway:cef] auth JS ready player=%d", playerid);
+    if (gFallbackTimer[playerid] != 0) {
+        KillTimer(gFallbackTimer[playerid]);
+        gFallbackTimer[playerid] = 0;
+    }
     new nick[MAX_PLAYER_NAME];
     new bool:hasAccount;
 

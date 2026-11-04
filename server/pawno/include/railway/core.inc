@@ -96,6 +96,8 @@ new gAdminLevel[MAX_PLAYERS];
 new gSkinId[MAX_PLAYERS];
 new gMoney[MAX_PLAYERS];
 
+new gCefStage[MAX_PLAYERS], gCefStarted[MAX_PLAYERS], gCefPercent[MAX_PLAYERS], gCefReason[MAX_PLAYERS];
+new bool:gAuthPageReady[MAX_PLAYERS];
 new bool:gCefReady[MAX_PLAYERS];       /* клиент CEF подключен и готов       */
 new bool:gAuthBrowserShown[MAX_PLAYERS];
 new bool:gAuthFallbackSent[MAX_PLAYERS];
