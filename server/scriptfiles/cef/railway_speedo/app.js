@@ -73,8 +73,9 @@
 
     function buildDial() {
         /* дорожка */
+        document.querySelector('.track').style.strokeDasharray = arcLength + ' ' + circumference;
         arcEl.style.strokeDasharray = arcLength + ' ' + circumference;
-        arcEl.style.strokeDashoffset = arcLength;
+        arcEl.style.strokeDashoffset = 0;
 
         /* красная зона: последние 16% шкалы */
         var redStart = arcLength * 0.84;
@@ -157,9 +158,11 @@
 
         speedEl.textContent = String(Math.round(state.currentSpeed));
 
-        arcEl.style.strokeDashoffset = String(arcLength * (1 - p));
+        arcEl.style.strokeDasharray = (arcLength * p) + ' ' + circumference;
+        arcEl.style.strokeDashoffset = '0';
+        arcEl.style.opacity = p > 0.001 ? '1' : '0';
         needleEl.setAttribute('transform',
-            'rotate(' + (START + SWEEP * p - 270) + ' ' + R_CENTER + ' ' + R_CENTER + ')');
+            'rotate(' + (START + SWEEP * p + 90) + ' ' + R_CENTER + ' ' + R_CENTER + ')');
 
         /* мягкое «дыхание» подсветки на высоких оборотах */
         if (state.currentRpm > 5600) {

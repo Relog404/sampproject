@@ -145,7 +145,7 @@ html,body{
   stroke:var(--accent);
   stroke-width:2.2;
   stroke-linecap:round;
-  transform-origin:110px 110px;
+
   filter:drop-shadow(0 0 6px rgba(245,176,76,.85));
   transition:stroke .3s linear;
 }
@@ -311,3 +311,8 @@ html,body{
 @media (prefers-reduced-motion: reduce){
   *{ animation-duration:.01ms !important; transition-duration:.01ms !important; }
 }
+
+/* Compact, consistent geometry: needle lives outside the central readout. */
+.dial{width:220px;height:220px;background:rgba(15,19,25,.94);box-shadow:0 12px 35px #0005;backdrop-filter:none}
+.arc,.redline{filter:none}
+.hud{right:28px;bottom:28px}

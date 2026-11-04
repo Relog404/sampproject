@@ -21,6 +21,8 @@ forward RW_OnAuthRegister(playerid, browserid, const password[], const confirm[]
 stock RW_UI_Init()
 {
     /* Ресурсы отдаются сервером: scriptfiles/cef/<resource>/... */
+    CEF_AddResource("railway_control");
+    RW_InteractionRegister();
     CEF_AddResource(CEF_RESOURCE_AUTH);
     CEF_AddResource(CEF_RESOURCE_SPEEDO);
 

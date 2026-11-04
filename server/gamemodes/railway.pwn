@@ -20,6 +20,7 @@
 #include <railway/accounts>
 #include <railway/vehicles>
 #include <railway/speedo>
+#include <railway/interaction>
 #include <railway/commands>
 
 /* ------------------------------------------------------------------ запуск */
@@ -50,6 +51,7 @@ public OnGameModeInit()
     SetWeather(0);
     EnableStuntBonusForAll(0);
     UsePlayerPedAnims();
+    ManualVehicleEngineAndLights();
 
     for (new i = 0; i < MAX_VEHICLES; i++) {
         gVehSlotOf[i] = -1;
@@ -116,6 +118,7 @@ public OnPlayerConnect(playerid)
     gSkinId[playerid] = DEFAULT_SKIN;
     gMoney[playerid] = DEFAULT_MONEY;
     RW_Speedo_ResetPlayer(playerid);
+    RW_InteractionReset(playerid);
 
     RW_GetNick(playerid, nick);
 
@@ -212,6 +215,7 @@ public OnPlayerSpawn(playerid)
 
 public OnPlayerDeath(playerid, killerid, reason)
 {
+    if (gControlMode[playerid] != 0) RW_ControlClose(playerid, CONTROL_BROWSER);
     RW_UI_SpeedoHide(playerid);
     gNoDrive[playerid] = false;
     return 1;
@@ -221,6 +225,11 @@ public OnPlayerDeath(playerid, killerid, reason)
 
 public OnPlayerStateChange(playerid, newstate, oldstate)
 {
+    if (newstate == PLAYER_STATE_PASSENGER) {
+        new v = GetPlayerVehicleID(playerid);
+        new slot = gVehSlotOf[v];
+        if (slot >= 0 && gVeh[slot][vsUsed] && !gVeh[slot][vsDoors]) RemovePlayerFromVehicle(playerid);
+    }
     if (newstate == PLAYER_STATE_DRIVER) {
         new vehicleid = GetPlayerVehicleID(playerid);
 
@@ -228,7 +237,7 @@ public OnPlayerStateChange(playerid, newstate, oldstate)
             new slot = gVehSlotOf[vehicleid];
 
             /* ƒвери закрыты Ч в машину нельз€, даже если клиент пропустил замок. */
-            if (slot >= 0 && gVeh[slot][vsUsed] && !gVeh[slot][vsDoors] && !gVeh[slot][vsKey]) {
+            if (slot >= 0 && gVeh[slot][vsUsed] && !gVeh[slot][vsDoors]) {
                 RW_Error(playerid, "ƒверь закрыта. ¬ладелец может открыть еЄ командой /door.");
                 RemovePlayerFromVehicle(playerid);
                 return 1;
@@ -254,7 +263,7 @@ public OnPlayerEnterVehicle(playerid, vehicleid, ispassenger)
     }
 
     new slot = gVehSlotOf[vehicleid];
-    if (slot >= 0 && gVeh[slot][vsUsed] && !gVeh[slot][vsDoors] && !gVeh[slot][vsKey]) {
+    if (slot >= 0 && gVeh[slot][vsUsed] && !gVeh[slot][vsDoors]) {
         RW_Info(playerid, "ƒверь закрыта Ч машина заперта. ѕопросите владельца открыть /door.");
     }
     return 1;
@@ -451,14 +460,20 @@ public OnCefDownloadFinish(playerid)
 public OnCefReady(playerid)
 {
     gCefReady[playerid] = true;
+    RW_InteractionInit(playerid);
 
     if (gFallbackTimer[playerid] != 0) {
         KillTimer(gFallbackTimer[playerid]);
         gFallbackTimer[playerid] = 0;
     }
 
-    if (!gLogged[playerid] && !gAuthFallbackSent[playerid]) {
+    if (!gLogged[playerid]) {
+        ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
+        gAuthFallbackSent[playerid] = false;
         RW_UI_OpenAuth(playerid);
+    } else if (GetPlayerState(playerid) == PLAYER_STATE_DRIVER) {
+        gSpeedoShown[playerid] = false;
+        RW_UI_SpeedoShow(playerid, GetPlayerVehicleID(playerid));
     }
     return 1;
 }

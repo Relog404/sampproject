@@ -97,7 +97,7 @@ stock RW_Veh_IsLocked(vehicleid)
     if (slot < 0 || !gVeh[slot][vsUsed]) {
         return 0;
     }
-    if (gVeh[slot][vsDoors] || gVeh[slot][vsKey]) {
+    if (gVeh[slot][vsDoors]) {
         return 0;
     }
     return 1;
@@ -133,7 +133,7 @@ stock RW_Veh_Sync(vehicleid)
     new engine = gVeh[slot][vsEngine] ? 1 : 0;
     new locked = RW_Veh_IsLocked(vehicleid);
 
-    SetVehicleParamsEx(vehicleid, engine, 0, 0, locked, 0, 0, 0);
+    SetVehicleParamsEx(vehicleid, engine, gVeh[slot][vsLights] ? 1 : 0, 0, locked, 0, 0, 0);
     SetVehicleParamsCarDoors(vehicleid, open ? 1 : 0, open ? 1 : 0, open ? 1 : 0, open ? 1 : 0);
 
     return 1;
@@ -162,12 +162,7 @@ stock RW_Veh_SetKey(vehicleid, bool:inserted)
     }
 
     gVeh[slot][vsKey] = inserted;
-    gVeh[slot][vsEngine] = inserted;
-
-    if (inserted) {
-        /* Водитель уже внутри: двери закрываются автоматически. */
-        gVeh[slot][vsDoors] = false;
-    }
+    if (!inserted) gVeh[slot][vsEngine] = false;
 
     RW_Veh_Sync(vehicleid);
     RW_Veh_SyncAll(vehicleid);
@@ -186,10 +181,7 @@ stock bool:RW_Veh_CanDrive(playerid, vehicleid)
     if (!gLogged[playerid]) {
         return false;
     }
-    if (gVeh[slot][vsOwnerAcc] != gAccountId[playerid]) {
-        return false;
-    }
-    if (!gVeh[slot][vsKey]) {
+    if (!gVeh[slot][vsKey] || !gVeh[slot][vsEngine]) {
         return false;
     }
     return true;
@@ -239,11 +231,6 @@ stock RW_Veh_Enforce(playerid)
             gNoDrive[playerid] = false;
             RW_Veh_Sync(vehicleid);
         }
-        if (!gVeh[slot][vsEngine]) {
-            gVeh[slot][vsEngine] = true;
-            RW_Veh_Sync(vehicleid);
-            RW_Ok(playerid, "Двигатель заведён. Можно ехать.");
-        }
         return 1;
     }
 
@@ -262,9 +249,7 @@ stock RW_Veh_Enforce(playerid)
     if (GetTickCount() - gEnforceLastTick[playerid] > 4000) {
         gEnforceLastTick[playerid] = GetTickCount();
 
-        if (!RW_IsVehicleOwner(playerid, vehicleid)) {
-            RW_Error(playerid, "Это чужая машина: ключей нет, двигатель заблокирован.");
-        } else if (!gVeh[slot][vsKey]) {
+        if (!gVeh[slot][vsKey]) {
             RW_Info(playerid, "Ключ не вставлен. Вставьте ключ командой /key.");
         }
     }
@@ -283,29 +268,8 @@ stock RW_Veh_OnEnterDriver(playerid, vehicleid)
         return 1;
     }
 
-    if (RW_Veh_CanDrive(playerid, vehicleid)) {
-        gNoDrive[playerid] = false;
-        gVeh[slot][vsEngine] = true;
-        RW_Veh_Sync(vehicleid);
-        RW_Ok(playerid, "Двигатель заведён. Счастливого пути!");
-        return 1;
-    }
-
-    gNoDrive[playerid] = true;
+    gNoDrive[playerid] = !RW_Veh_CanDrive(playerid, vehicleid);
     RW_Veh_Enforce(playerid);
-
-    if (!RW_IsVehicleOwner(playerid, vehicleid)) {
-        new owner[MAX_PLAYER_NAME];
-        format(owner, sizeof owner, "%s", gVeh[slot][vsOwnerName]);
-        new string[160];
-        format(string, sizeof string, "Машина принадлежит {F5B04C}%s{FFFFFF}. Сесть можно, поехать — нет.", owner);
-        SendClientMessage(playerid, COLOR_WHITE, string);
-        RW_Info(playerid, "Двигатель заводится только ключом владельца.");
-    } else if (!gVeh[slot][vsKey]) {
-        RW_Info(playerid, "Ключ не вставлен. Используйте {F5B04C}/key{FFFFFF}, чтобы завести двигатель.");
-    } else if (!gVeh[slot][vsEngine]) {
-        RW_Info(playerid, "Двигатель заглушен.");
-    }
     return 1;
 }
 
@@ -392,6 +356,7 @@ stock RW_Veh_Spawn(playerid, model)
     gVeh[slot][vsOwnerAcc] = gAccountId[playerid];
     gVeh[slot][vsOwnerPlayer] = playerid;
     gVeh[slot][vsModel] = model;
+    gVeh[slot][vsLights] = false;
     gVeh[slot][vsKey] = false;
     gVeh[slot][vsDoors] = false;
     gVeh[slot][vsEngine] = false;
@@ -445,6 +410,7 @@ stock RW_Veh_DestroySlot(slot, bool:notifyOwner)
     gVeh[slot][vsVehicleId] = INVALID_VEHICLE_ID;
     gVeh[slot][vsOwnerAcc] = -1;
     gVeh[slot][vsOwnerPlayer] = -1;
+    gVeh[slot][vsLights] = false;
     gVeh[slot][vsKey] = false;
     gVeh[slot][vsDoors] = false;
     gVeh[slot][vsEngine] = false;
@@ -537,7 +503,7 @@ stock RW_Veh_CommandKey(playerid)
         RW_Info(playerid, "Ключ вынут. Двигатель заглушен.");
     } else {
         RW_Veh_SetKey(vehicleid, true);
-        RW_Ok(playerid, "Ключ в замке зажигания, двигатель заведён, двери закрыты.");
+        RW_Ok(playerid, "Ключ вставлен. Нажмите E за рулём, чтобы завести.");
     }
     return 1;
 }

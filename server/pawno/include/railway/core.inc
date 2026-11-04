@@ -79,6 +79,7 @@ enum E_VEHICLE_SLOT
     bool:vsKey,
     bool:vsDoors,
     bool:vsEngine,
+    bool:vsLights,
     vsOwnerName[MAX_PLAYER_NAME]
 };
 

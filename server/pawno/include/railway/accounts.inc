@@ -672,9 +672,9 @@ stock RW_AuthFallbackNow(playerid, const reason[])
 
     SendClientMessage(playerid, COLOR_GREY, "CEF-интерфейс недоступен Ч вход через диалог.");
 
-    if (!gAuthBrowserShown[playerid]) {
-        RW_ShowLoginDialog(playerid);
-    }
+    RW_UI_CloseAuth(playerid);
+    CEF_DestroyBrowser(playerid, CEF_BROWSER_AUTH);
+    RW_ShowLoginDialog(playerid);
     return 1;
 }
 

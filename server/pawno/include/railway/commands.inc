@@ -49,10 +49,10 @@ stock RW_CommandHelp(playerid)
     RW_Accent(playerid, "Ч Ч Ч {F5B04C}∆елезнодорожный вокзал{FFFFFF} Ч Ч Ч");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/spcar <id>{FFFFFF} Ч создать машину (400Ц611). ¬ладелец Ч вы.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} Ч открыть/закрыть двери своей машины.");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/key{FFFFFF} Ч вставить/вынуть ключ и завести двигатель.");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/key{FFFFFF} Ч вставить/вынуть ключ; E Ч зажигание.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/mycar{FFFFFF} Ч состо€ние своей машины.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/stats{FFFFFF} Ч ваш аккаунт   Х   {F5B04C}/admins{FFFFFF} Ч администраци€");
-    SendClientMessage(playerid, COLOR_DARK_GREY, "¬ машину сад€тс€ только с открытой дверью. ≈хать может лишь владелец с ключом.");
+    SendClientMessage(playerid, COLOR_DARK_GREY, "¬ машину сад€тс€ только с открытой дверью. — оставленным ключом завести может любой водитель.");
     return 1;
 }
 
@@ -217,6 +217,9 @@ stock RW_CommandProcess(playerid, cmdtext[])
 
     if (!strcmp(cmd, "spcar", true) || !strcmp(cmd, "veh", true) || !strcmp(cmd, "car", true)) {
         return RW_Veh_CommandSpcar(playerid, params);
+    }
+    if (!strcmp(cmd, "settings", true)) {
+        return RW_ControlOpen(playerid, true);
     }
     if (!strcmp(cmd, "key", true)) {
         return RW_Veh_CommandKey(playerid);
