@@ -1,0 +1,17 @@
+# Кэш скачанных CEF-архивов
+.cache/
+
+# Клиентские файлы, полученные скриптом (не храним 150 МБ в репозитории)
+client/gta-files/
+
+# Рабочие файлы SA-MP
+server/scriptfiles/railway.db
+server/scriptfiles/railway.db-shm
+server/scriptfiles/railway.db-wal
+server/server_log.txt
+server/logs/
+server/bans.json
+server/samp-server.exe.pdb
+*.log
+Thumbs.db
+desktop.ini
