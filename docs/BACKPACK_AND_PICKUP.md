@@ -79,6 +79,12 @@ The vehicle argument accepts:
 - **nothing at all** — the car you sit in, or the managed car you aim at
   within 6 metres.
 
+Admin **`/givekey <playerid>`** opens a TextDraw menu: every spawned car is
+listed by its **SA-MP vehicle id** (with plate, model and temporary/permanent),
+and stored permanent cars by their garage `c<id>`. Click a row and that car's
+key is granted to the chosen player. `/giveitem <id> key <vehicle id>`,
+`p<plate>`, `c<garage car id>` or simply aiming at the car still work.
+
 Admin **`/cars`** lists every managed car: vehicle id, plate, model, key token,
 temporary/permanent, owner, plus stored permanent cars with their `c` ids.
 Use it instead of guessing an id.
@@ -127,3 +133,17 @@ Check in the actual GTA client:
 
 Automated checks execute extracted SQLite transitions and inspect source/AMX
 contracts. They do not run the Pawn VM or emulate GTA rendering/input.
+
+## Garage at the spawn point
+
+The booth object, its pickup and a 3D text label now stand a few metres from
+the player spawn point, so the car selection is visible right after spawning.
+Walking into the booth (or touching the pickup) opens the TextDraw menu; `/garage`
+also opens it within 6 metres of the booth. The menu lists the cars you hold
+keys for: permanent cars from `owned_cars` and temporary `/spcar` cars. Choose
+one and it appears on the garage pad. Keys left in the ignition still let any
+driver start a car, and a permanent key survives restarts while a `/spcar` key
+does not.
+
+Cars still spawn on the pad, not under the booth. If the booth or pickup does
+not appear in your world, check the server console for the garage warnings.

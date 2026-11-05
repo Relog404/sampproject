@@ -70,7 +70,9 @@ stock RW_CommandAdminHelp(playerid)
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/kick <id> [reason]{FFFFFF} - kick a player.");
     SendClientMessage(playerid, COLOR_GREY, "/setskin <playerid> <skinid> - change and save player skin.");
     SendClientMessage(playerid, COLOR_GREY, "/giveitem <id> <bag|key> [vehicle id, p<plate> or c<garage car id>]");
-    SendClientMessage(playerid, COLOR_DARK_GREY, "/givecar <id|name> <model> /cars - managed cars /flycar /speed <km/h> /usk <km/h/s>");
+    SendClientMessage(playerid, COLOR_DARK_GREY, "/givecar <id|name> <model> /cars - managed cars");
+    SendClientMessage(playerid, COLOR_GREY, "/givekey <id> - menu: pick the car (SA-MP id) to issue its key.");
+    SendClientMessage(playerid, COLOR_DARK_GREY, "/flycar /speed <km/h> /usk <km/h/s>");
     return 1;
 }
 
@@ -302,6 +304,7 @@ stock RW_CommandProcess(playerid, cmdtext[])
     if (!strcmp(cmd, "setskin", true)) return RW_CommandSetSkin(playerid, params);
     if (!strcmp(cmd, "givecar", true)) return RW_GarageGive(playerid, params);
     if (!strcmp(cmd, "cars", true)) return RW_Veh_ListCommand(playerid);
+    if (!strcmp(cmd, "givekey", true)) return RW_KeyMenuCommand(playerid, params);
     if (!strcmp(cmd, "flycar", true) || !strcmp(cmd, "speed", true) || !strcmp(cmd, "usk", true)) return RW_MotionCommand(playerid, cmd, params);
     if (!strcmp(cmd, "garage", true)) return RW_GarageOpen(playerid);
     if (!strcmp(cmd, "giveitem", true)) return RW_InvGiveCommand(playerid, params);

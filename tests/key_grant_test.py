@@ -46,6 +46,39 @@ class KeyGrantInputTest(unittest.TestCase):
         self.assertIn('printf("[garage] givecar failed for account=%d',garage)
         self.assertNotIn('inventory full, overweight or database error',garage)
 
+    def test_givekey_menu_selects_car_by_samp_id(self):
+        garage = pawn('garage')
+        open_menu = garage.split('stock RW_KeyMenuOpen',1)[1].split('stock RW_KeyMenuClick',1)[0]
+        click = garage.split('stock RW_KeyMenuClick',1)[1].split('stock RW_KeyMenuCommand',1)[0]
+        build = garage.split('stock RW_KeyMenuBuild',1)[1].split('stock RW_KeyMenuRender',1)[0]
+        self.assertIn('gAdminLevel[playerid] < 1', open_menu)
+        self.assertIn('!gInvLoaded[target]', open_menu)
+        self.assertIn('gUIMode[playerid] = UI_KEYMENU', open_menu)
+        self.assertIn('RW_UI_SelectBegin(playerid)', open_menu)
+        # Spawned cars are listed by their SA-MP vehicle id, stored ones by c<id>.
+        self.assertIn('gKeyList[playerid][gKeyCount[playerid]++] = gVeh[s][vsVehicleId]', build)
+        self.assertIn('-db_get_field_assoc_int(r, "id")', build)
+        self.assertIn('"id %d / RW-%03d / %s (%d) / %s"', garage)
+        self.assertIn('"c%d / stored / %s (%d)"', garage)
+        # A click re-checks the target, grants that car's token and closes.
+        self.assertIn('RW_InvGrant(target, ITEM_CAR_KEY, data)', click)
+        self.assertIn('RW_InvExplainGrant(playerid, target, ITEM_CAR_KEY, data)', click)
+        self.assertIn('RW_UI_Close(playerid)', click)
+        self.assertIn('Target player is no longer available', click)
+    def test_key_menu_is_a_real_ui_mode(self):
+        ui = pawn('ui')
+        self.assertIn('#define UI_KEYMENU 9', ui)
+        self.assertIn('RW_KeyMenuHide(playerid)', ui.split('stock RW_UI_Close',1)[1].split('stock RW_UI_OpenAuth',1)[0])
+        self.assertIn('RW_KeyMenuReset(playerid)', ui.split('stock RW_UI_Reset',1)[1])
+        main = (ROOT/'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
+        self.assertIn('UI_KEYMENU) return RW_KeyMenuClick', main)
+        self.assertIn('gUIMode[playerid] == UI_KEYMENU) return RW_UI_Close(playerid)', main)
+        self.assertIn('gKeyTarget[i] = -1', main)
+        commands = pawn('commands')
+        self.assertIn('"givekey"', commands)
+        self.assertIn('RW_KeyMenuCommand', commands)
+        self.assertIn('/givekey <id> - menu', commands)
+
     def test_help_texts_use_new_syntax(self):
         self.assertIn('/giveitem <id> <bag|key> [vehicle id, p<plate> or c<garage car id>]',COMMANDS)
         self.assertIn('/cars - managed cars',COMMANDS)

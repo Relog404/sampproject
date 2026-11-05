@@ -63,6 +63,7 @@ public OnGameModeInit()
     for (new i = 0; i < MAX_PLAYERS; i++) {
         gAccountId[i] = -1;
         gPlayerVehSlot[i] = -1;
+        gKeyTarget[i] = -1;
         gSpeedoVehicle[i] = INVALID_VEHICLE_ID;
         gSkinId[i] = DEFAULT_SKIN;
         gMoney[i] = DEFAULT_MONEY;
@@ -409,6 +410,7 @@ public OnPlayerClickMap(playerid, Float:fX, Float:fY, Float:fZ)
 public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 {
     if (gUIMode[playerid] == UI_GARAGE) return RW_GarageClick(playerid, playertextid);
+    if (gUIMode[playerid] == UI_KEYMENU) return RW_KeyMenuClick(playerid, playertextid);
     if (gUIMode[playerid] == UI_INVENTORY) return RW_InvClick(playerid, playertextid);
     if (!gUICreated[playerid] || gUIRussianDialogs[playerid]) return 0;
     if (playertextid == gUI[playerid][11]) {
@@ -429,7 +431,7 @@ public OnPlayerClickTextDraw(playerid, Text:clickedid)
     if (!gUISelecting[playerid]) return 1;
     gUISelecting[playerid] = false;
     if (gUIInput[playerid]) return 1;
-    if (gUIMode[playerid] == UI_INVENTORY || gUIMode[playerid] == UI_GARAGE) return RW_UI_Close(playerid);
+    if (gUIMode[playerid] == UI_INVENTORY || gUIMode[playerid] == UI_GARAGE || gUIMode[playerid] == UI_KEYMENU) return RW_UI_Close(playerid);
     if (gUIRussianDialogs[playerid]) return 1;
     if (gUIMode[playerid] == UI_AUTH && !gLogged[playerid]) RW_UI_SelectBegin(playerid);
     else if (gUIMode[playerid] != 0) RW_UI_Close(playerid);

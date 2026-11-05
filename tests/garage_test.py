@@ -110,8 +110,15 @@ class GarageSourceContractsTest(unittest.TestCase):
     def test_pickup_and_proximity_use_latch_and_textdraw_view(self):
         self.assertIn('CreateObject(3881', GARAGE)
         self.assertIn('CreatePickup(1239, 1', GARAGE)
+        # The booth and pickup stand next to the spawn point, not far away.
+        self.assertIn('#define GARAGE_X (STATION_X + 2.5)', GARAGE)
+        self.assertIn('#define GARAGE_Y (STATION_Y + 2.4)', GARAGE)
+        self.assertIn('CreateObject(3881, GARAGE_BOOTH_X, GARAGE_BOOTH_Y, GARAGE_BOOTH_Z', GARAGE)
+        self.assertIn('Create3DTextLabel("STATION GARAGE', GARAGE)
+        self.assertIn('Delete3DTextLabel(gGarageLabel)', GARAGE)
+        self.assertIn('IsPlayerInRangeOfPoint(playerid, GARAGE_RADIUS', GARAGE)
         self.assertIn('gGarageLatch[playerid]', GARAGE)
-        self.assertIn('IsPlayerInRangeOfPoint(p, 1.3', GARAGE)
+        self.assertIn('IsPlayerInRangeOfPoint(p, 2.0', GARAGE)
         self.assertIn('UI_GARAGE', source('ui'))
         self.assertIn('RW_UI_SelectBegin', GARAGE)
         self.assertNotIn('ShowPlayerDialog', GARAGE)

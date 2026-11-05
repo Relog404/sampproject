@@ -13,6 +13,7 @@
 #define UI_MAP 6
 #define UI_INVENTORY 7
 #define UI_GARAGE 8
+#define UI_KEYMENU 9
 new PlayerText:gUI[MAX_PLAYERS][UI_COUNT];
 new bool:gUICreated[MAX_PLAYERS], bool:gUIInput[MAX_PLAYERS];
 new bool:gUIPanelCreated[MAX_PLAYERS], bool:gUIRussianDialogs[MAX_PLAYERS];
@@ -268,6 +269,7 @@ stock RW_UI_Close(playerid, bool:keepSelection = false)
     RW_GroundHide(playerid);
     RW_InvHide(playerid);
     RW_GarageHide(playerid);
+    RW_KeyMenuHide(playerid);
     RW_UI_CancelNative(playerid);
     if (IsPlayerConnected(playerid)) ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
     if (gUIMode[playerid] == UI_MAP) gMapPending[playerid] = false;
@@ -375,6 +377,7 @@ stock RW_UI_Reset(playerid)
     RW_GroundReset(playerid);
     RW_InvReset(playerid);
     RW_GarageReset(playerid);
+    RW_KeyMenuReset(playerid);
     RW_UI_CancelNative(playerid);
     if (IsPlayerConnected(playerid)) ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
     gUIMode[playerid] = 0; gControlMode[playerid] = 0;
