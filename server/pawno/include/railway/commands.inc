@@ -47,9 +47,10 @@ stock RW_ParseCommand(const cmdtext[], cmd[], cmdSize, params[], paramsSize)
 stock RW_CommandHelp(playerid)
 {
     RW_Accent(playerid, "Ч Ч Ч {F5B04C}∆елезнодорожный вокзал{FFFFFF} Ч Ч Ч");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}Y{FFFFFF} Ч меню авто /vmenu; {F5B04C}N{FFFFFF} Ч мотор /engine; {F5B04C}H{FFFFFF} Ч двери. /settings Ч настройки.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/spcar <id>{FFFFFF} Ч создать машину (400Ц611). ¬ладелец Ч вы.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} Ч открыть/закрыть двери своей машины.");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/key{FFFFFF} Ч вставить/вынуть ключ; Џ Ч зажигание.");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/key{FFFFFF} Ч вставить/вынуть ключ; N Ч зажигание.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/mycar{FFFFFF} Ч состо€ние своей машины.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/stats{FFFFFF} Ч ваш аккаунт   Х   {F5B04C}/admins{FFFFFF} Ч администраци€");
     SendClientMessage(playerid, COLOR_DARK_GREY, "¬ машину сад€тс€ только с открытой дверью. — оставленным ключом завести может любой водитель.");
@@ -208,19 +209,6 @@ stock RW_CommandProcess(playerid, cmdtext[])
 
     if (!strcmp(cmd, "help", true) || !strcmp(cmd, "commands", true)) {
         return RW_CommandHelp(playerid);
-    }
-
-    if (!strcmp(cmd, "cefstatus", true)) return RW_CefStatus(playerid);
-    if (!strcmp(cmd, "authcef", true)) {
-        if (gLogged[playerid]) return 1;
-        if (!gCefReady[playerid]) return RW_CefStatus(playerid);
-        RW_UI_CloseAuth(playerid);
-        CEF_DestroyBrowser(playerid, CEF_BROWSER_AUTH);
-        gAuthBrowserCreated[playerid] = false;
-        gAuthPageReady[playerid] = false;
-        ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
-        gAuthFallbackSent[playerid] = false;
-        return RW_UI_OpenAuth(playerid);
     }
 
     if (!gLogged[playerid]) {

@@ -503,7 +503,7 @@ stock RW_Veh_CommandKey(playerid)
         RW_Info(playerid, "Ключ вынут. Двигатель заглушен.");
     } else {
         RW_Veh_SetKey(vehicleid, true);
-        RW_Ok(playerid, "Ключ вставлен. Нажмите Ъ за рулём, чтобы завести.");
+        RW_Ok(playerid, "Ключ вставлен. Нажмите N за рулём, чтобы завести.");
     }
     return 1;
 }

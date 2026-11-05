@@ -13,10 +13,10 @@
 
 #include <a_samp>
 #include <a_sampdb>
-#include <cef>
+
 
 /* ------------------------------------------------------------------ верси€ */
-#define RW_VERSION                  "1.0.0"
+#define RW_VERSION                  "2.0.0"
 #define RW_TAG                      "{F5B04C}[¬окзал]{FFFFFF}"
 
 /* ------------------------------------------------------------------ цвета  */
@@ -39,19 +39,6 @@
 #define CAMERA_ORBIT_HEIGHT         (6.2)
 #define CAMERA_ORBIT_SPEED          (0.9)   /* градусов за тик таймера */
 
-/* ------------------------------------------------------------------ CEF    */
-#define CEF_BROWSER_AUTH            (1001)
-#define CEF_BROWSER_SPEEDO          (2001)
-
-#define CEF_LAYER_AUTH              (20)
-#define CEF_LAYER_SPEEDO            (10)
-
-#define CEF_AUTH_URL                "http://cef/railway_auth/index.html"
-#define CEF_SPEEDO_URL              "http://cef/railway_speedo/index.html"
-
-#define CEF_RESOURCE_AUTH           "railway_auth"
-#define CEF_RESOURCE_SPEEDO         "railway_speedo"
-
 /* ------------------------------------------------------------------ настройки */
 #define SPCAR_MIN_ADMIN_LEVEL       (0)      /* 0 Ч /spcar доступна всем игрокам */
 #define SPCAR_COOLDOWN_MS           (1200)
@@ -59,15 +46,12 @@
 #define KEY_RANGE                   (6.0)    /* радиус взаимодействи€ с авто */
 #define SPEEDO_INTERVAL             (150)    /* мс, частота обновлени€ HUD   */
 #define ENFORCE_INTERVAL            (400)    /* мс, проверка права на езду   */
-#define AUTH_FALLBACK_DELAY         (3000)   /* мс ожидани€ CEF до диалога   */
-#define AUTH_CEF_RETRY_DELAY        (3000)   /* мс, продление при загрузке   */
 #define DEFAULT_SKIN                (0)
 #define DEFAULT_MONEY               (2500)
 #define MAX_LOGIN_ATTEMPTS          (5)
 
 #define DIALOG_LOGIN                 (9100)
 #define DIALOG_REGISTER              (9101)
-#define DIALOG_MAP_TELEPORT          (9102)
 
 /* ------------------------------------------------------------------ слоты авто */
 enum E_VEHICLE_SLOT
@@ -87,6 +71,7 @@ enum E_VEHICLE_SLOT
 /* ------------------------------------------------------------------ состо€ние */
 new bool:gMapPending[MAX_PLAYERS];
 new Float:gMapPoint[MAX_PLAYERS][3];
+new gControlKeys[MAX_PLAYERS][3], gControlVehicle[MAX_PLAYERS], gControlMode[MAX_PLAYERS], gControlTick[MAX_PLAYERS];
 new DB:gDB;
 
 new gVeh[VEHICLE_SLOTS][E_VEHICLE_SLOT];
@@ -99,17 +84,10 @@ new gAdminLevel[MAX_PLAYERS];
 new gSkinId[MAX_PLAYERS];
 new gMoney[MAX_PLAYERS];
 
-new gCefStage[MAX_PLAYERS], gCefStarted[MAX_PLAYERS], gCefPercent[MAX_PLAYERS], gCefReason[MAX_PLAYERS];
-new bool:gAuthPageReady[MAX_PLAYERS];
-new bool:gAuthBrowserCreated[MAX_PLAYERS];
-new bool:gCefReady[MAX_PLAYERS];       /* клиент CEF подключен и готов       */
-new bool:gAuthBrowserShown[MAX_PLAYERS];
-new bool:gAuthFallbackSent[MAX_PLAYERS];
 new bool:gAuthBusy[MAX_PLAYERS];
 
 new bool:gSpeedoShown[MAX_PLAYERS];
 new gSpeedoVehicle[MAX_PLAYERS];
-new gSpeedoLastTick[MAX_PLAYERS];
 
 new bool:gNoDrive[MAX_PLAYERS];        /* за рулЄм, но ехать нельз€          */
 new gEnforceLastTick[MAX_PLAYERS];
@@ -118,7 +96,6 @@ new gLoginAttempts[MAX_PLAYERS];
 new gLastSpcarTick[MAX_PLAYERS];
 
 new gAuthTimer[MAX_PLAYERS];           /* таймер камеры на экране входа      */
-new gFallbackTimer[MAX_PLAYERS];
 new gPlayerVehSlot[MAX_PLAYERS];       /* слот персональной машины (-1)      */
 
 /* ------------------------------------------------------------------ утилиты */
@@ -134,6 +111,7 @@ stock RW_Info(playerid, const text[])
     new buf[256];
     format(buf, sizeof buf, "%s %s", RW_TAG, text);
     SendClientMessage(playerid, COLOR_GREY, buf);
+    RW_UI_Notify(playerid, text);
     return 1;
 }
 
@@ -142,6 +120,7 @@ stock RW_Ok(playerid, const text[])
     new buf[256];
     format(buf, sizeof buf, "%s {7BD88F}Х{FFFFFF} %s", RW_TAG, text);
     SendClientMessage(playerid, COLOR_WHITE, buf);
+    RW_UI_Notify(playerid, text);
     return 1;
 }
 
@@ -150,6 +129,7 @@ stock RW_Error(playerid, const text[])
     new buf[256];
     format(buf, sizeof buf, "%s {FF6B6B}Х{FFFFFF} %s", RW_TAG, text);
     SendClientMessage(playerid, COLOR_WHITE, buf);
+    RW_UI_Notify(playerid, text);
     return 1;
 }
 

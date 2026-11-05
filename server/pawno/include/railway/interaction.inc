@@ -3,63 +3,133 @@
 #endif
 #define _railway_interaction_included
 
-#define CONTROL_BROWSER 3001
-new bool:gControlCreated[MAX_PLAYERS], bool:gControlReady[MAX_PLAYERS];
-new gControlMode[MAX_PLAYERS], gControlVehicle[MAX_PLAYERS];
-new gControlKeys[MAX_PLAYERS][3], gControlTick[MAX_PLAYERS];
-new gControlWaitTimer[MAX_PLAYERS], gControlLastKey[MAX_PLAYERS];
-new bool:gControlOpened[MAX_PLAYERS];
-forward RW_ControlTimeout(playerid, attempt);
-forward RW_ControlOpened(playerid, browserid);
-forward RW_ControlReady(playerid, browserid);
-forward RW_ControlClose(playerid, browserid);
-forward RW_ControlAction(playerid, browserid, action, target);
-forward RW_ControlBind(playerid, browserid, door, engine, menu);
-forward bool:RW_ControlValidKey(key);
-
-stock RW_InteractionRegister()
-{
-    CEF_RegisterEvent("control:ready", "RW_ControlReady");
-    CEF_RegisterEvent("control:opened", "RW_ControlOpened");
-    CEF_RegisterEvent("control:close", "RW_ControlClose");
-    CEF_RegisterEvent("control:action", "RW_ControlAction", Argument_Integer, Argument_Integer);
-    CEF_RegisterEvent("control:bind", "RW_ControlBind", Argument_Integer, Argument_Integer, Argument_Integer);
-}
 stock RW_InteractionReset(playerid)
 {
-    RW_ControlCancelWait(playerid);
-    gControlOpened[playerid] = false;
-    gControlLastKey[playerid] = 0;
-    gCefStage[playerid] = 0;
-    gCefStarted[playerid] = GetTickCount();
-    gCefPercent[playerid] = 0;
-    gCefReason[playerid] = 0;
-    gAuthPageReady[playerid] = false;
-    gAuthBrowserCreated[playerid] = false;
-    gControlCreated[playerid] = false;
-    gControlReady[playerid] = false;
     gControlMode[playerid] = 0;
     gControlVehicle[playerid] = INVALID_VEHICLE_ID;
-    gControlKeys[playerid][0] = 76;
-    gControlKeys[playerid][1] = 221;
-    gControlKeys[playerid][2] = 220;
     gControlTick[playerid] = 0;
+    gControlKeys[playerid][0] = KEY_CTRL_BACK;
+    gControlKeys[playerid][1] = KEY_NO;
+    gControlKeys[playerid][2] = KEY_YES;
 }
-stock RW_InteractionInit(playerid)
+stock RW_ControlNotify(playerid, const text[]) { return RW_UI_Notify(playerid, text); }
+stock RW_KeyName(key, dest[], size)
 {
-    CEF_SetKeyCapture(playerid, true);
-    for (new i; i < 3; i++) CEF_EnableKey(playerid, gControlKeys[playerid][i], true);
-    if (!gControlCreated[playerid]) {
-        gControlCreated[playerid] = true;
-        CEF_CreateBrowser(playerid, CONTROL_BROWSER, "http://cef/railway_control/index.html", false, false, 0.0, 0.0);
-        CEF_SetBrowserLayer(playerid, CONTROL_BROWSER, 30);
-        CEF_SetBrowserVisible(playerid, CONTROL_BROWSER, true);
+    switch (key) {
+        case KEY_YES: format(dest, size, "Y");
+        case KEY_NO: format(dest, size, "N");
+        case KEY_CTRL_BACK: format(dest, size, "H");
+        case KEY_WALK: format(dest, size, "LALT");
+        default: format(dest, size, "?");
     }
 }
-stock RW_ControlNotify(playerid, const text[])
+stock RW_ControlOpen(playerid, bool:settings)
 {
-    if (gControlReady[playerid]) CEF_EmitEvent(playerid, CONTROL_BROWSER, "control:toast", CEF_STR(text));
-    else RW_Info(playerid, text);
+    if (!gLogged[playerid]) return 1;
+    if (settings) { gControlMode[playerid] = 1; return RW_UI_Settings(playerid); }
+    new v = RW_ControlTarget(playerid);
+    if (v <= 0 || v >= MAX_VEHICLES || v == INVALID_VEHICLE_ID || gVehSlotOf[v] < 0) return RW_ControlNotify(playerid, "Наведите центр экрана на машину не дальше 6 метров.");
+    gControlVehicle[playerid] = v;
+    gControlMode[playerid] = 2;
+    return RW_UI_Vehicle(playerid);
+}
+stock RW_UI_Settings(playerid)
+{
+    RW_UI_Panel(playerid, UI_SETTINGS, "NASTROYKI", "Native SA-MP actions / click to bind");
+    new label[64], key[16];
+    for (new i; i < 3; i++) {
+        RW_KeyName(gControlKeys[playerid][i], key, sizeof key);
+        format(label, sizeof label, "%s: [%s]", i == 0 ? ("DVERI") : (i == 1 ? ("DVIGATEL") : ("MENU AVTO")), key);
+        RW_UI_Row(playerid, i, label);
+    }
+    RW_UI_Row(playerid, 5, "NAZNACHENIYA NA SESSIYU");
+    RW_UI_Row(playerid, 6, "SBROSIT: H / N / Y");
+    return 1;
+}
+stock RW_UI_Vehicle(playerid)
+{
+    new v = gControlVehicle[playerid];
+    if (v <= 0 || v >= MAX_VEHICLES || gVehSlotOf[v] < 0) return RW_UI_Close(playerid);
+    new slot = gVehSlotOf[v], name[48];
+    RW_VehicleName(GetVehicleModel(v), name, sizeof name);
+    RW_UI_Panel(playerid, UI_VEHICLE, name, RW_IsVehicleOwner(playerid, v) ? ("VASH TRANSPORT") : ("CHUZHOY TRANSPORT"));
+    RW_UI_Row(playerid, 0, gVeh[slot][vsDoors] ? ("ZAKRYT DVERI") : ("OTKRYT DVERI"));
+    RW_UI_Row(playerid, 1, gVeh[slot][vsEngine] ? ("ZAGLUSHIT DVIGATEL") : ("ZAVESTI DVIGATEL"));
+    RW_UI_Row(playerid, 2, gVeh[slot][vsKey] ? ("VYNUT KLYUCH") : ("VSTAVIT KLYUCH"));
+    RW_UI_Row(playerid, 3, gVeh[slot][vsLights] ? ("VYKLYUCHIT FARY") : ("VKLYUCHIT FARY"));
+    RW_UI_Row(playerid, 4, "PASSAZHIRY / VYSADIT");
+    RW_UI_Row(playerid, 7, "OBNOVIT SOSTOYANIE");
+    return 1;
+}
+stock RW_UI_Passengers(playerid)
+{
+    new v = gControlVehicle[playerid], count;
+    RW_UI_Panel(playerid, UI_PASSENGERS, "PASSAZHIRY", "Click a player to remove");
+    for (new j; j < 6; j++) gUITarget[playerid][j] = INVALID_PLAYER_ID;
+    for (new i; i < MAX_PLAYERS; i++) {
+        if (!IsPlayerConnected(i) || !IsPlayerInVehicle(i, v) || GetPlayerVehicleSeat(i) <= 0) continue;
+        new index = count++ - gUIPage[playerid]*6;
+        if (index < 0 || index >= 6) continue;
+        gUITarget[playerid][index] = i;
+        new nick[MAX_PLAYER_NAME], buf[64]; GetPlayerName(i, nick, sizeof nick);
+        format(buf, sizeof buf, "%s [%d]", nick, i); RW_UI_Row(playerid, index, buf);
+    }
+    if (gUIPage[playerid] > 0 && count <= gUIPage[playerid]*6) {
+        gUIPage[playerid] = 0; return RW_UI_Passengers(playerid);
+    }
+    gUIHasNext[playerid] = count > (gUIPage[playerid]+1)*6;
+    if (!count) RW_UI_Row(playerid, 0, "PASSAZHIROV NET");
+    RW_UI_Row(playerid, 6, "NAZAD K MASHINE");
+    if (gUIHasNext[playerid]) RW_UI_Row(playerid, 7, "SLEDUYUSCHIE >>>");
+    else if (gUIPage[playerid] > 0) RW_UI_Row(playerid, 7, "V NACHALO");
+    return 1;
+}
+stock RW_UI_Click(playerid, row)
+{
+    if (!gLogged[playerid]) {
+        if (gUIMode[playerid] == UI_AUTH && row == 0 && !gUIInput[playerid]) RW_ShowLoginDialog(playerid);
+        return 1;
+    }
+    if (gUIInput[playerid]) return 1;
+    new mode = gUIMode[playerid];
+    if (mode == UI_SETTINGS) {
+        if (row < 3) {
+            gUIBind[playerid] = row;
+            RW_UI_Panel(playerid, UI_BIND, "VYBOR KLAVISHI", "Existing assignment will be swapped");
+            RW_UI_Row(playerid, 0, "Y"); RW_UI_Row(playerid, 1, "N");
+            RW_UI_Row(playerid, 2, "H"); RW_UI_Row(playerid, 3, "LALT");
+            RW_UI_Row(playerid, 7, "NAZAD");
+        } else if (row == 6) { RW_InteractionReset(playerid); gControlMode[playerid] = 1; RW_UI_Settings(playerid); }
+    } else if (mode == UI_BIND) {
+        if (row < 4) {
+            static const keys[] = { KEY_YES, KEY_NO, KEY_CTRL_BACK, KEY_WALK };
+            new index = gUIBind[playerid], old = gControlKeys[playerid][index];
+            for (new i; i < 3; i++) if (i != index && gControlKeys[playerid][i] == keys[row]) gControlKeys[playerid][i] = old;
+            gControlKeys[playerid][index] = keys[row];
+            RW_UI_Settings(playerid);
+        } else if (row == 7) RW_UI_Settings(playerid);
+    } else if (mode == UI_VEHICLE) {
+        if (GetTickCount()-gControlTick[playerid] < 250) return 1;
+        gControlTick[playerid] = GetTickCount();
+        if (row < 4) { RW_ControlExecute(playerid, gControlVehicle[playerid], row); RW_UI_Vehicle(playerid); }
+        else if (row == 4) {
+            if (!RW_IsVehicleOwner(playerid, gControlVehicle[playerid])) return RW_ControlNotify(playerid, "Не ваша машина.");
+            gUIPage[playerid] = 0; RW_UI_Passengers(playerid);
+        } else if (row == 7) RW_UI_Vehicle(playerid);
+    } else if (mode == UI_PASSENGERS) {
+        if (row < 6 && gUITarget[playerid][row] != INVALID_PLAYER_ID) {
+            RW_ControlExecute(playerid, gControlVehicle[playerid], 4, gUITarget[playerid][row]); RW_UI_Passengers(playerid);
+        } else if (row == 6) RW_UI_Vehicle(playerid);
+        else if (row == 7) { if (gUIHasNext[playerid]) gUIPage[playerid]++; else gUIPage[playerid] = 0; RW_UI_Passengers(playerid); }
+    } else if (mode == UI_MAP) {
+        new bool:confirm = gMapPending[playerid] && row == 0;
+        gMapPending[playerid] = false;
+        RW_UI_Close(playerid);
+        if (!confirm || GetPlayerState(playerid) != PLAYER_STATE_ONFOOT || GetPlayerInterior(playerid) != 0 || GetPlayerVirtualWorld(playerid) != 0) return 1;
+        SetPlayerPosFindZ(playerid, gMapPoint[playerid][0], gMapPoint[playerid][1], gMapPoint[playerid][2]+1.0);
+        SetCameraBehindPlayer(playerid);
+        RW_ControlNotify(playerid, "Вы телепортировались к метке.");
+    }
     return 1;
 }
 // Camera ray against model-sized, vehicle-local bounds, not a tiny sphere.
@@ -102,62 +172,6 @@ stock RW_ControlTarget(playerid)
     }
     return selected;
 }
-stock RW_ControlPublish(playerid)
-{
-    if (gControlMode[playerid] == 1) {
-        CEF_EmitEvent(playerid, CONTROL_BROWSER, "control:settings", CEF_INT(gControlKeys[playerid][0]), CEF_INT(gControlKeys[playerid][1]), CEF_INT(gControlKeys[playerid][2]));
-    } else if (gControlMode[playerid] == 2) {
-        new v = gControlVehicle[playerid], slot = gVehSlotOf[v];
-        if (slot < 0 || !gVeh[slot][vsUsed]) return 0;
-        new name[48]; RW_VehicleName(GetVehicleModel(v), name, sizeof name);
-        CEF_EmitEvent(playerid, CONTROL_BROWSER, "control:vehicle", CEF_STR(name), CEF_INT(RW_Veh_HudFlags(playerid, v)), CEF_BOOL(gVeh[slot][vsLights]));
-        for (new i; i < MAX_PLAYERS; i++) {
-            if (!IsPlayerConnected(i) || !IsPlayerInVehicle(i, v) || GetPlayerVehicleSeat(i) <= 0) continue;
-            new nick[MAX_PLAYER_NAME]; GetPlayerName(i, nick, sizeof nick);
-            CEF_EmitEvent(playerid, CONTROL_BROWSER, "control:passenger", CEF_INT(i), CEF_STR(nick));
-        }
-    }
-    return 1;
-}
-stock RW_ControlOpen(playerid, bool:settings)
-{
-    if (!gLogged[playerid]) return 1;
-    if (!gCefReady[playerid]) return RW_CefStatus(playerid);
-    RW_InteractionInit(playerid);
-    if (!settings) {
-        new v = RW_ControlTarget(playerid);
-        if (v == INVALID_VEHICLE_ID || v <= 0 || v >= MAX_VEHICLES || gVehSlotOf[v] < 0) return RW_ControlNotify(playerid, "Наведите центр экрана на машину не дальше 6 метров.");
-        gControlVehicle[playerid] = v;
-    }
-    gControlMode[playerid] = settings ? 1 : 2;
-    gControlOpened[playerid] = false;
-    RW_ControlCancelWait(playerid);
-    gControlWaitTimer[playerid] = SetTimerEx("RW_ControlTimeout", 8000, false, "ii", playerid, 0);
-    if (gControlReady[playerid]) RW_ControlActivate(playerid);
-    else RW_ControlNotify(playerid, "Открываем CEF-меню…");
-    return 1;
-}
-public RW_ControlReady(playerid, browserid)
-{
-    if (browserid != CONTROL_BROWSER) return 0;
-    gControlReady[playerid] = true;
-    if (!gCefReady[playerid]) OnCefReady(playerid);
-    CEF_EmitEvent(playerid, CONTROL_BROWSER, "railway:ack");
-    if (gControlMode[playerid] != 0) RW_ControlActivate(playerid);
-    return 1;
-}
-public RW_ControlClose(playerid, browserid)
-{
-    if (browserid != CONTROL_BROWSER) return 0;
-    RW_ControlCancelWait(playerid);
-    gControlOpened[playerid] = false;
-    gControlMode[playerid] = 0;
-    CEF_EmitEvent(playerid, CONTROL_BROWSER, "control:hide");
-    CEF_FocusBrowser(playerid, CONTROL_BROWSER, false);
-    CEF_ToggleChatInput(playerid, true);
-    CEF_SetEscapeMenuMode(playerid, CEF_ESCAPE_MENU_GTA);
-    return 1;
-}
 stock RW_ControlExecute(playerid, v, action, target = -1)
 {
     if (!gLogged[playerid] || v <= 0 || v >= MAX_VEHICLES) return 0;
@@ -189,103 +203,8 @@ stock RW_ControlExecute(playerid, v, action, target = -1)
     }
     return RW_ControlNotify(playerid, "Готово.");
 }
-public RW_ControlAction(playerid, browserid, action, target)
-{
-    if (browserid != CONTROL_BROWSER || gControlMode[playerid] != 2) return 0;
-    if (GetTickCount() - gControlTick[playerid] < 250) return 0;
-    gControlTick[playerid] = GetTickCount();
-    RW_ControlExecute(playerid, gControlVehicle[playerid], action, target);
-    RW_ControlPublish(playerid);
-    return 1;
-}
-public RW_ControlBind(playerid, browserid, door, engine, menu)
-{
-    if (browserid != CONTROL_BROWSER || gControlMode[playerid] != 1 || !gLogged[playerid]) return 0;
-    if (!RW_ControlValidKey(door) || !RW_ControlValidKey(engine) || !RW_ControlValidKey(menu) || door == engine || door == menu || engine == menu) return RW_ControlNotify(playerid, "Выберите разные клавиши A–Z, Ъ или обратный слеш.");
-    if (door == 84 || engine == 84 || menu == 84) return RW_ControlNotify(playerid, "T занята чатом.");
-    for (new i; i < 3; i++) CEF_EnableKey(playerid, gControlKeys[playerid][i], false);
-    gControlKeys[playerid][0] = door; gControlKeys[playerid][1] = engine; gControlKeys[playerid][2] = menu;
-    for (new i; i < 3; i++) CEF_EnableKey(playerid, gControlKeys[playerid][i], true);
-    return RW_ControlNotify(playerid, "Клавиши сохранены на эту сессию.");
-}
-public OnCefPressKey(playerid, key, scancode, modifiers, bool:down, bool:repeat)
-{
-    if (down && !repeat) gControlLastKey[playerid] = key;
-    if (CEF_IsChatInputOpen(playerid)) return 1;
-    if (down && !repeat && key == gControlKeys[playerid][2] && gControlMode[playerid] != 0) return RW_ControlClose(playerid, CONTROL_BROWSER);
-    // CEF flags: Shift=2, Ctrl=4, Alt=8. Lock/mouse flags are NOT modifiers to block.
-    if (!down || repeat || (modifiers & 14) || !gLogged[playerid] || gControlMode[playerid] != 0) return 1;
-    if (GetTickCount() - gControlTick[playerid] < 250) return 1;
-    gControlTick[playerid] = GetTickCount();
-    if (key == gControlKeys[playerid][2]) return RW_ControlOpen(playerid, false);
-    new v = RW_ControlTarget(playerid);
-    if (key == gControlKeys[playerid][0]) RW_ControlExecute(playerid, v, 0);
-    if (key == gControlKeys[playerid][1]) RW_ControlExecute(playerid, v, 1);
-    return 1;
-}
-
-stock RW_CefStatus(playerid)
-{
-    new stage[96], text[220];
-    switch (gCefStage[playerid]) {
-        case -1: format(stage, sizeof stage, "ошибка инициализации (код %d)", gCefReason[playerid]);
-        case 0: format(stage, sizeof stage, "нет соединения CEF; проверьте cef.asi и UDP 7779");
-        case 1: format(stage, sizeof stage, "соединение есть, ожидаются ресурсы");
-        case 2: format(stage, sizeof stage, "скачивание ресурсов: %d%%", gCefPercent[playerid]);
-        case 3: format(stage, sizeof stage, "ресурсы скачаны, ожидается OnCefReady");
-        case 4: format(stage, sizeof stage, "CEF готов; меню JS=%d, вход JS=%d", _:gControlReady[playerid], _:gAuthPageReady[playerid]);
-    }
-    format(text, sizeof text, "CEF [%d сек]: %s", (GetTickCount()-gCefStarted[playerid])/1000, stage);
-    SendClientMessage(playerid, COLOR_INFO, text);
-    printf("[railway:cef] player=%d stage=%d elapsed=%dms percent=%d reason=%d controlJS=%d authJS=%d", playerid, gCefStage[playerid], GetTickCount()-gCefStarted[playerid], gCefPercent[playerid], gCefReason[playerid], _:gControlReady[playerid], _:gAuthPageReady[playerid]);
-    format(text, sizeof text, "CEF menu: mode=%d page=%d opened=%d lastVK=%d; /vmenu", gControlMode[playerid], _:gControlReady[playerid], _:gControlOpened[playerid], gControlLastKey[playerid]);
-    SendClientMessage(playerid, COLOR_INFO, text);
-    return 1;
-}
 stock RW_EngineCommand(playerid)
 {
     if (!IsPlayerInAnyVehicle(playerid)) return RW_ControlNotify(playerid, "Сядьте за руль.");
     return RW_ControlExecute(playerid, GetPlayerVehicleID(playerid), 1);
-}
-
-stock bool:RW_ControlValidKey(key)
-{
-    return (key >= 65 && key <= 90 && key != 84) || key == 220 || key == 221;
-}
-stock RW_ControlActivate(playerid)
-{
-    CEF_SetBrowserVisible(playerid, CONTROL_BROWSER, true);
-    CEF_SetBrowserLayer(playerid, CONTROL_BROWSER, 30);
-    CEF_FocusBrowser(playerid, CONTROL_BROWSER, true);
-    CEF_ToggleChatInput(playerid, false);
-    CEF_SetEscapeMenuMode(playerid, CEF_ESCAPE_MENU_DISABLED);
-    return RW_ControlPublish(playerid);
-}
-
-stock RW_ControlCancelWait(playerid)
-{
-    if (gControlWaitTimer[playerid] != 0) KillTimer(gControlWaitTimer[playerid]);
-    gControlWaitTimer[playerid] = 0;
-}
-public RW_ControlOpened(playerid, browserid)
-{
-    if (browserid != CONTROL_BROWSER || !gLogged[playerid] || gControlMode[playerid] == 0) return 0;
-    gControlOpened[playerid] = true;
-    RW_ControlCancelWait(playerid);
-    return 1;
-}
-public RW_ControlTimeout(playerid, attempt)
-{
-    gControlWaitTimer[playerid] = 0;
-    if (!IsPlayerConnected(playerid) || !gLogged[playerid] || gControlMode[playerid] == 0 || gControlOpened[playerid]) return 1;
-    printf("[railway:cef] control open timeout player=%d page=%d attempt=%d", playerid, _:gControlReady[playerid], attempt);
-    if (attempt >= 2) {
-        RW_ControlClose(playerid, CONTROL_BROWSER);
-        return RW_ControlNotify(playerid, "CEF-меню не ответило. Управление восстановлено; /cefstatus — диагностика.");
-    }
-    if (gControlReady[playerid]) RW_ControlActivate(playerid);
-    else if (gControlCreated[playerid]) CEF_ReloadBrowser(playerid, CONTROL_BROWSER, true);
-    else RW_InteractionInit(playerid);
-    gControlWaitTimer[playerid] = SetTimerEx("RW_ControlTimeout", 8000, false, "ii", playerid, attempt+1);
-    return 1;
 }

@@ -1,25 +1,12 @@
-﻿Папка клиента — то, что нужно положить в GTA San Andreas.
+RAILWAY / NATIVE SA-MP
 
-Состав:
-  cef.asi      — ASI-плагин CEF (загружается ASI loader'ом, напр. dinput8.dll)
-  cef\         — рантайм: client.dll, renderer.exe, libcef.dll, locales, resources
+Use a standard SA-MP 0.3.7 client. No ASI loader, cef.asi, browser files or
+client-side installation scripts are needed for this server.
 
-Установка (PowerShell в этой папке):
+Defaults: Y vehicle menu, N engine, H doors. /settings changes native game
+ACTIONS for this session, not arbitrary physical keys. /vmenu, /engine,
+/door and /key also work. Physical Ъ / ] and backslash cannot be captured
+by a plain SA-MP server and are no longer used.
 
-    powershell -ExecutionPolicy Bypass -File .\install-client.ps1 -GtaPath "C:\Games\GTA San Andreas"
-
-Скрипт скачает официальный client-files-v1.4.0.zip (~146 МБ),
-проверит SHA-256 и распакует файлы в папку игры.
-
-Без -GtaPath файлы останутся в client\gta-files — скопируйте их
-в корень GTA вручную (cef.asi и папку cef\).
-
-Проверка установки:
-
-    powershell -ExecutionPolicy Bypass -File .\check-samp-build.ps1
-
-Скрипт покажет билд samp.dll (R5-2 распознаётся), наличие cef.asi,
-папки cef\ и ASI loader'а.
-
-Требуется ASI loader (dinput8.dll от Silent's ASI Loader или аналог):
-без него cef.asi не загрузится и CEF-интерфейс не появится.
+TextDraw labels use transliteration for stock GTA fonts. Password entry
+uses a native masked dialog; account data stays in the server SQLite file.

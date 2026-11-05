@@ -242,18 +242,8 @@ stock bool:RW_AccountOnline(accountid, exceptid)
 
 stock RW_Respond(playerid, bool:ok, const code[])
 {
-    new nick[MAX_PLAYER_NAME];
-    RW_GetNick(playerid, nick);
-
     gAuthBusy[playerid] = false;
-    RW_UI_AuthBusy(playerid, false);
-    RW_UI_AuthResult(playerid, ok, code, nick);
-
-    /* Если CEF недоступен и игрок входит через диалог — отвечаем диалогом. */
-    if (gAuthFallbackSent[playerid]) {
-        RW_AuthDialogRespond(playerid, ok, code);
-    }
-    return 1;
+    return RW_AuthDialogRespond(playerid, ok, code);
 }
 
 stock RW_AuthSubmit(playerid, bool:registerMode, const password[], const confirm[])
@@ -348,7 +338,7 @@ stock RW_DoRegister(playerid, const nick[], const password[])
     RW_DoLogin(playerid, nick, password, true);
 
     /* Диалоговый режим: молчаливый вход мог не сработать — показываем вход. */
-    if (!gLogged[playerid] && gAuthFallbackSent[playerid]) {
+    if (!gLogged[playerid]) {
         RW_ShowAuthDialog(playerid, false, "Аккаунт создан. Введите пароль, чтобы войти.");
     }
     return 1;
@@ -440,13 +430,7 @@ stock RW_LoginSuccess(playerid, accid, skin, money, admin)
     gLoginAttempts[playerid] = 0;
     gAuthBusy[playerid] = false;
 
-    RW_UI_AuthBusy(playerid, false);
     RW_UI_CloseAuth(playerid);
-
-    if (gFallbackTimer[playerid] != 0) {
-        KillTimer(gFallbackTimer[playerid]);
-        gFallbackTimer[playerid] = 0;
-    }
 
     RW_SpawnPlayer(playerid);
 
@@ -551,7 +535,7 @@ stock RW_StartAuthCamera(playerid)
 
 /* ------------------------------------------------------------------ резервные диалоги */
 
-/*  Текст для кодов, которыми обмениваются Pawn и CEF-страница. */
+/*  Текст для кодов, которыми обмениваются Pawn и диалог. */
 stock RW_AuthCodeText(const code[], dest[], size)
 {
     if (!strcmp(code, "ok:register", true)) {
@@ -604,6 +588,7 @@ stock RW_ShowAuthDialog(playerid, bool:registerMode, const note[])
         format(head, sizeof head, "{FF8080}%s{FFFFFF}\n\n", note);
     }
 
+    RW_UI_PasswordBegin(playerid);
     registerMode = !RW_DB_AccountExists(nick);
     if (registerMode) {
         format(info, sizeof info,
@@ -645,103 +630,4 @@ stock RW_AuthDialogRespond(playerid, bool:ok, const code[])
     RW_GetNick(playerid, nick);
     RW_ShowAuthDialog(playerid, !RW_DB_AccountExists(nick), text);
     return 1;
-}
-
-/*  Немедленно переводит игрока на текстовый вход (CEF не работает). */
-stock RW_AuthFallbackNow(playerid, const reason[])
-{
-    if (!IsPlayerConnected(playerid) || gLogged[playerid]) {
-        return 0;
-    }
-    if (gAuthFallbackSent[playerid]) {
-        return 1;   /* диалог уже показан */
-    }
-
-    gAuthFallbackSent[playerid] = true;
-
-    if (gFallbackTimer[playerid] != 0) {
-        KillTimer(gFallbackTimer[playerid]);
-        gFallbackTimer[playerid] = 0;
-    }
-
-    if (reason[0] != EOS) {
-        printf("[railway] Игрок %d: текстовый вход (%s).", playerid, reason);
-    }
-
-    SendClientMessage(playerid, COLOR_GREY, "CEF-интерфейс недоступен — вход через диалог.");
-
-    RW_UI_CloseAuth(playerid);
-    // Keep the page loading in the background; late auth:ready can restore it.
-    RW_ShowLoginDialog(playerid);
-    return 1;
-}
-
-forward RW_AuthFallback(playerid);
-public RW_AuthFallback(playerid)
-{
-    gFallbackTimer[playerid] = 0;
-
-    if (!IsPlayerConnected(playerid) || gLogged[playerid]) {
-        return 0;
-    }
-
-    if (gAuthPageReady[playerid]) {
-        return 0;   /* CEF успел подняться */
-    }
-
-    return RW_AuthFallbackNow(playerid, "CEF/страница входа не ответили вовремя");
-}
-
-stock RW_ArmFallback(playerid)
-{
-    if (gFallbackTimer[playerid] != 0) {
-        KillTimer(gFallbackTimer[playerid]);
-    }
-    gFallbackTimer[playerid] = SetTimerEx("RW_AuthFallback", AUTH_FALLBACK_DELAY, false, "i", playerid);
-    return 1;
-}
-
-/* ------------------------------------------------------------------ CEF-события входа */
-
-public RW_OnAuthReady(playerid, browserid)
-{
-    if (browserid != CEF_BROWSER_AUTH) return 0;
-    CEF_EmitEvent(playerid, CEF_BROWSER_AUTH, "railway:ack");
-    if (gLogged[playerid]) return 1;
-    gAuthPageReady[playerid] = true;
-    ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
-    gAuthFallbackSent[playerid] = false;
-    RW_UI_OpenAuth(playerid);
-    printf("[railway:cef] auth JS ready player=%d", playerid);
-    if (gFallbackTimer[playerid] != 0) {
-        KillTimer(gFallbackTimer[playerid]);
-        gFallbackTimer[playerid] = 0;
-    }
-    new nick[MAX_PLAYER_NAME];
-    new bool:hasAccount;
-
-    if (!gLogged[playerid] && IsPlayerConnected(playerid)) {
-        RW_GetNick(playerid, nick);
-        hasAccount = RW_DB_AccountExists(nick);
-
-        CEF_EmitEvent(playerid, CEF_BROWSER_AUTH, "auth:init",
-            CEF_STR(nick), CEF_BOOL(hasAccount), CEF_STR("1.0.0"));
-    }
-    return 1;
-}
-
-public RW_OnAuthLogin(playerid, browserid, const password[])
-{
-    if (browserid != CEF_BROWSER_AUTH) {
-        return 0;
-    }
-    return RW_AuthSubmit(playerid, false, password, "");
-}
-
-public RW_OnAuthRegister(playerid, browserid, const password[], const confirm[])
-{
-    if (browserid != CEF_BROWSER_AUTH) {
-        return 0;
-    }
-    return RW_AuthSubmit(playerid, true, password, confirm);
 }

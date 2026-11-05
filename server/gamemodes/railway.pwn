@@ -1,14 +1,14 @@
 /*  ============================================================================
  *  railway.pwn Ч Ђ∆елезнодорожный вокзалї
- *  SA-MP 0.3.7 (R5-2) Х Windows server Х CEF UI (aurora-mp/omp-cef)
+ *  SA-MP 0.3.7 (R5-2) Х Windows server Х native TextDraw UI
  *
  *  ¬озможности:
  *    Х спавн на железнодорожном вокзале (Los Santos, Unity Station);
- *    Х регистраци€ и вход через красивый анимированный CEF-интерфейс;
+ *    Х регистраци€ и вход через красивый анимированный TextDraw-интерфейс;
  *    Х /spcar <id> Ч спавн стандартной машины, владелец Ч вызвавший;
- *    Х ездить может только владелец с вставленным ключом (/key);
+ *    Х ездить может любой водитель со вставленным ключом и включЄнным мотором;
  *    Х двери открываютс€/закрываютс€ командой /door;
- *    Х при посадке за руль всегда показываетс€ CEF-спидометр с передачей.
+ *    Х при посадке за руль всегда показываетс€ TextDraw-спидометр с передачей.
  *
  *   одировка исходников: Windows-1251.
  *  ========================================================================= */
@@ -39,7 +39,7 @@ public OnGameModeInit()
     print(" ");
     print("  ============================================");
     print("   RAILWAY Ч Ђ∆елезнодорожный вокзалї v" RW_VERSION);
-    print("   SA-MP 0.3.7 R5-2 Х CEF interface");
+    print("   SA-MP 0.3.7 R5-2 Х Native TextDraw interface");
     print("  ============================================");
     print(" ");
 
@@ -78,6 +78,10 @@ public OnGameModeInit()
 
 public OnGameModeExit()
 {
+    for (new p; p < MAX_PLAYERS; p++) if (IsPlayerConnected(p)) {
+        RW_SaveAccount(p);
+        RW_UI_Reset(p);
+    }
     for (new i = 0; i < VEHICLE_SLOTS; i++) {
         if (gVeh[i][vsUsed]) {
             RW_Veh_DestroySlot(i, false);
@@ -104,7 +108,6 @@ public OnPlayerConnect(playerid)
     gAccountId[playerid] = -1;
     gAdminLevel[playerid] = 0;
     gAuthBusy[playerid] = false;
-    gAuthFallbackSent[playerid] = false;
     gLoginAttempts[playerid] = 0;
     gLastAuthTick[playerid] = 0;
     gLastSpcarTick[playerid] = 0;
@@ -112,9 +115,7 @@ public OnPlayerConnect(playerid)
     gPlayerVehSlot[playerid] = -1;
     gSpeedoVehicle[playerid] = INVALID_VEHICLE_ID;
     gSpeedoShown[playerid] = false;
-    gAuthBrowserShown[playerid] = false;
     gNoDrive[playerid] = false;
-    gCefReady[playerid] = false;
     gSkinId[playerid] = DEFAULT_SKIN;
     gMoney[playerid] = DEFAULT_MONEY;
     RW_Speedo_ResetPlayer(playerid);
@@ -130,11 +131,8 @@ public OnPlayerConnect(playerid)
     SetPlayerPos(playerid, STATION_X, STATION_Y, STATION_Z);
 
     RW_StartAuthCamera(playerid);
-    RW_ArmFallback(playerid);
-
-    if (gCefReady[playerid] && !gLogged[playerid]) {
-        RW_UI_OpenAuth(playerid);
-    }
+    RW_UI_Create(playerid);
+    RW_UI_OpenAuth(playerid);
 
     format(string, sizeof string, "%s {F5B04C}%s{FFFFFF}, добро пожаловать на вокзал!", RW_TAG, nick);
     SendClientMessage(playerid, COLOR_WHITE, string);
@@ -144,7 +142,6 @@ public OnPlayerConnect(playerid)
 
 public OnPlayerDisconnect(playerid, reason)
 {
-    RW_ControlCancelWait(playerid);
     RW_SaveAccount(playerid);
     RW_Veh_OnPlayerDisconnect(playerid);
 
@@ -152,15 +149,9 @@ public OnPlayerDisconnect(playerid, reason)
         KillTimer(gAuthTimer[playerid]);
         gAuthTimer[playerid] = 0;
     }
-    if (gFallbackTimer[playerid] != 0) {
-        KillTimer(gFallbackTimer[playerid]);
-        gFallbackTimer[playerid] = 0;
-    }
-
     gLogged[playerid] = false;
     gAccountId[playerid] = -1;
     gAdminLevel[playerid] = 0;
-    gCefReady[playerid] = false;
     gAuthBusy[playerid] = false;
     gSpeedoShown[playerid] = false;
     gSpeedoVehicle[playerid] = INVALID_VEHICLE_ID;
@@ -174,8 +165,9 @@ public OnPlayerDisconnect(playerid, reason)
 
 public OnPlayerRequestClass(playerid, classid)
 {
+    if (!gLogged[playerid] && !gUIInput[playerid]) RW_UI_OpenAuth(playerid);
     /*  лассический выбор класса отключЄн: игрок находитс€ в режиме камеры,
-       пока не войдЄт в аккаунт через CEF. */
+       пока не войдЄт в аккаунт через TextDraw. */
     return 1;
 }
 
@@ -217,7 +209,7 @@ public OnPlayerSpawn(playerid)
 
 public OnPlayerDeath(playerid, killerid, reason)
 {
-    if (gControlMode[playerid] != 0) RW_ControlClose(playerid, CONTROL_BROWSER);
+    RW_UI_Close(playerid);
     RW_UI_SpeedoHide(playerid);
     gMapPending[playerid] = false;
     gNoDrive[playerid] = false;
@@ -376,18 +368,9 @@ public OnRconCommand(cmd[])
 
 public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 {
-    if (dialogid == DIALOG_MAP_TELEPORT) {
-        if (!gMapPending[playerid]) return 1;
-        gMapPending[playerid] = false;
-        if (!response || !gLogged[playerid] || GetPlayerState(playerid) != PLAYER_STATE_ONFOOT) return 1;
-        if (GetPlayerInterior(playerid) != 0 || GetPlayerVirtualWorld(playerid) != 0) return 1;
-        SetPlayerPosFindZ(playerid, gMapPoint[playerid][0], gMapPoint[playerid][1], gMapPoint[playerid][2] + 1.0);
-        SetCameraBehindPlayer(playerid);
-        RW_Ok(playerid, "¬ы телепортировались к метке.");
-        return 1;
-    }
     if (gLogged[playerid]) return 0;
     if (dialogid != DIALOG_LOGIN && dialogid != DIALOG_REGISTER) return 0;
+    gUIInput[playerid] = false;
     if (!response) { Kick(playerid); return 1; }
     new nick[MAX_PLAYER_NAME];
     RW_GetNick(playerid, nick);
@@ -408,96 +391,43 @@ public OnPlayerClickMap(playerid, Float:fX, Float:fY, Float:fZ)
     if (!(fX >= -3000.0 && fX <= 3000.0 && fY >= -3000.0 && fY <= 3000.0 && fZ >= -100.0 && fZ <= 1500.0)) return 1;
     gMapPoint[playerid][0] = fX; gMapPoint[playerid][1] = fY; gMapPoint[playerid][2] = fZ;
     gMapPending[playerid] = true;
-    ShowPlayerDialog(playerid, DIALOG_MAP_TELEPORT, DIALOG_STYLE_MSGBOX, "“елепорт по метке", "“елепортироватьс€ к выбранной метке на карте?", "ƒа", "Ќет");
+    RW_UI_Panel(playerid, UI_MAP, "TELEPORT", "K METKE NA KARTE?");
+    RW_UI_Row(playerid, 0, "DA / TELEPORT");
+    RW_UI_Row(playerid, 1, "NET / OTMENA");
     return 1;
 }
 
-/* ------------------------------------------------------------------ CEF */
 
-public OnCefInitialize(playerid, bool:success, E_CEF_INIT_REASON:reason, const message[])
+public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 {
-    gCefStage[playerid] = success ? 1 : -1;
-    gCefReason[playerid] = _:reason;
-    printf("[railway:cef] initialize player=%d success=%d reason=%d elapsed=%dms message=%s", playerid, _:success, _:reason, GetTickCount()-gCefStarted[playerid], message);
-    if (!success) {
-        printf("[railway] CEF не инициализирован у игрока %d (reason=%d): %s", playerid, _:reason, message);
-        gCefReady[playerid] = false;
-        /* Ќе ждЄм таймер: сразу даЄм текстовый вход. */
-        RW_AuthFallbackNow(playerid, "CEF не инициализирован");
+    if (!gUICreated[playerid]) return 0;
+    if (playertextid == gUI[playerid][11]) {
+        if (!gLogged[playerid]) Kick(playerid);
+        else RW_UI_Close(playerid);
         return 1;
     }
+    for (new i; i < 8; i++) if (playertextid == gUI[playerid][3+i]) return RW_UI_Click(playerid, i);
+    return 0;
+}
+public OnPlayerClickTextDraw(playerid, Text:clickedid)
+{
+    if (clickedid != Text:INVALID_TEXT_DRAW || gUIInput[playerid]) return 0;
+    if (gUIMode[playerid] == UI_AUTH && !gLogged[playerid]) SelectTextDraw(playerid, 0xD8C39BFF);
+    else if (gUIMode[playerid] != 0) RW_UI_Close(playerid);
     return 1;
 }
-
-public OnCefDownloadStart(playerid)
+public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 {
-    gCefStage[playerid] = 2;
-    printf("[railway:cef] download start player=%d elapsed=%dms", playerid, GetTickCount()-gCefStarted[playerid]);
-    return 1;
-}
-
-public OnCefDownloadProgress(playerid, const fileName[], filePercent, totalPercent,
-    fileDownloadedKb, fileTotalKb, totalDownloadedKb, totalKb)
-{
-    #pragma unused filePercent
-    #pragma unused fileDownloadedKb
-    #pragma unused fileTotalKb
-    if (gCefStage[playerid] != 2 || totalPercent/10 != gCefPercent[playerid]/10) {
-        printf("[railway:cef] download player=%d elapsed=%dms total=%d%% kb=%d/%d file=%s", playerid, GetTickCount()-gCefStarted[playerid], totalPercent, totalDownloadedKb, totalKb, fileName);
-    }
-    gCefStage[playerid] = 2;
-    gCefPercent[playerid] = totalPercent;
-    // Do not postpone fallback forever while the transfer trickles in.
-    return 1;
-}
-
-public OnCefDownloadFinish(playerid)
-{
-    gCefStage[playerid] = 3;
-    gCefPercent[playerid] = 100;
-    printf("[railway:cef] download finish player=%d elapsed=%dms", playerid, GetTickCount()-gCefStarted[playerid]);
-    return 1;
-}
-
-public OnCefReady(playerid)
-{
-    gCefStage[playerid] = 4;
-    printf("[railway:cef] ready player=%d elapsed=%dms", playerid, GetTickCount()-gCefStarted[playerid]);
-    gCefReady[playerid] = true;
-    RW_InteractionInit(playerid);
-
-    if (gFallbackTimer[playerid] != 0) {
-        KillTimer(gFallbackTimer[playerid]);
-        gFallbackTimer[playerid] = 0;
-    }
-
-    if (!gLogged[playerid]) {
-        ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
-        gAuthFallbackSent[playerid] = false;
-        RW_UI_OpenAuth(playerid);
-    } else if (GetPlayerState(playerid) == PLAYER_STATE_DRIVER) {
-        RW_UI_SpeedoShow(playerid, GetPlayerVehicleID(playerid));
-    }
-    return 1;
-}
-
-public OnCefBrowserCreated(playerid, browserid, bool:success, E_CEF_CREATE_STATUS:code, const reason[])
-{
-    printf("[railway:cef] browser player=%d browser=%d success=%d code=%d reason=%s", playerid, browserid, _:success, _:code, reason);
-    RW_UI_OnBrowserCreated(playerid, browserid, success);
-    if (browserid == CEF_BROWSER_SPEEDO && !success) gSpeedoShown[playerid] = false;
-    if (browserid == CONTROL_BROWSER && !success) {
-        gControlCreated[playerid] = false;
-        gControlReady[playerid] = false;
-    }
-
-    if (!success) {
-        printf("[railway] Ѕраузер %d не создан у игрока %d: %s", browserid, playerid, reason);
-
-        if (browserid == CEF_BROWSER_AUTH) {
-            gAuthBrowserCreated[playerid] = false;
-            RW_AuthFallbackNow(playerid, "браузер входа не создан");
-        }
+    if (!gLogged[playerid] || gUIMode[playerid] != 0 || gUIInput[playerid]) return 1;
+    if (GetTickCount()-gControlTick[playerid] < 250) return 1;
+    for (new i; i < 3; i++) {
+        new key = gControlKeys[playerid][i];
+        if (!(newkeys & key) || (oldkeys & key)) continue;
+        gControlTick[playerid] = GetTickCount();
+        if (i == 2) RW_ControlOpen(playerid, false);
+        else if (i == 1) RW_EngineCommand(playerid);
+        else RW_ControlExecute(playerid, RW_ControlTarget(playerid), 0);
+        break;
     }
     return 1;
 }
