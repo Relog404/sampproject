@@ -388,6 +388,7 @@ stock RW_Veh_Spawn(playerid, model)
     format(string, sizeof string, "Car {F5B04C}%s{FFFFFF} (model %d) created. You own it.", vname, model);
     SendClientMessage(playerid, COLOR_WHITE, string);
     RW_Info(playerid, "{F5B04C}/door{FFFFFF} - unlock; /key - insert key; N - start engine.");
+    if(gUIMode[playerid]==UI_INVENTORY) RW_InvRender(playerid);
 
     return 1;
 }

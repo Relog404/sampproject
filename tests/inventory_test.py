@@ -22,6 +22,7 @@ class InventoryStorageTests(unittest.TestCase):
     def setUp(self):
         self.db = sqlite3.connect(':memory:', isolation_level=None)
         self.db.execute(sql('CREATE TABLE'))
+        self.db.execute(sql('CREATE TABLE IF NOT EXISTS inventory_equipment'))
         self.db.execute('CREATE TABLE permanent_keys(uid INTEGER PRIMARY KEY, car INTEGER)')
         self.db.execute('CREATE TABLE owned_cars(id INTEGER PRIMARY KEY, owner INTEGER, model INTEGER, token INTEGER UNIQUE)')
 
@@ -116,7 +117,8 @@ class InventorySourceTests(unittest.TestCase):
         self.assertIn('section ? INV_BAG_GRAMS : INV_MAIN_GRAMS', free)
         self.assertIn('RW_InvPack(playerid) < 0 || type == ITEM_BACKPACK', free)
         remove = section('stock bool:RW_InvCanRemove', 'stock RW_InvTransfer')
-        self.assertIn('!other && RW_InvWeight(playerid, 1) > 0', remove)
+        unequip = INV.split('stock RW_InvUnequip', 1)[1].split('stock RW_InvFitCommand', 1)[0]
+        self.assertIn('RW_InvWeight(playerid,1)>0', unequip)
         self.assertIn('gVeh[v][vsKey]', remove)
 
     def test_writes_are_transactional_and_precede_memory_updates(self):

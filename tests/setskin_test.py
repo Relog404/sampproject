@@ -17,7 +17,7 @@ class SetSkinTest(unittest.TestCase):
         self.assertLess(save, BODY.index('gSkinId[target] = skin'))
         self.assertLess(save, BODY.index('SetPlayerSkin(target, skin)'))
         self.assertIn('PlayerTextDrawSetPreviewModel(target, gInvTD[target][130], skin)', BODY)
-        self.assertIn('RW_InvAttach(target)', BODY)
+        self.assertIn('RW_InvAttach(target,true)', BODY)
         self.assertIn('gAccountId[playerid], skin, gAccountId[target]', BODY)
 
     def test_sql_changes_only_target_skin(self):

@@ -56,7 +56,7 @@ stock RW_GarageReset(playerid)
 }
 stock bool:RW_GarageNear(playerid)
 {
-    return gLogged[playerid] && gInvLoaded[playerid] && GetPlayerState(playerid) == PLAYER_STATE_ONFOOT && GetPlayerInterior(playerid) == 0 && GetPlayerVirtualWorld(playerid) == 0 && IsPlayerInRangeOfPoint(playerid, 4.0, GARAGE_X, GARAGE_Y, GARAGE_Z);
+    return gLogged[playerid] && gInvLoaded[playerid] && !gInvFitting[playerid] && GetPlayerState(playerid) == PLAYER_STATE_ONFOOT && GetPlayerInterior(playerid) == 0 && GetPlayerVirtualWorld(playerid) == 0 && IsPlayerInRangeOfPoint(playerid, 4.0, GARAGE_X, GARAGE_Y, GARAGE_Z);
 }
 stock RW_GarageLabel(playerid, index, Float:x, Float:y, const text[], bool:button = false)
 {
@@ -238,14 +238,26 @@ stock RW_GarageGive(playerid, const params[])
         for (new i; i < count; i++) { new slot = db_get_field_assoc_int(r, "slot"); if (slot >= 0 && slot < 50) used[slot] = 1; weight += RW_InvGrams(db_get_field_assoc_int(r, "type")); db_next_row(r); }
         db_free_result(r);
         for (new i; i < 50; i++) if (!used[i]) { dest = i; break; }
+        format(query,sizeof query,"SELECT COUNT(*) AS equipped FROM inventory_equipment WHERE owner=%d",owner);
+        r=db_query(gDB,query);
+        if(r==DBResult:0) ok=false;
+        else { new equipped=db_get_field_assoc_int(r,"equipped"); db_free_result(r); if(equipped>1) ok=false; else weight+=equipped*RW_InvGrams(ITEM_BACKPACK); }
         if (dest < 0 || weight+100 > INV_MAIN_GRAMS) ok = false;
     }
     new uid, car;
     if (ok) { format(query, sizeof query, "INSERT INTO inventory_items(owner,slot,type,data) VALUES(%d,%d,2,0)", owner, dest); ok = RW_InvWrite(query); }
-    if (ok) { r = db_query(gDB, "SELECT last_insert_rowid()"); if (r == DBResult:0) ok = false; else { uid = db_get_field_int(r); db_free_result(r); if (uid<=0) ok=false; } }
+    if (ok) {
+        format(query,sizeof query,"SELECT uid FROM inventory_items WHERE owner=%d AND slot=%d AND type=2 AND data=0",owner,dest);
+        r = db_query(gDB,query); if(r==DBResult:0) ok=false;
+        else { if(db_num_rows(r)==1) uid=db_get_field_assoc_int(r,"uid"); db_free_result(r); if(uid<=0) ok=false; }
+    }
     if (ok) { format(query, sizeof query, "UPDATE inventory_items SET data=%d WHERE uid=%d", uid, uid); ok = RW_InvWrite(query); }
     if (ok) { format(query, sizeof query, "INSERT INTO owned_cars(owner,model,token) VALUES(%d,%d,%d)", owner, model, uid); ok = RW_InvWrite(query); }
-    if (ok) { r = db_query(gDB, "SELECT last_insert_rowid()"); if (r == DBResult:0) ok=false; else { car=db_get_field_int(r); db_free_result(r); if(car<=0) ok=false; } }
+    if (ok) {
+        format(query,sizeof query,"SELECT id FROM owned_cars WHERE token=%d AND owner=%d",uid,owner);
+        r=db_query(gDB,query); if(r==DBResult:0) ok=false;
+        else { if(db_num_rows(r)==1) car=db_get_field_assoc_int(r,"id"); db_free_result(r); if(car<=0) ok=false; }
+    }
     if (ok) { format(query, sizeof query, "INSERT INTO permanent_keys(uid,car) VALUES(%d,%d)", uid, car); ok=RW_InvWrite(query); }
     if (!ok || !RW_DB_Exec("RELEASE garage_give")) {
         RW_DB_Exec("ROLLBACK TO garage_give"); RW_DB_Exec("RELEASE garage_give");

@@ -19,6 +19,7 @@
 #include <railway/ui>
 #include <railway/accounts>
 #include <railway/inventory>
+#include <railway/ground>
 #include <railway/vehicles>
 #include <railway/speedo>
 #include <railway/interaction>
@@ -217,7 +218,7 @@ public OnPlayerSpawn(playerid)
     SetPlayerColor(playerid, (gAdminLevel[playerid] > 0) ? 0xF5B04CFF : 0x8FD3FFFF);
 
     RW_Veh_OnPlayerSpawn(playerid);
-    RW_InvAttach(playerid);
+    RW_InvAttach(playerid,true);
 
     format(string, sizeof string, "%s Welcome to the station. {F5B04C}/spcar 411{FFFFFF} - temporary car; /inv - inventory.", RW_TAG);
     SendClientMessage(playerid, COLOR_WHITE, string);
@@ -436,7 +437,8 @@ public OnPlayerClickTextDraw(playerid, Text:clickedid)
 }
 public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 {
-    if (!gLogged[playerid] || gUIMode[playerid] != 0 || gUIInput[playerid]) return 1;
+    if (!gLogged[playerid] || gUIMode[playerid] != 0 || gUIInput[playerid] || gInvFitting[playerid]) return 1;
+    if ((newkeys & KEY_SECONDARY_ATTACK) && !(oldkeys & KEY_SECONDARY_ATTACK) && gGroundAim[playerid]>0) return RW_GroundTake(playerid);
     if (GetTickCount()-gControlTick[playerid] < 250) return 1;
     for (new i; i < 3; i++) {
         new key = gControlKeys[playerid][i];
@@ -453,4 +455,9 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 public OnPlayerPickUpPickup(playerid, pickupid)
 {
     return RW_GaragePickup(playerid, pickupid);
+}
+
+public OnPlayerEditAttachedObject(playerid,response,index,modelid,boneid,Float:fOffsetX,Float:fOffsetY,Float:fOffsetZ,Float:fRotX,Float:fRotY,Float:fRotZ,Float:fScaleX,Float:fScaleY,Float:fScaleZ)
+{
+    return RW_InvFitSave(playerid,response,index,modelid,boneid,fOffsetX,fOffsetY,fOffsetZ,fRotX,fRotY,fRotZ,fScaleX,fScaleY,fScaleZ);
 }

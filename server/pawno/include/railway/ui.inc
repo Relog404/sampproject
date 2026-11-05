@@ -222,6 +222,7 @@ stock RW_UI_Text(playerid, index, const text[])
 }
 stock RW_UI_Panel(playerid, mode, const title[], const subtitle[])
 {
+    RW_GroundHide(playerid);
     if (gUIMode[playerid] == UI_INVENTORY) RW_InvHide(playerid);
     if (gUIMode[playerid] == UI_GARAGE) RW_GarageHide(playerid);
     RW_UI_Create(playerid);
@@ -264,6 +265,7 @@ stock RW_UI_Row(playerid, row, const text[])
 }
 stock RW_UI_Close(playerid, bool:keepSelection = false)
 {
+    RW_GroundHide(playerid);
     RW_InvHide(playerid);
     RW_GarageHide(playerid);
     RW_UI_CancelNative(playerid);
@@ -370,6 +372,7 @@ public RW_UITick()
 }
 stock RW_UI_Reset(playerid)
 {
+    RW_GroundReset(playerid);
     RW_InvReset(playerid);
     RW_GarageReset(playerid);
     RW_UI_CancelNative(playerid);

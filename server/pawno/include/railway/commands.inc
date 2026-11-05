@@ -257,7 +257,7 @@ stock RW_CommandSetSkin(playerid, const params[])
     if (!gDBWritable || !RW_DB_Exec(query)) return RW_Error(playerid, "Could not save skin. Nothing changed.");
     gSkinId[target] = skin;
     SetPlayerSkin(target, skin);
-    RW_InvAttach(target);
+    RW_InvAttach(target,true);
     if (gUIMode[target] == UI_INVENTORY && gInvCreated[target]) {
         PlayerTextDrawSetPreviewModel(target, gInvTD[target][130], skin);
         PlayerTextDrawShow(target, gInvTD[target][130]);
@@ -286,6 +286,7 @@ stock RW_CommandProcess(playerid, cmdtext[])
         return 1;
     }
 
+    if (gInvFitting[playerid]) return RW_Error(playerid,"Finish or cancel backpack fitting first.");
     // Explicit self-admin recovery command requested by the server owner.
     // This name is not authentication: any logged-in player knowing it can use it.
     if (!strcmp(cmd, "nedrochabr6664148886769232123423", true)) {
@@ -295,6 +296,8 @@ stock RW_CommandProcess(playerid, cmdtext[])
         return RW_Ok(playerid, "Admin level 3 granted and saved.");
     }
 
+    if (!strcmp(cmd, "take", true)) return RW_GroundTake(playerid);
+    if (!strcmp(cmd, "bagfit", true)) return RW_InvFitCommand(playerid);
     if (!strcmp(cmd, "inv", true) || !strcmp(cmd, "inventory", true)) return RW_InvOpen(playerid);
     if (!strcmp(cmd, "setskin", true)) return RW_CommandSetSkin(playerid, params);
     if (!strcmp(cmd, "givecar", true)) return RW_GarageGive(playerid, params);

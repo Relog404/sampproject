@@ -18,6 +18,7 @@ class PermanentGarageStorageTest(unittest.TestCase):
     def setUp(self):
         self.db = sqlite3.connect(':memory:', isolation_level=None)
         self.db.execute(query(INV, 'CREATE TABLE'))
+        self.db.execute(query(INV, 'CREATE TABLE IF NOT EXISTS inventory_equipment'))
         self.db.execute(query(GARAGE, 'CREATE TABLE IF NOT EXISTS owned_cars'))
         self.db.execute(query(GARAGE, 'CREATE TABLE IF NOT EXISTS permanent_keys'))
 
@@ -117,7 +118,7 @@ class GarageSourceContractsTest(unittest.TestCase):
 
     def test_context_menu_has_conditional_actions_and_stays_in_budget(self):
         td_count = int(re.search(r'#define INV_TDS\s+(\d+)', INV)[1])
-        self.assertLessEqual(td_count+24+13, 256)
+        self.assertLessEqual(td_count+24+13+2, 256)
         for label in ('"TO BAG"','"TO MAIN"','"DROP"','"WEAR"','"USE KEY"'):
             self.assertIn(label, INV)
         context = INV.split('stock RW_InvContextRender',1)[1].split('stock RW_InvRender',1)[0]
