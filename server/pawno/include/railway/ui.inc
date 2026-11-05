@@ -13,15 +13,62 @@
 #define UI_MAP 6
 new PlayerText:gUI[MAX_PLAYERS][UI_COUNT];
 new bool:gUICreated[MAX_PLAYERS], bool:gUIInput[MAX_PLAYERS];
-new bool:gUIPanelCreated[MAX_PLAYERS], bool:gUILatin[MAX_PLAYERS];
+new bool:gUIPanelCreated[MAX_PLAYERS], bool:gUIRussianDialogs[MAX_PLAYERS];
 new gUILayoutMode[MAX_PLAYERS];
 new gUIMode[MAX_PLAYERS], gUIBind[MAX_PLAYERS], gUIPage[MAX_PLAYERS];
 new gUITarget[MAX_PLAYERS][6], gToastStart[MAX_PLAYERS];
 new bool:gToastActive[MAX_PLAYERS], bool:gUIHasNext[MAX_PLAYERS];
 forward RW_UITick();
+forward RW_UI_FlushNative(playerid);
+new gUINativeTimer[MAX_PLAYERS], gUINativeCount[MAX_PLAYERS];
+new gUINativeTitle[MAX_PLAYERS][64], gUINativeSubtitle[MAX_PLAYERS][96];
+new gUINativeRows[MAX_PLAYERS][8][128], gUINativeMap[MAX_PLAYERS][8];
+stock RW_UI_ScheduleNative(playerid)
+{
+    if (gUINativeTimer[playerid] == 0) gUINativeTimer[playerid] = SetTimerEx("RW_UI_FlushNative", 50, false, "i", playerid);
+    return 1;
+}
+stock RW_UI_CancelNative(playerid)
+{
+    if (gUINativeTimer[playerid] != 0) KillTimer(gUINativeTimer[playerid]);
+    gUINativeTimer[playerid] = 0;
+}
+public RW_UI_FlushNative(playerid)
+{
+    gUINativeTimer[playerid] = 0;
+    if (!IsPlayerConnected(playerid) || !gUIRussianDialogs[playerid] || gUIInput[playerid] || gUIMode[playerid] == 0 || gUIMode[playerid] == UI_AUTH) return 1;
+    new title[96], text[1400];
+    format(title, sizeof title, "Railway | %s", gUINativeTitle[playerid]);
+    if (gUIMode[playerid] == UI_MAP) {
+        format(text, sizeof text, "{D8C39B}%s{FFFFFF}\n\nТелепортироваться к выбранной точке?\n{939BA6}Только пешком, снаружи, в основном мире.", gUINativeSubtitle[playerid]);
+        ShowPlayerDialog(playerid, DIALOG_NATIVE_MENU, DIALOG_STYLE_MSGBOX, title, text, "Да", "Нет");
+        return 1;
+    }
+    format(text, sizeof text, "%s\n", gUINativeSubtitle[playerid]);
+    gUINativeCount[playerid] = 0;
+    for (new i; i < 8; i++) {
+        if (!gUINativeRows[playerid][i][0]) continue;
+        gUINativeMap[playerid][gUINativeCount[playerid]++] = i;
+        strcat(text, gUINativeRows[playerid][i], sizeof text);
+        strcat(text, "\n", sizeof text);
+    }
+    ShowPlayerDialog(playerid, DIALOG_NATIVE_MENU, DIALOG_STYLE_TABLIST_HEADERS, title, text, "Выбрать", "Закрыть");
+    return 1;
+}
+stock RW_UI_NativeResponse(playerid, response, listitem)
+{
+    if (!gUIRussianDialogs[playerid] || !gLogged[playerid] || gUIMode[playerid] == 0 || gUIMode[playerid] == UI_AUTH || gUIInput[playerid]) return 1;
+    if (gUINativeTimer[playerid] != 0) return 1;
+    if (gUIMode[playerid] == UI_MAP) return RW_UI_Click(playerid, response ? 0 : 1);
+    if (!response) return RW_UI_Close(playerid);
+    if (listitem < 0 || listitem >= gUINativeCount[playerid]) return RW_UI_ScheduleNative(playerid);
+    RW_UI_Click(playerid, gUINativeMap[playerid][listitem]);
+    if (gUIMode[playerid] != 0) RW_UI_ScheduleNative(playerid);
+    return 1;
+}
 
-// CP1251 is sent unchanged in Russian mode. Glyphs require compatible client fonts.
-// Latin fallback is per-player; database names/passwords are never recoded.
+// Never send raw Cyrillic to GTA TextDraw fonts. Native SA-MP dialogs render
+// Russian independently; TextDraw mode/HUD use only safe ASCII glyphs.
 stock RW_TD_Encode(playerid, const text[], out[], size)
 {
     static const map[][] = {"a","b","v","g","d","e","zh","z","i","y","k","l","m","n","o","p","r","s","t","u","f","h","ts","ch","sh","sch","","y","","e","yu","ya"};
@@ -39,12 +86,12 @@ stock RW_TD_Encode(playerid, const text[], out[], size)
             if (hex) { i += 7; continue; }
         }
         if (c == '~' && i+2 < length && text[i+2] == '~' && text[i+1] == 'n') { strcat(out, "~n~", size); i += 2; continue; }
-        if (gUILatin[playerid] && c >= 192) {
+        if (c >= 192) {
             new latin[5]; format(latin, sizeof latin, "%s", map[(c-192)%32]);
             if (c < 224) for (new k; latin[k]; k++) if (latin[k] >= 'a' && latin[k] <= 'z') latin[k] -= 32;
             strcat(out, latin, size);
-        } else if (gUILatin[playerid] && (c == 168 || c == 184)) strcat(out, c == 168 ? ("E") : ("e"), size);
-        else if (gUILatin[playerid] && c >= 127) strcat(out, "-", size);
+        } else if ((c == 168 || c == 184)) strcat(out, c == 168 ? ("E") : ("e"), size);
+        else if (c >= 127) strcat(out, "-", size);
         else if (c >= 32) { new ch[2]; ch[0] = c == '~' ? '-' : c; strcat(out, ch, size); }
     }
     return 1;
@@ -159,6 +206,16 @@ stock RW_UI_Panel(playerid, mode, const title[], const subtitle[])
     for (new i = 12; i <= 18; i++) PlayerTextDrawHide(playerid, gUI[playerid][i]);
     gUIMode[playerid] = mode;
     gUIInput[playerid] = false;
+    if (gUIRussianDialogs[playerid]) {
+        for (new i; i < 12; i++) PlayerTextDrawHide(playerid, gUI[playerid][i]);
+        PlayerTextDrawHide(playerid, gUI[playerid][22]); PlayerTextDrawHide(playerid, gUI[playerid][23]);
+        CancelSelectTextDraw(playerid);
+        gUINativeCount[playerid] = 0;
+        format(gUINativeTitle[playerid], 64, "%s", title);
+        format(gUINativeSubtitle[playerid], 96, "%s", subtitle);
+        for (new i; i < 8; i++) gUINativeRows[playerid][i][0] = EOS;
+        return RW_UI_ScheduleNative(playerid);
+    }
     if (gUILayoutMode[playerid] != mode) RW_UI_BuildPanel(playerid, mode);
     RW_UI_Text(playerid, 11, mode == UI_AUTH ? ("Выход с сервера") : ("Закрыть / ESC"));
     RW_UI_Text(playerid, 1, title); RW_UI_Text(playerid, 2, subtitle);
@@ -175,11 +232,18 @@ stock RW_UI_Panel(playerid, mode, const title[], const subtitle[])
 }
 stock RW_UI_Row(playerid, row, const text[])
 {
+    if (gUIRussianDialogs[playerid]) {
+        format(gUINativeRows[playerid][row], 128, "%s", text);
+        return RW_UI_ScheduleNative(playerid);
+    }
     RW_UI_Text(playerid, 3+row, text);
     PlayerTextDrawShow(playerid, gUI[playerid][3+row]);
+    return 1;
 }
 stock RW_UI_Close(playerid)
 {
+    RW_UI_CancelNative(playerid);
+    if (IsPlayerConnected(playerid)) ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
     if (gUIMode[playerid] == UI_MAP) gMapPending[playerid] = false;
     gUIMode[playerid] = 0;
     gControlMode[playerid] = 0;
@@ -192,6 +256,11 @@ stock RW_UI_Close(playerid)
 }
 stock RW_UI_OpenAuth(playerid)
 {
+    if (gUIRussianDialogs[playerid]) {
+        RW_UI_Create(playerid);
+        gUIMode[playerid] = UI_AUTH;
+        return RW_ShowLoginDialog(playerid);
+    }
     new nick[MAX_PLAYER_NAME]; RW_GetNick(playerid, nick);
     new bool:exists = RW_DB_AccountExists(nick);
     RW_UI_Panel(playerid, UI_AUTH, exists ? ("С возвращением") : ("Добро пожаловать"), nick);
@@ -277,6 +346,8 @@ public RW_UITick()
 }
 stock RW_UI_Reset(playerid)
 {
+    RW_UI_CancelNative(playerid);
+    if (IsPlayerConnected(playerid)) ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
     gUIMode[playerid] = 0; gControlMode[playerid] = 0;
     gUIInput[playerid] = false; gToastActive[playerid] = false;
     if (gUICreated[playerid]) for (new i; i < UI_COUNT; i++) PlayerTextDrawDestroy(playerid, gUI[playerid][i]);

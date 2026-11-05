@@ -53,6 +53,7 @@
 #define DIALOG_LOGIN                 (9100)
 #define DIALOG_REGISTER              (9101)
 #define DIALOG_REGISTER_CONFIRM      (9102)
+#define DIALOG_NATIVE_MENU           (9103)
 #define RW_MAP_ICON                  (99)
 
 /* ------------------------------------------------------------------ слоты авто */

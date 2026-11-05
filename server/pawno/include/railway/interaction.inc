@@ -225,8 +225,8 @@ stock RW_MapPrompt(playerid)
 stock RW_UI_Language(playerid, bool:latin)
 {
     if (gUIInput[playerid]) return RW_ControlNotify(playerid, "—начала завершите или отмените ввод парол€.");
-    gUILatin[playerid] = latin;
+    gUIRussianDialogs[playerid] = !latin;
     RW_UI_Close(playerid);
     if (!gLogged[playerid]) return RW_UI_OpenAuth(playerid);
-    return RW_ControlNotify(playerid, latin ? ("¬ключена транслитераци€. /tdrus Ч русский текст.") : ("–усские подписи включены. ≈сли буквы неверные Ч /tdlatin."));
+    return RW_ControlNotify(playerid, latin ? ("TextDraw-меню включены. –усские окна Ч /uiru.") : ("–усские окна SA-MP включены. TextDraw-меню Ч /uitd."));
 }

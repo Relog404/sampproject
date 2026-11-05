@@ -212,8 +212,8 @@ stock RW_CommandProcess(playerid, cmdtext[])
         return RW_CommandHelp(playerid);
     }
 
-    if (!strcmp(cmd, "tdlatin", true)) return RW_UI_Language(playerid, true);
-    if (!strcmp(cmd, "tdrus", true)) return RW_UI_Language(playerid, false);
+    if ((!strcmp(cmd, "tdlatin", true) || !strcmp(cmd, "uitd", true))) return RW_UI_Language(playerid, true);
+    if ((!strcmp(cmd, "tdrus", true) || !strcmp(cmd, "uiru", true))) return RW_UI_Language(playerid, false);
     if (!gLogged[playerid]) {
         RW_Error(playerid, "Сначала войдите в аккаунт.");
         return 1;

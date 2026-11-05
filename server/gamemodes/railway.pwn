@@ -123,7 +123,7 @@ public OnPlayerConnect(playerid)
     RW_InteractionReset(playerid);
     gMapPending[playerid] = false;
     gMapHasPoint[playerid] = false;
-    gUILatin[playerid] = false;
+    gUIRussianDialogs[playerid] = true;
     RW_ClearRegisterPassword(playerid);
     RemovePlayerMapIcon(playerid, RW_MAP_ICON);
 
@@ -141,7 +141,7 @@ public OnPlayerConnect(playerid)
 
     format(string, sizeof string, "%s {F5B04C}%s{FFFFFF}, добро пожаловать на вокзал!", RW_TAG, nick);
     SendClientMessage(playerid, COLOR_WHITE, string);
-    SendClientMessage(playerid, COLOR_GREY, "TextDraw: /tdrus Ч русский; /tdlatin Ч если шрифт GTA не поддерживает кириллицу.");
+    SendClientMessage(playerid, COLOR_GREY, "»нтерфейс: /uiru Ч русские окна SA-MP; /uitd Ч компактные TextDraw без проблем со шрифтами.");
 
     return 1;
 }
@@ -376,6 +376,7 @@ public OnRconCommand(cmd[])
 
 public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 {
+    if (dialogid == DIALOG_NATIVE_MENU) return RW_UI_NativeResponse(playerid, response, listitem);
     if (gLogged[playerid]) return 0;
     if (dialogid != DIALOG_LOGIN && dialogid != DIALOG_REGISTER && dialogid != DIALOG_REGISTER_CONFIRM) return 0;
     gUIInput[playerid] = false;
@@ -427,7 +428,7 @@ public OnPlayerClickMap(playerid, Float:fX, Float:fY, Float:fZ)
 
 public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 {
-    if (!gUICreated[playerid]) return 0;
+    if (!gUICreated[playerid] || gUIRussianDialogs[playerid]) return 0;
     if (playertextid == gUI[playerid][11]) {
         if (!gLogged[playerid]) Kick(playerid);
         else RW_UI_Close(playerid);
@@ -438,7 +439,7 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 }
 public OnPlayerClickTextDraw(playerid, Text:clickedid)
 {
-    if (clickedid != Text:INVALID_TEXT_DRAW || gUIInput[playerid]) return 0;
+    if (clickedid != Text:INVALID_TEXT_DRAW || gUIInput[playerid] || gUIRussianDialogs[playerid]) return 0;
     if (gUIMode[playerid] == UI_AUTH && !gLogged[playerid]) SelectTextDraw(playerid, 0xD8C39BFF);
     else if (gUIMode[playerid] != 0) RW_UI_Close(playerid);
     return 1;

@@ -46,11 +46,12 @@ class CompactRussianUiTest(unittest.TestCase):
         for marker in ('stock PlayerText:RW_TD_Label', 'stock RW_UI_Text'):
             code = self.ui.split(marker, 1)[1].split('\n}', 1)[0]
             self.assertIn('RW_TD_Encode', code)
-        self.assertIn('gUILatin[playerid] && c >= 192', self.ui)
+        self.assertIn('if (c >= 192)', self.ui)
+        self.assertNotIn('gUILatin', self.ui)
         self.assertIn("new ch[2]; ch[0] = c == '~' ? '-' : c", self.ui)
         self.assertIn('i+7 < length', self.ui)
         self.assertIn('new bool:hex = true', self.ui)
-        self.assertIn('gUILatin[playerid] = false', self.main)
+        self.assertIn('gUIRussianDialogs[playerid] = true', self.main)
         commands = source('commands')
         self.assertIn('"tdlatin"', commands)
         self.assertIn('"tdrus"', commands)
