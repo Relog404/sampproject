@@ -73,6 +73,7 @@ new bool:gMapPending[MAX_PLAYERS];
 new Float:gMapPoint[MAX_PLAYERS][3];
 new gControlKeys[MAX_PLAYERS][3], gControlVehicle[MAX_PLAYERS], gControlMode[MAX_PLAYERS], gControlTick[MAX_PLAYERS];
 new DB:gDB;
+new bool:gDBWritable;
 
 new gVeh[VEHICLE_SLOTS][E_VEHICLE_SLOT];
 new gVehSlotOf[MAX_VEHICLES];          /* vehicleid -> слот (или -1)         */

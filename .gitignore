@@ -8,6 +8,7 @@ client/gta-files/
 server/scriptfiles/railway.db
 server/scriptfiles/railway.db-shm
 server/scriptfiles/railway.db-wal
+server/scriptfiles/railway.db-journal
 server/scriptfiles/*.pak
 server/server_log.txt
 server/logs/

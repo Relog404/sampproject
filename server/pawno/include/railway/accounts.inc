@@ -29,11 +29,29 @@ forward RW_ShowLoginDialog(playerid);
  *  результата, который обязательно нужно освобождать, иначе они копятся. */
 stock bool:RW_DB_Exec(query[])
 {
+    if (gDB == DB:0) return false;
     new DBResult:res = db_query(gDB, query);
+    if (res == DBResult:0) {
+        // Log only the statement type, never account hashes, salts or passwords.
+        new operation[20], i;
+        while (query[i] && query[i] != ' ' && i < sizeof operation-1) { operation[i] = query[i]; i++; }
+        printf("[railway:db] SQL failed: %s. Check path, permissions, locks and schema; dbcheck.", operation);
+        return false;
+    }
+    db_free_result(res);
+    return true;
+}
+stock RW_DB_LogPath()
+{
+    new DBResult:res = db_query(gDB, "PRAGMA database_list");
     if (res != DBResult:0) {
+        if (db_num_rows(res) > 0) {
+            new path[260]; db_get_field_assoc(res, "file", path, sizeof path);
+            printf("[railway:db] SQLite file: %s", path);
+        }
         db_free_result(res);
     }
-    return true;
+    return 1;
 }
 
 stock bool:RW_DB_TableExists(const name[])
@@ -53,29 +71,24 @@ stock bool:RW_DB_TableExists(const name[])
     return found;
 }
 
-/*  Самопроверка схемы: пишем и сразу читаем служебную строку тем же набором
- *  колонок, что и настоящая регистрация. Так видно, что база реально пишется. */
+/* Write/read check inside a savepoint: never delete a player's row.
+ * Probe name is longer than MAX_PLAYER_NAME and cannot collide with a game nick.
+ * Rollback removes all changes even when the check fails. */
 stock bool:RW_DB_Probe()
 {
-    new DBResult:res;
-    new bool:ok = false;
-
-    RW_DB_Exec("DELETE FROM `accounts` WHERE `name` = '__probe__'");
-
-    res = db_query(gDB,
-        "INSERT INTO `accounts` (`name`,`hash`,`salt`,`skin`,`money`,`admin`,`created`,`last_login`,`last_ip`) VALUES ('__probe__','probe','probe',0,0,0,0,0,'127.0.0.1')");
-    if (res != DBResult:0) {
-        db_free_result(res);
+    if (!RW_DB_Exec("SAVEPOINT railway_write_probe")) return false;
+    new query[384], name[80], bool:ok = false;
+    format(name, sizeof name, "__railway_write_probe__%d_%d", GetTickCount(), random(2147483647));
+    format(query, sizeof query,
+        "INSERT INTO `accounts` (`name`,`hash`,`salt`,`skin`,`money`,`admin`,`created`,`last_login`,`last_ip`) VALUES ('%s','probe','probe',0,0,0,0,0,'127.0.0.1')", name);
+    if (RW_DB_Exec(query)) {
+        format(query, sizeof query, "SELECT `id` FROM `accounts` WHERE `name`='%s' LIMIT 1", name);
+        new DBResult:res = db_query(gDB, query);
+        if (res != DBResult:0) { ok = db_num_rows(res) > 0; db_free_result(res); }
     }
-
-    res = db_query(gDB, "SELECT `id` FROM `accounts` WHERE `name` = '__probe__' LIMIT 1");
-    if (res != DBResult:0) {
-        ok = (db_num_rows(res) > 0);
-        db_free_result(res);
-    }
-
-    RW_DB_Exec("DELETE FROM `accounts` WHERE `name` = '__probe__'");
-    return ok;
+    new bool:rolledBack = RW_DB_Exec("ROLLBACK TO railway_write_probe");
+    new bool:released = RW_DB_Exec("RELEASE railway_write_probe");
+    return ok && rolledBack && released;
 }
 
 stock RW_DB_CreateTable()
@@ -86,50 +99,29 @@ stock RW_DB_CreateTable()
 
 stock RW_DB_Init()
 {
-    /*  db_open() сам ищет файл ВНУТРИ scriptfiles/, поэтому путь с префиксом
-     *  scriptfiles/ превращался в scriptfiles/scriptfiles/railway.db. */
+    gDBWritable = false;
+    // SA-MP resolves this name inside scriptfiles/; do not duplicate the prefix.
     gDB = db_open("railway.db");
-
     if (gDB == DB:0) {
-        /*  запасной вариант — если сервер разрешает путь от своего корня */
-        gDB = db_open("scriptfiles/railway.db");
-    }
-
-    if (gDB == DB:0) {
-        print("[railway] База: не удалось открыть scriptfiles/railway.db.");
-        print("[railway] Проверьте, что папка scriptfiles есть и доступна на запись.");
+        print("[railway:db] Cannot open scriptfiles/railway.db.");
+        print("[railway:db] Create scriptfiles next to samp-server.exe; allow write access.");
+        print("[railway:db] Start server from its own directory. Never delete an existing DB.");
         return 0;
     }
-
-    printf("[railway] База: соединение открыто (handle %d).", _:gDB);
-
-    RW_DB_Exec("PRAGMA journal_mode = WAL");
+    RW_DB_LogPath();
+    RW_DB_Exec("PRAGMA busy_timeout = 3000");
     RW_DB_CreateTable();
-
     if (!RW_DB_TableExists("accounts")) {
-        print("[railway] База: таблица accounts не создалась (файл только для чтения?).");
+        print("[railway:db] accounts table missing; check directory write access and file permissions.");
         return 0;
     }
-
-    if (RW_DB_Probe()) {
-        print("[railway] База данных готова.");
+    gDBWritable = RW_DB_Probe();
+    if (gDBWritable) {
+        print("[railway:db] Database ready: read/write verified.");
         return 1;
     }
-
-    /*  Таблица есть, но запись не проходит: обычно это старая схема, оставшаяся
-     *  от прежней версии. Уводим её в сторону и создаём таблицу заново. */
-    print("[railway] База: таблица accounts не подходит под текущую схему, пересоздаю.");
-    RW_DB_Exec("ALTER TABLE `accounts` RENAME TO `accounts_backup_old`");
-    RW_DB_CreateTable();
-
-    if (RW_DB_Probe()) {
-        print("[railway] База: пересоздана, старая таблица сохранена как accounts_backup_old.");
-        print("[railway] База данных готова.");
-        return 1;
-    }
-
-    print("[railway] База: запись в accounts не работает.");
-    print("[railway] Удалите файл scriptfiles/railway.db и перезапустите сервер.");
+    print("[railway:db] Write check failed: permission, lock, disk space or incompatible schema.");
+    print("[railway:db] Existing tables were NOT renamed or replaced. Back up the DB; run dbcheck.");
     return 0;
 }
 
@@ -252,6 +244,11 @@ stock RW_AuthSubmit(playerid, bool:registerMode, const password[], const confirm
     RW_GetNick(playerid, nick);
 
     if (!IsPlayerConnected(playerid) || gLogged[playerid]) {
+        return 0;
+    }
+
+    if (gDB == DB:0 || !RW_DB_TableExists("accounts") || (registerMode && !gDBWritable)) {
+        RW_Respond(playerid, false, "err:db");
         return 0;
     }
 

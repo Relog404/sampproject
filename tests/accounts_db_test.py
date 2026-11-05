@@ -33,5 +33,47 @@ class AccountsDatabaseTest(unittest.TestCase):
         self.assertIn('db_open("railway.db")', SOURCE)
 
 
+class DatabaseSafetyTest(unittest.TestCase):
+    def probe(self, db):
+        code = SOURCE.split('stock bool:RW_DB_Probe()', 1)[1].split('stock RW_DB_CreateTable()', 1)[0]
+        insert = re.search(r'"(INSERT INTO[^"\r\n]+)"', code).group(1).replace('%s', '__railway_write_probe__123_456')
+        db.execute('SAVEPOINT railway_write_probe')
+        try:
+            db.execute(insert)
+            return db.execute('SELECT id FROM accounts WHERE name=?', ('__railway_write_probe__123_456',)).fetchone() is not None
+        finally:
+            db.execute('ROLLBACK TO railway_write_probe')
+            db.execute('RELEASE railway_write_probe')
+
+    def test_scriptfiles_directory_ships_in_checkout(self):
+        self.assertTrue(Path('server/scriptfiles/README.txt').is_file())
+        setup = Path('setup.ps1').read_text()
+        self.assertIn('New-Item -ItemType Directory', setup)
+        self.assertIn('server\\scriptfiles', setup)
+
+    def test_write_probe_preserves_real_accounts_and_leaves_no_probe_row(self):
+        with sqlite3.connect(':memory:') as db:
+            db.execute(SCHEMA)
+            db.execute("INSERT INTO accounts(name,hash,salt) VALUES ('__probe__','real-hash','real-salt')")
+            self.assertTrue(self.probe(db))
+            self.assertEqual(db.execute('SELECT name,hash,salt FROM accounts').fetchall(), [('__probe__','real-hash','real-salt')])
+
+    def test_failed_probe_does_not_replace_legacy_schema(self):
+        with sqlite3.connect(':memory:') as db:
+            db.execute('CREATE TABLE accounts(id INTEGER PRIMARY KEY, name TEXT, hash TEXT)')
+            db.execute("INSERT INTO accounts(name,hash) VALUES ('Old_Player','old-hash')")
+            with self.assertRaises(sqlite3.OperationalError):
+                self.probe(db)
+            self.assertEqual(db.execute('SELECT name,hash FROM accounts').fetchall(), [('Old_Player','old-hash')])
+        self.assertNotIn('ALTER TABLE', SOURCE)
+        self.assertNotIn('DELETE FROM', SOURCE.split('stock bool:RW_DB_Probe()', 1)[1].split('stock RW_DB_CreateTable()', 1)[0])
+        self.assertNotIn('db_open("scriptfiles/railway.db")', SOURCE)
+
+    def test_exec_does_not_report_success_on_failed_query(self):
+        code = SOURCE.split('stock bool:RW_DB_Exec', 1)[1].split('stock RW_DB_LogPath', 1)[0]
+        self.assertIn('if (res == DBResult:0)', code)
+        self.assertIn('return false', code)
+        self.assertNotIn('printf("%s", query)', code)
+
 if __name__ == '__main__':
     unittest.main()
