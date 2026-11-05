@@ -261,7 +261,10 @@ stock RW_GarageGive(playerid, const params[])
     if (ok) { format(query, sizeof query, "INSERT INTO permanent_keys(uid,car) VALUES(%d,%d)", uid, car); ok=RW_InvWrite(query); }
     if (!ok || !RW_DB_Exec("RELEASE garage_give")) {
         RW_DB_Exec("ROLLBACK TO garage_give"); RW_DB_Exec("RELEASE garage_give");
-        return RW_Error(playerid, "Grant failed: inventory full, overweight or database error. Nothing was granted.");
+        printf("[garage] givecar failed for account=%d by admin account=%d (dest=%d weight=%d ok=%d)", owner, gAccountId[playerid], dest, weight, ok);
+        if (!ok && dest < 0) return RW_Error(playerid, "No free MAIN slot in that account inventory (50 slots). Nothing was granted.");
+        if (!ok && weight + 100 > INV_MAIN_GRAMS) { new failed[160]; format(failed, sizeof failed, "That account would carry %.1f kg of %.1f kg in MAIN. Nothing was granted.", float(weight+100)/1000.0, float(INV_MAIN_GRAMS)/1000.0); return RW_Error(playerid, failed); }
+        return RW_Error(playerid, "Database error; nothing was granted. Run dbcheck in the server console.");
     }
     if (target >= 0) {
         if (!RW_InvLoad(target)) RW_Error(target, "Inventory reload failed. Reconnect / contact an admin.");

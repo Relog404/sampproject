@@ -524,27 +524,97 @@ stock RW_InvExit()
     for (new i; i < INV_WORLD; i++) if (gGround[i][igUid] && IsValidObject(gGround[i][igObject])) DestroyObject(gGround[i][igObject]);
     return 1;
 }
+// Accepted words so a correctly meant command is not rejected as a typo:
+// 1/bag/backpack, 2/key/carkey, and a vehicle as <id>, p<plate number> or c<garage car id>.
+stock RW_InvItemWord(const word[])
+{
+    if (!word[0]) return -1;
+    if (!strcmp(word, "1", true) || !strcmp(word, "bag", true) || !strcmp(word, "backpack", true)) return ITEM_BACKPACK;
+    if (!strcmp(word, "2", true) || !strcmp(word, "key", true) || !strcmp(word, "carkey", true) || !strcmp(word, "keys", true)) return ITEM_CAR_KEY;
+    return -1;
+}
+// Resolves the vehicle argument and reports the exact reason when it cannot.
+// Returns the vehicle slot, VEHICLE_SLOTS for a stored permanent car, or -1.
+stock RW_InvGiveVehicle(playerid, const arg[], &data)
+{
+    data = 0;
+    new vehicle = -1, message[160];
+    if (!arg[0] || !strcmp(arg, "me", true) || !strcmp(arg, "aim", true)) {
+        vehicle = RW_ControlTarget(playerid);
+        if (vehicle <= 0 || vehicle >= MAX_VEHICLES) { RW_Error(playerid, "Sit in a managed car or aim at one within 6 metres; /cars lists them."); return -1; }
+    } else if (arg[0] == 'p' || arg[0] == 'P') {
+        new plate = strval(arg[1]);
+        if (plate <= 0 || plate > VEHICLE_SLOTS || !gVeh[plate-1][vsUsed] || gVehKeyUid[plate-1] <= 0) { RW_Error(playerid, "No spawned car with that plate. /cars lists managed cars and plates."); return -1; }
+        data = gVehKeyUid[plate-1];
+        return plate - 1;
+    } else if (arg[0] == 'c' || arg[0] == 'C') {
+        new car = strval(arg[1]), query[128];
+        if (car <= 0) { RW_Error(playerid, "Use c<garage car id> from /cars, for example c3."); return -1; }
+        format(query, sizeof query, "SELECT token FROM owned_cars WHERE id=%d", car);
+        new DBResult:r = db_query(gDB, query);
+        if (r != DBResult:0) { if (db_num_rows(r)) data = db_get_field_assoc_int(r, "token"); db_free_result(r); }
+        if (data <= 0) { RW_Error(playerid, "No permanent car with that id. /cars lists garage cars."); return -1; }
+        return VEHICLE_SLOTS;
+    } else if (RW_IsNumeric(arg)) {
+        vehicle = strval(arg);
+    } else {
+        RW_Error(playerid, "Vehicle must be an id, p<plate number> or c<garage car id>. /cars lists them.");
+        return -1;
+    }
+    if (vehicle <= 0 || vehicle >= MAX_VEHICLES) { RW_Error(playerid, "No vehicle with that id. /cars lists managed cars and their ids."); return -1; }
+    new slot = RW_IsOwnedSlot(vehicle);
+    if (slot >= 0 && gVeh[slot][vsUsed] && gVehKeyUid[slot] > 0) { data = gVehKeyUid[slot]; return slot; }
+    new number = strval(arg);
+    if (RW_IsNumeric(arg) && number >= 1 && number <= VEHICLE_SLOTS && gVeh[number-1][vsUsed] && gVehKeyUid[number-1] > 0) {
+        format(message, sizeof message, "Vehicle %d has no server key, but plate RW-%03d is vehicle id %d. Use /giveitem <id> key %d", vehicle, number, gVeh[number-1][vsVehicleId], gVeh[number-1][vsVehicleId]);
+        RW_Error(playerid, message);
+        return -1;
+    }
+    if (GetVehicleModel(vehicle)) format(message, sizeof message, "Vehicle %d exists but has no key managed by the server (/spcar and garage cars only).", vehicle);
+    else format(message, sizeof message, "No vehicle with id %d. /cars lists managed cars and their ids.", vehicle);
+    RW_Error(playerid, message);
+    return -1;
+}
+// Reports why a grant failed instead of one generic message.
+stock RW_InvExplainGrant(playerid, target, type, data)
+{
+    new message[160];
+    if (type == ITEM_CAR_KEY && data > 0 && !RW_InvKeyTokenKnown(data)) return RW_Error(playerid, "That car's key token no longer exists. /cars lists valid cars. Nothing was granted.");
+    if (RW_InvFree(target, 0, type) < 0) {
+        new grams = RW_InvWeight(target, 0) + RW_InvGrams(type);
+        if (grams > INV_MAIN_GRAMS)
+            format(message, sizeof message, "Target would carry %.1f kg of %.1f kg in MAIN. Nothing was granted.", float(grams)/1000.0, float(INV_MAIN_GRAMS)/1000.0);
+        else
+            format(message, sizeof message, "Target has no free MAIN slot (50 slots, keys and backpacks only go to MAIN). Nothing was granted.");
+        return RW_Error(playerid, message);
+    }
+    return RW_Error(playerid, "Database error; nothing was granted. Run dbcheck in the server console.");
+}
 stock RW_InvGiveCommand(playerid, const params[])
 {
     if (!gLogged[playerid] || gAdminLevel[playerid] < 1) return RW_Error(playerid, "Administrators only.");
-    new a[24], b[24], c[24], extra[24], rest[144], tail[144];
+    new a[32], b[32], c[32], extra[32], rest[144], tail[144];
     RW_ParseCommand(params, a, sizeof a, rest, sizeof rest);
     RW_ParseCommand(rest, b, sizeof b, tail, sizeof tail);
     RW_ParseCommand(tail, c, sizeof c, extra, sizeof extra);
-    if (!RW_IsNumeric(a) || !RW_IsNumeric(b) || extra[0] || (c[0] && !RW_IsNumeric(c)) || strlen(a)>5 || strlen(b)>2 || strlen(c)>5)
-        return RW_Info(playerid, "/giveitem <playerid> <1=bag,2=key> [vehicleid]");
-    new target = strval(a), type = strval(b), data;
-    if (target < 0 || target >= MAX_PLAYERS || !IsPlayerConnected(target) || !gLogged[target] || !gInvLoaded[target]) return RW_Error(playerid, "Player unavailable.");
-    if (type != ITEM_BACKPACK && type != ITEM_CAR_KEY) return RW_Error(playerid, "Items: 1 - backpack, 2 - car key.");
+    if (!a[0] || !b[0] || extra[0] || strlen(a) > 5 || strlen(b) > 12 || strlen(c) > 8)
+        return RW_Info(playerid, "/giveitem <playerid> <bag|key> [vehicle id, p<plate> or c<garage car id>]");
+    if (!RW_IsNumeric(a)) return RW_Error(playerid, "Player id must be a number, for example /giveitem 0 key 7");
+    new target = strval(a), type = RW_InvItemWord(b), data;
+    if (type < 0) return RW_Error(playerid, "Items: bag (backpack) or key (car key).");
+    if (target < 0 || target >= MAX_PLAYERS || !IsPlayerConnected(target) || !gLogged[target]) return RW_Error(playerid, "Player must be connected and logged in. /givecar <name> <model> works offline.");
+    if (!gInvLoaded[target]) return RW_Error(playerid, "Player inventory is not loaded yet. Ask them to reconnect.");
     if (type == ITEM_CAR_KEY) {
-        new vehicle = strval(c), slot = RW_IsOwnedSlot(vehicle);
-        if (!c[0] || slot < 0 || !gVeh[slot][vsUsed] || gVehKeyUid[slot] <= 0) return RW_Error(playerid, "Enter an existing managed vehicle ID.");
-        data = gVehKeyUid[slot];
-    } else if (c[0]) return RW_Error(playerid, "A backpack does not need a vehicle ID.");
-    if (!RW_InvGrant(target, type, data)) return RW_Error(playerid, "No space, weight limit exceeded or database error.");
-    printf("[inventory] admin account=%d gives type=%d data=%d to account=%d", gAccountId[playerid], type, data, gAccountId[target]);
+        if (RW_InvGiveVehicle(playerid, c, data) < 0) return 1;
+    } else if (c[0]) return RW_Error(playerid, "A backpack takes no vehicle. Use /giveitem <playerid> bag.");
+    new uid = RW_InvGrant(target, type, data);
+    if (!uid) return RW_InvExplainGrant(playerid, target, type, data);
+    printf("[inventory] admin account=%d gives type=%d data=%d uid=%d to account=%d", gAccountId[playerid], type, data, uid, gAccountId[target]);
     RW_Ok(target, "Item received. /inv");
-    return RW_Ok(playerid, "Item granted.");
+    new message[144];
+    if (type == ITEM_CAR_KEY) format(message, sizeof message, "Key granted (item %d, car token %d). It starts that car.", uid, data);
+    else format(message, sizeof message, "Backpack granted (item %d). Equip it in the BACK slot to unlock 30 bag slots.", uid);
+    return RW_Ok(playerid, message);
 }
 
 // Equipment owns the same item UID; its inventory row is unowned but excluded

@@ -66,6 +66,30 @@ excluded from pickup SQL even though their original row is not in MAIN/BAG.
 Two players cannot take the same UID. Without a collision plugin, the camera
 ray test does not provide map/object wall occlusion.
 
+## Key issuance input and diagnostics
+
+`/giveitem` no longer rejects a correctly meant command. Item type accepts
+words, not only codes: `bag` / `backpack` (or `1`) and `key` / `carkey` (or `2`).
+The vehicle argument accepts:
+
+- a **vehicle id** — `/giveitem 5 key 7`;
+- a **plate number** — `/giveitem 5 key p3` for plate `RW-003`;
+- a **garage car id** — `/giveitem 5 key c3` for a permanent car that is
+  currently stored in the garage and has no spawned vehicle id;
+- **nothing at all** — the car you sit in, or the managed car you aim at
+  within 6 metres.
+
+Admin **`/cars`** lists every managed car: vehicle id, plate, model, key token,
+temporary/permanent, owner, plus stored permanent cars with their `c` ids.
+Use it instead of guessing an id.
+
+Rejections now state the real reason instead of a generic "wrong syntax":
+no such vehicle id, vehicle exists but has no server key (only `/spcar` and
+garage cars have key tokens), a plate-number hint when the id looks like a
+plate, no free MAIN slot, would exceed 50 kg, or a database error. A grant
+that fails is logged to the server console with the account ids, the chosen
+slot and the weight. `/givecar` reports the same specific reasons.
+
 ## Key issuance hardening
 
 `/spcar` and `/givecar` now read back the inserted key using its account/slot

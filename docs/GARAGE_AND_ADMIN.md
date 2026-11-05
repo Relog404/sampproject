@@ -170,3 +170,9 @@ do not run GTA or prove rendering/flight feel. Before deployment:
 6. In an open area, test takeoff, pitch, bank, yaw, braking, landing, driver
    changes and admin revocation. Check steering response and synchronization
    from a second client; tune flight constants if needed.
+
+## Выдача ключей: диагностика
+
+`/cars` показывает id машин, номера RW-NNN и id постоянных машин (cN).
+`/giveitem` принимает `bag|key`, id машины, `pNNN`, `cNNN` или цель наводки,
+отказы сообщают конкретную причину. Подробности в docs/BACKPACK_AND_PICKUP.md.

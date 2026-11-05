@@ -163,8 +163,20 @@ class InventorySourceTests(unittest.TestCase):
     def test_admin_grants_and_console_only_admin_assignment(self):
         grant = INV.split('stock RW_InvGiveCommand',1)[1]
         self.assertIn('!gLogged[playerid] || gAdminLevel[playerid] < 1', grant)
-        self.assertIn('!gLogged[target] || !gInvLoaded[target]', grant)
-        self.assertIn('gVehKeyUid[slot] <= 0', grant)
+        # Aimed/omitted vehicle, plate or garage car id are all accepted forms.
+        resolve = INV.split('stock RW_InvGiveVehicle',1)[1].split('stock RW_InvExplainGrant',1)[0]
+        self.assertIn('RW_ControlTarget(playerid)', resolve)
+        self.assertIn('gVehKeyUid[slot] > 0', resolve)
+        self.assertIn('plate RW-%03d', resolve)
+        self.assertIn("SELECT token FROM owned_cars WHERE id=%d", resolve)
+        self.assertIn('RW_IsNumeric(arg)', resolve)
+        self.assertIn('GetVehicleModel(vehicle)', resolve)
+        # Rejections state the concrete reason instead of a generic usage hint.
+        explain = INV.split('stock RW_InvExplainGrant',1)[1].split('stock RW_InvGiveCommand',1)[0]
+        self.assertIn('RW_InvFree(target, 0, type) < 0', explain)
+        self.assertIn('no free MAIN slot', explain)
+        self.assertIn('Run dbcheck', explain)
+        self.assertIn('RW_InvExplainGrant(playerid, target, type, data)', grant)
         commands = pawn('commands')
         ingame = commands.split('stock RW_CommandProcess',1)[1]
         self.assertIn('Admin assignment is console-only:', ingame)

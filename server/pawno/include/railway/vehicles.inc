@@ -505,6 +505,40 @@ stock RW_Veh_CommandDoor(playerid)
     return RW_ControlExecute(playerid, RW_ControlTarget(playerid), 0);
 }
 
+stock RW_Veh_ListCommand(playerid)
+{
+    if (!gLogged[playerid] || gAdminLevel[playerid] < 1) return RW_Error(playerid, "Administrators only.");
+    new line[160], vname[32], count;
+    RW_Accent(playerid, "--- {F5B04C}Managed cars{FFFFFF} ---");
+    for (new slot; slot < VEHICLE_SLOTS && count < 10; slot++) {
+        if (!gVeh[slot][vsUsed]) continue;
+        RW_VehicleName(gVeh[slot][vsModel], vname, sizeof vname);
+        format(line, sizeof line, "id %d | RW-%03d | %s (%d) | key %d | %s | %s", gVeh[slot][vsVehicleId], slot+1, vname, gVeh[slot][vsModel], gVehKeyUid[slot], gVehGarageId[slot] ? ("permanent") : ("temporary"), gVeh[slot][vsOwnerName]);
+        SendClientMessage(playerid, COLOR_GREY, line);
+        count++;
+    }
+    if (!count) SendClientMessage(playerid, COLOR_GREY, "No spawned managed cars. /spcar <model> or /givecar <name> <model>.");
+    new DBResult:r = db_query(gDB, "SELECT id,owner,model,token FROM owned_cars ORDER BY id");
+    new stored;
+    if (r != DBResult:0) {
+        new rows = db_num_rows(r);
+        for (new i; i < rows && stored < 10; i++) {
+            new id = db_get_field_assoc_int(r, "id"), model = db_get_field_assoc_int(r, "model"), token = db_get_field_assoc_int(r, "token"), owner = db_get_field_assoc_int(r, "owner"), bool:spawned;
+            for (new s; s < VEHICLE_SLOTS; s++) if (gVeh[s][vsUsed] && gVehKeyUid[s] == token) { spawned = true; break; }
+            if (!spawned) {
+                RW_VehicleName(model, vname, sizeof vname);
+                format(line, sizeof line, "c%d | %s (%d) | key %d | stored in the garage | account %d", id, vname, model, token, owner);
+                SendClientMessage(playerid, COLOR_DARK_GREY, line);
+                stored++;
+            }
+            db_next_row(r);
+        }
+        db_free_result(r);
+    }
+    SendClientMessage(playerid, COLOR_DARK_GREY, "Give a key: /giveitem <playerid> key <id> (or p<plate>, c<garage car id>, or aim and omit it).");
+    return 1;
+}
+
 stock RW_Veh_CommandMyCar(playerid)
 {
     if (!gLogged[playerid]) {
