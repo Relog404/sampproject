@@ -17,7 +17,7 @@
 
 /* ------------------------------------------------------------------ верси€ */
 #define RW_VERSION                  "2.0.0"
-#define RW_TAG                      "{F5B04C}[¬окзал]{FFFFFF}"
+#define RW_TAG                      "{F5B04C}[Railway]{FFFFFF}"
 
 /* ------------------------------------------------------------------ цвета  */
 #define COLOR_WHITE                 0xFFFFFFFF
@@ -30,7 +30,7 @@
 #define COLOR_INFO                  0x8FD3FFFF
 
 /* ------------------------------------------------------------------ вокзал */
-#define STATION_NAME                "∆елезнодорожный вокзал"
+#define STATION_NAME                "Unity Station"
 #define STATION_X                   (1729.3188)
 #define STATION_Y                   (-1943.7242)
 #define STATION_Z                   (13.5451)
@@ -83,7 +83,7 @@ new bool:gDBWritable;
 new gVeh[VEHICLE_SLOTS][E_VEHICLE_SLOT];
 new gVehSlotOf[MAX_VEHICLES];          /* vehicleid -> слот (или -1)         */
 new gVehSlotCount;
-new gVehKeyUid[VEHICLE_SLOTS];
+new gVehKeyUid[VEHICLE_SLOTS], gVehGarageId[VEHICLE_SLOTS], gVehSpawnStamp[VEHICLE_SLOTS], gVehStampCounter;
 
 new bool:gLogged[MAX_PLAYERS];         /* игрок авторизован                  */
 new gAccountId[MAX_PLAYERS];           /* id аккаунта в Ѕƒ (-1 Ч гость)      */
@@ -125,7 +125,7 @@ stock RW_Info(playerid, const text[])
 stock RW_Ok(playerid, const text[])
 {
     new buf[256];
-    format(buf, sizeof buf, "%s {7BD88F}Х{FFFFFF} %s", RW_TAG, text);
+    format(buf, sizeof buf, "%s {7BD88F}/{FFFFFF} %s", RW_TAG, text);
     SendClientMessage(playerid, COLOR_WHITE, buf);
     RW_UI_Notify(playerid, text);
     return 1;
@@ -134,7 +134,7 @@ stock RW_Ok(playerid, const text[])
 stock RW_Error(playerid, const text[])
 {
     new buf[256];
-    format(buf, sizeof buf, "%s {FF6B6B}Х{FFFFFF} %s", RW_TAG, text);
+    format(buf, sizeof buf, "%s {FF6B6B}/{FFFFFF} %s", RW_TAG, text);
     SendClientMessage(playerid, COLOR_WHITE, buf);
     RW_UI_Notify(playerid, text);
     return 1;
@@ -351,7 +351,7 @@ stock RW_VehicleName(model, dest[], size = sizeof dest)
         case 605: format(dest, size, "Sadler");
         case 609: format(dest, size, "Boxville");
         case 610: format(dest, size, "Farm Trailer");
-        default:  format(dest, size, "“ранспорт #%d", model);
+        default:  format(dest, size, "Vehicle #%d", model);
     }
     return 1;
 }

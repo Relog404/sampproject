@@ -22,6 +22,8 @@
 #include <railway/vehicles>
 #include <railway/speedo>
 #include <railway/interaction>
+#include <railway/garage>
+#include <railway/motion>
 #include <railway/commands>
 
 /* ------------------------------------------------------------------ запуск */
@@ -32,19 +34,19 @@
  *  (bad entry point)": SA-MP ищет точку входа в таблице публичных функций. */
 main()
 {
-    print("[railway] Гейммод загружен, ждём OnGameModeInit.");
+    print("[railway] Gamemode loaded; waiting for OnGameModeInit.");
 }
 
 public OnGameModeInit()
 {
     print(" ");
     print("  ============================================");
-    print("   RAILWAY — «Железнодорожный вокзал» v" RW_VERSION);
-    print("   SA-MP 0.3.7 R5-2 • Native TextDraw interface");
+    print("   RAILWAY - Unity Station v" RW_VERSION);
+    print("   SA-MP 0.3.7 R5-2 / Native TextDraw interface");
     print("  ============================================");
     print(" ");
 
-    SetGameModeText("Железнодорожный вокзал");
+    SetGameModeText("Unity Station");
     ShowPlayerMarkers(PLAYER_MARKERS_MODE_GLOBAL);
     ShowNameTags(1);
     AllowInteriorWeapons(1);
@@ -67,14 +69,17 @@ public OnGameModeInit()
     gVehSlotCount = 0;
 
     if (!RW_DB_Init()) {
-        print("[railway] ВНИМАНИЕ: база данных недоступна, регистрация работать не будет.");
+        print("[railway] WARNING: database unavailable; registration disabled.");
     }
 
+    if (!RW_GarageSchema()) print("[garage] Persistent garage unavailable.");
     if (!RW_InvInit()) print("[inventory] Inventory unavailable; existing data preserved.");
+    RW_GarageInit();
+    RW_MotionInit();
     RW_UI_Init();
     RW_Speedo_Init();
 
-    print("[railway] Готово. Вокзал: Los Santos Unity Station.");
+    print("[railway] Ready. Los Santos Unity Station.");
     return 1;
 }
 
@@ -91,13 +96,14 @@ public OnGameModeExit()
         }
     }
 
+    RW_GarageExit();
     RW_InvExit();
     if (gDB != DB:0) {
         db_close(gDB);
         gDB = DB:0;
     }
 
-    print("[railway] Сервер остановлен.");
+    print("[railway] Server stopped.");
     return 1;
 }
 
@@ -143,9 +149,9 @@ public OnPlayerConnect(playerid)
     RW_UI_Create(playerid);
     RW_UI_OpenAuth(playerid);
 
-    format(string, sizeof string, "%s {F5B04C}%s{FFFFFF}, добро пожаловать на вокзал!", RW_TAG, nick);
+    format(string, sizeof string, "%s {F5B04C}%s{FFFFFF}, welcome to Unity Station!", RW_TAG, nick);
     SendClientMessage(playerid, COLOR_WHITE, string);
-    SendClientMessage(playerid, COLOR_GREY, "Интерфейс: /uiru — русские окна SA-MP; /uitd — компактные TextDraw без проблем со шрифтами.");
+    SendClientMessage(playerid, COLOR_GREY, "Interface: /uiru - native dialogs; /uitd - compact TextDraw panels. All text is English.");
 
     return 1;
 }
@@ -213,7 +219,7 @@ public OnPlayerSpawn(playerid)
     RW_Veh_OnPlayerSpawn(playerid);
     RW_InvAttach(playerid);
 
-    format(string, sizeof string, "%s Вы на перроне. {F5B04C}/spcar 411{FFFFFF} — получить машину.", RW_TAG);
+    format(string, sizeof string, "%s Welcome to the station. {F5B04C}/spcar 411{FFFFFF} - temporary car; /inv - inventory.", RW_TAG);
     SendClientMessage(playerid, COLOR_WHITE, string);
 
     return 1;
@@ -245,7 +251,7 @@ public OnPlayerStateChange(playerid, newstate, oldstate)
 
             /* Двери закрыты — в машину нельзя, даже если клиент пропустил замок. */
             if (slot >= 0 && gVeh[slot][vsUsed] && !gVeh[slot][vsDoors]) {
-                RW_Error(playerid, "Дверь закрыта. Владелец может открыть её командой /door.");
+                RW_Error(playerid, "Door locked. A key holder can unlock it with /door.");
                 RemovePlayerFromVehicle(playerid);
                 return 1;
             }
@@ -271,7 +277,7 @@ public OnPlayerEnterVehicle(playerid, vehicleid, ispassenger)
 
     new slot = gVehSlotOf[vehicleid];
     if (slot >= 0 && gVeh[slot][vsUsed] && !gVeh[slot][vsDoors]) {
-        RW_Info(playerid, "Дверь закрыта — машина заперта. Попросите владельца открыть /door.");
+        RW_Info(playerid, "Car locked. Ask a key holder to use /door.");
     }
     return 1;
 }
@@ -285,7 +291,7 @@ public OnVehicleDeath(vehicleid, killerid)
 {
     new slot = gVehSlotOf[vehicleid];
     if (slot >= 0 && gVeh[slot][vsUsed]) {
-        SetTimerEx("RW_Veh_RespawnLater", 6000, false, "ii", vehicleid, gVehKeyUid[slot]);
+        SetTimerEx("RW_Veh_RespawnLater", 6000, false, "ii", vehicleid, gVehSpawnStamp[slot]);
     }
     return 1;
 }
@@ -344,7 +350,7 @@ public OnRconCommand(cmd[])
         levelText[j] = EOS;
 
         if (nick[0] == EOS || !RW_IsNumeric(levelText)) {
-            print("Использование: setadmin <ник> <0-3>");
+            print("Usage: setadmin <account_name> <0-3>");
             return 1;
         }
 
@@ -353,23 +359,23 @@ public OnRconCommand(cmd[])
         if (level > 3) level = 3;
 
         if (!RW_AdminSetLevel(nick, level)) { print("setadmin failed: check account name and database."); return 1; }
-        printf("Уровень администратора %d выдан: %s", level, nick);
+        printf("Admin level %d assigned to: %s", level, nick);
         return 1;
     }
 
     if (!strcmp(cmdName, "dbcheck", true)) {
-        printf("База: handle=%d, аккаунтов=%d", _:gDB, RW_DB_AccountCount());
+        printf("Database: handle=%d, accounts=%d", _:gDB, RW_DB_AccountCount());
         if (gDB != DB:0) RW_DB_LogPath();
 
         if (gDB == DB:0) {
-            print("База: соединение НЕ открыто (смотрите сообщения при старте сервера).");
+            print("Database connection is NOT open. Check startup logs.");
         } else if (!RW_DB_TableExists("accounts")) {
-            print("База: нет таблицы accounts.");
+            print("Database: accounts table missing.");
         } else if ((gDBWritable = RW_DB_Probe())) {
-            print("База: запись и чтение работают.");
+            print("Database: read/write check passed.");
         } else {
-            print("База: таблица есть, но запись не сохраняется.");
-            print("Не удаляйте railway.db. Проверьте права записи, свободное место, блокировки и схему.");
+            print("Database: table exists but writes fail.");
+            print("Do not delete railway.db. Check permissions, disk space, locks and schema.");
         }
         return 1;
     }
@@ -433,6 +439,7 @@ public OnPlayerClickMap(playerid, Float:fX, Float:fY, Float:fZ)
 
 public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 {
+    if (gUIMode[playerid] == UI_GARAGE) return RW_GarageClick(playerid, playertextid);
     if (gUIMode[playerid] == UI_INVENTORY) return RW_InvClick(playerid, playertextid);
     if (!gUICreated[playerid] || gUIRussianDialogs[playerid]) return 0;
     if (playertextid == gUI[playerid][11]) {
@@ -445,7 +452,7 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 }
 public OnPlayerClickTextDraw(playerid, Text:clickedid)
 {
-    if (clickedid == Text:INVALID_TEXT_DRAW && gUIMode[playerid] == UI_INVENTORY) return RW_UI_Close(playerid);
+    if (clickedid == Text:INVALID_TEXT_DRAW && (gUIMode[playerid] == UI_INVENTORY || gUIMode[playerid] == UI_GARAGE)) return RW_UI_Close(playerid);
     if (clickedid != Text:INVALID_TEXT_DRAW || gUIInput[playerid] || gUIRussianDialogs[playerid]) return 0;
     if (gUIMode[playerid] == UI_AUTH && !gLogged[playerid]) SelectTextDraw(playerid, 0xD8C39BFF);
     else if (gUIMode[playerid] != 0) RW_UI_Close(playerid);
@@ -465,4 +472,9 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
         break;
     }
     return 1;
+}
+
+public OnPlayerPickUpPickup(playerid, pickupid)
+{
+    return RW_GaragePickup(playerid, pickupid);
 }

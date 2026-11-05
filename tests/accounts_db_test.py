@@ -29,7 +29,7 @@ class AccountsDatabaseTest(unittest.TestCase):
     def test_dialog_mode_is_always_derived_from_database(self):
         dialog = SOURCE.split('stock RW_ShowAuthDialog', 1)[1].split('stock RW_ShowLoginDialog', 1)[0]
         self.assertIn('registerMode = !RW_DB_AccountExists(nick)', dialog)
-        self.assertNotIn('info, "Войти", "Регистрация"', dialog)
+        self.assertNotIn('info, "Login", "Register"', dialog)
         self.assertIn('db_open("railway.db")', SOURCE)
 
 

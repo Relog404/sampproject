@@ -8,7 +8,7 @@
 #define INV_SLOTS 80
 #define INV_NEAR 50
 #define INV_WORLD 500
-#define INV_TDS 155
+#define INV_TDS 165
 #define ITEM_BACKPACK 1
 #define ITEM_CAR_KEY 2
 #define INV_ATTACH 9
@@ -23,6 +23,7 @@ new PlayerText:gInvTD[MAX_PLAYERS][INV_TDS];
 new bool:gInvCreated[MAX_PLAYERS], bool:gInvLoaded[MAX_PLAYERS], bool:gInvReady;
 new gInvNear[MAX_PLAYERS][INV_NEAR], gInvSelected[MAX_PLAYERS], bool:gInvFromGround[MAX_PLAYERS];
 new gInvTick[MAX_PLAYERS];
+new bool:gInvContext[MAX_PLAYERS];
 forward RW_InvPulse();
 
 stock RW_InvModel(type) { return type == ITEM_BACKPACK ? 3026 : 11746; }
@@ -92,7 +93,7 @@ stock RW_InvInit()
     if (gDB == DB:0 || !gDBWritable) return 0;
     if (!RW_DB_Exec("CREATE TABLE IF NOT EXISTS inventory_items (uid INTEGER PRIMARY KEY AUTOINCREMENT, owner INTEGER, slot INTEGER NOT NULL, type INTEGER NOT NULL CHECK(type IN (1,2)), data INTEGER NOT NULL DEFAULT 0, x REAL NOT NULL DEFAULT 0, y REAL NOT NULL DEFAULT 0, z REAL NOT NULL DEFAULT 0, UNIQUE(owner,slot), CHECK((owner IS NULL AND slot=-1) OR (owner>0 AND slot>=0 AND slot<80)))")) return 0;
     // Personal cars are session-only. Never let a recycled vehicle ID revive a key.
-    if (!RW_DB_Exec("DELETE FROM inventory_items WHERE type=2")) return 0;
+    if (!RW_DB_Exec("DELETE FROM inventory_items WHERE type=2 AND data NOT IN (SELECT token FROM owned_cars)")) return 0;
     new DBResult:r = db_query(gDB, "SELECT uid,type,data,x,y,z FROM inventory_items WHERE owner IS NULL ORDER BY uid");
     if (r == DBResult:0) return 0;
     new count = db_num_rows(r);
@@ -124,6 +125,7 @@ stock RW_InvLoad(playerid)
 {
     gInvLoaded[playerid] = false;
     if (!gInvReady) return 0;
+    for (new i; i < INV_SLOTS; i++) for (new E_INV_ITEM:j; j < E_INV_ITEM; j++) gInv[playerid][i][j] = 0;
     new query[160]; format(query, sizeof query, "SELECT uid,slot,type,data FROM inventory_items WHERE owner=%d ORDER BY slot", gAccountId[playerid]);
     new DBResult:r = db_query(gDB, query);
     if (r == DBResult:0) return 0;
@@ -147,12 +149,13 @@ stock RW_InvLoad(playerid)
 stock RW_InvHide(playerid)
 {
     if (gInvCreated[playerid]) for (new i; i < INV_TDS; i++) PlayerTextDrawHide(playerid, gInvTD[playerid][i]);
-    gInvSelected[playerid] = 0;
+    gInvSelected[playerid] = 0; gInvContext[playerid] = false;
     return 1;
 }
 stock RW_InvReset(playerid)
 {
     if (gInvCreated[playerid]) for (new i; i < INV_TDS; i++) PlayerTextDrawDestroy(playerid, gInvTD[playerid][i]);
+    gInvContext[playerid] = false;
     gInvCreated[playerid] = false; gInvLoaded[playerid] = false; gInvSelected[playerid] = 0; gInvTick[playerid] = 0;
     for (new i; i < INV_SLOTS; i++) for (new E_INV_ITEM:j; j < E_INV_ITEM; j++) gInv[playerid][i][j] = 0;
     for (new i; i < INV_NEAR; i++) gInvNear[playerid][i] = 0;
@@ -178,6 +181,7 @@ stock RW_InvGrant(playerid, type, data = 0)
         format(query, sizeof query, "UPDATE inventory_items SET data=%d WHERE uid=%d", data, uid);
         ok = RW_InvWrite(query);
     }
+    if (ok && type == ITEM_CAR_KEY) ok = RW_GarageMarkKey(uid, data);
     if (!ok) { RW_DB_Exec("ROLLBACK TO inventory_grant"); RW_DB_Exec("RELEASE inventory_grant"); return 0; }
     if (!RW_DB_Exec("RELEASE inventory_grant")) { RW_DB_Exec("ROLLBACK TO inventory_grant"); RW_DB_Exec("RELEASE inventory_grant"); return 0; }
     gInv[playerid][slot][iiUid] = uid; gInv[playerid][slot][iiType] = type; gInv[playerid][slot][iiData] = data;
@@ -212,11 +216,11 @@ stock bool:RW_InvCanRemove(playerid, slot)
     if (gInv[playerid][slot][iiType] == ITEM_BACKPACK && RW_InvPack(playerid) == slot) {
         new other;
         for (new i; i < INV_MAIN; i++) if (i != slot && gInv[playerid][i][iiType] == ITEM_BACKPACK) other++;
-        if (!other && RW_InvWeight(playerid, 1) > 0) { RW_Error(playerid, "Сначала освободите рюкзак."); return false; }
+        if (!other && RW_InvWeight(playerid, 1) > 0) { RW_Error(playerid, "Empty the backpack first."); return false; }
     }
     if (gInv[playerid][slot][iiType] == ITEM_CAR_KEY) for (new v; v < VEHICLE_SLOTS; v++)
         if (gVeh[v][vsUsed] && gVeh[v][vsKey] && gVehKeyUid[v] == gInv[playerid][slot][iiData]) {
-            RW_Error(playerid, "Сначала выньте ключ из замка."); return false;
+            RW_Error(playerid, "Remove the key from the ignition first."); return false;
         }
     return true;
 }
@@ -225,11 +229,11 @@ stock RW_InvTransfer(playerid, section)
     new uid = gInvSelected[playerid], query[320];
     if (gInvFromGround[playerid]) {
         new ground = RW_InvGroundFind(uid);
-        if (!RW_InvNearGround(playerid, ground)) return RW_Error(playerid, "Предмет уже недоступен.");
+        if (!RW_InvNearGround(playerid, ground)) return RW_Error(playerid, "Item is no longer available.");
         new dest = RW_InvFree(playerid, section, gGround[ground][igType]);
-        if (dest < 0) return RW_Error(playerid, "Нет места или превышен вес.");
+        if (dest < 0) return RW_Error(playerid, "No space or weight limit exceeded.");
         format(query, sizeof query, "UPDATE inventory_items SET owner=%d,slot=%d,x=0,y=0,z=0 WHERE uid=%d AND owner IS NULL", gAccountId[playerid], dest, uid);
-        if (!RW_InvWrite(query)) return RW_Error(playerid, "Не удалось сохранить предмет.");
+        if (!RW_InvWrite(query)) return RW_Error(playerid, "Could not save the item.");
         gInv[playerid][dest][iiUid] = uid; gInv[playerid][dest][iiType] = gGround[ground][igType]; gInv[playerid][dest][iiData] = gGround[ground][igData];
         if (IsValidObject(gGround[ground][igObject])) DestroyObject(gGround[ground][igObject]);
         gGround[ground][igUid] = 0;
@@ -240,9 +244,9 @@ stock RW_InvTransfer(playerid, section)
         if ((source >= INV_MAIN) == (section != 0)) return 1;
         if (!RW_InvCanRemove(playerid, source)) return 1;
         new dest = RW_InvFree(playerid, section, gInv[playerid][source][iiType]);
-        if (dest < 0) return RW_Error(playerid, "Нет места или превышен вес.");
+        if (dest < 0) return RW_Error(playerid, "No space or weight limit exceeded.");
         format(query, sizeof query, "UPDATE inventory_items SET slot=%d WHERE uid=%d AND owner=%d AND slot=%d", dest, uid, gAccountId[playerid], source);
-        if (!RW_InvWrite(query)) return RW_Error(playerid, "Не удалось сохранить перенос.");
+        if (!RW_InvWrite(query)) return RW_Error(playerid, "Could not save the transfer.");
         for (new E_INV_ITEM:j; j < E_INV_ITEM; j++) { gInv[playerid][dest][j] = gInv[playerid][source][j]; gInv[playerid][source][j] = 0; }
     }
     RW_InvAttach(playerid);
@@ -253,17 +257,17 @@ stock RW_InvDrop(playerid)
     if (gInvFromGround[playerid]) return 1;
     new source = RW_InvFind(playerid, gInvSelected[playerid]);
     if (source < 0 || !RW_InvCanRemove(playerid, source)) return 1;
-    if (GetPlayerState(playerid) != PLAYER_STATE_ONFOOT || GetPlayerInterior(playerid) != 0 || GetPlayerVirtualWorld(playerid) != 0) return RW_Error(playerid, "Выбрасывать можно пешком на улице, в основном мире.");
+    if (GetPlayerState(playerid) != PLAYER_STATE_ONFOOT || GetPlayerInterior(playerid) != 0 || GetPlayerVirtualWorld(playerid) != 0) return RW_Error(playerid, "Drop items on foot, outdoors, in the main world only.");
     new ground = -1;
     for (new i; i < INV_WORLD; i++) if (!gGround[i][igUid]) { ground = i; break; }
-    if (ground < 0) return RW_Error(playerid, "На земле слишком много предметов.");
+    if (ground < 0) return RW_Error(playerid, "Too many items on the ground.");
     new Float:x, Float:y, Float:z, Float:a;
     GetPlayerPos(playerid, x, y, z); GetPlayerFacingAngle(playerid, a);
     x += 0.6*floatsin(-a, degrees); y += 0.6*floatcos(-a, degrees); z -= 0.9;
     new object = CreateObject(RW_InvModel(gInv[playerid][source][iiType]), x, y, z, 0.0, 0.0, a, 70.0);
-    if (object == INVALID_OBJECT_ID) return RW_Error(playerid, "Не удалось создать предмет в мире.");
+    if (object == INVALID_OBJECT_ID) return RW_Error(playerid, "Could not create the world item.");
     new query[320]; format(query, sizeof query, "UPDATE inventory_items SET owner=NULL,slot=-1,x=%f,y=%f,z=%f WHERE uid=%d AND owner=%d AND slot=%d", x, y, z, gInv[playerid][source][iiUid], gAccountId[playerid], source);
-    if (!RW_InvWrite(query)) { DestroyObject(object); return RW_Error(playerid, "Не удалось сохранить предмет."); }
+    if (!RW_InvWrite(query)) { DestroyObject(object); return RW_Error(playerid, "Could not save the item."); }
     gGround[ground][igUid] = gInv[playerid][source][iiUid]; gGround[ground][igType] = gInv[playerid][source][iiType]; gGround[ground][igData] = gInv[playerid][source][iiData];
     gGround[ground][igObject] = object; gGround[ground][igX] = x; gGround[ground][igY] = y; gGround[ground][igZ] = z;
     for (new E_INV_ITEM:j; j < E_INV_ITEM; j++) gInv[playerid][source][j] = 0;
@@ -322,7 +326,17 @@ stock RW_InvCreate(playerid)
     RW_InvLabel(playerid, 151, 435.0, 377.0, "DROP", 62.0, true);
     RW_InvLabel(playerid, 152, 510.0, 377.0, "USE", 62.0, true);
     RW_InvLabel(playerid, 153, 20.0, 377.0, "SELECT ITEM", 255.0);
-    RW_InvLabel(playerid, 154, 420.0, 240.0, "SELECT > MAIN / BAG", 195.0);
+    RW_InvLabel(playerid, 154, 420.0, 240.0, "CLICK ITEM / ACTIONS", 195.0);
+    RW_InvSprite(playerid, 155, 420.0, 261.0, 198.0, 108.0, 0x171F2CFF);
+    RW_InvLabel(playerid, 156, 430.0, 266.0, "ITEM", 175.0);
+    RW_InvLabel(playerid, 157, 430.0, 281.0, "DESCRIPTION", 175.0);
+    RW_InvLabel(playerid, 158, 430.0, 296.0, "STATS", 175.0);
+    RW_InvLabel(playerid, 159, 430.0, 313.0, "DROP", 80.0, true);
+    RW_InvLabel(playerid, 160, 530.0, 313.0, "WEAR", 80.0, true);
+    RW_InvLabel(playerid, 161, 430.0, 330.0, "TO BAG", 80.0, true);
+    RW_InvLabel(playerid, 162, 530.0, 330.0, "TO MAIN", 80.0, true);
+    RW_InvLabel(playerid, 163, 430.0, 347.0, "USE KEY", 80.0, true);
+    RW_InvLabel(playerid, 164, 530.0, 347.0, "CLOSE", 80.0, true);
     gInvCreated[playerid] = true;
     return 1;
 }
@@ -341,6 +355,34 @@ stock RW_InvCell(playerid, index, type, bool:selected)
         PlayerTextDrawColor(playerid, gInvTD[playerid][index], 0xFFFFFF12);
     }
     PlayerTextDrawShow(playerid, gInvTD[playerid][index]);
+    return 1;
+}
+stock RW_InvContextRender(playerid)
+{
+    for (new i = 155; i < INV_TDS; i++) PlayerTextDrawHide(playerid, gInvTD[playerid][i]);
+    if (!gInvContext[playerid] || !gInvSelected[playerid]) return 1;
+    new slot = RW_InvFind(playerid, gInvSelected[playerid]), ground = RW_InvGroundFind(gInvSelected[playerid]), type, data;
+    if (gInvFromGround[playerid]) { if (!RW_InvNearGround(playerid, ground)) return 1; type=gGround[ground][igType]; data=gGround[ground][igData]; }
+    else { if(slot<0) return 1; type=gInv[playerid][slot][iiType]; data=gInv[playerid][slot][iiData]; }
+    PlayerTextDrawSetString(playerid, gInvTD[playerid][156], type == ITEM_BACKPACK ? ("BACKPACK") : ("CAR KEY"));
+    new stats[128], desc[128];
+    if (type == ITEM_BACKPACK) { format(desc,sizeof desc,"Back-mounted storage"); format(stats,sizeof stats,"1kg / +30 slots / 40kg"); }
+    else {
+        new model, bool:permanent = RW_GarageKeyModel(data, model);
+        format(desc,sizeof desc,"%s vehicle access", permanent ? ("Permanent") : ("Temporary"));
+        format(stats,sizeof stats,"0.1kg / model %d",model);
+    }
+    PlayerTextDrawSetString(playerid,gInvTD[playerid][157],desc);
+    PlayerTextDrawSetString(playerid,gInvTD[playerid][158],stats);
+    for(new i=155;i<=158;i++) PlayerTextDrawShow(playerid,gInvTD[playerid][i]);
+    PlayerTextDrawShow(playerid,gInvTD[playerid][164]);
+    if (!gInvFromGround[playerid]) {
+        PlayerTextDrawShow(playerid,gInvTD[playerid][159]);
+        if(type==ITEM_BACKPACK) PlayerTextDrawShow(playerid,gInvTD[playerid][160]);
+        if(type==ITEM_CAR_KEY) PlayerTextDrawShow(playerid,gInvTD[playerid][163]);
+    }
+    if ((gInvFromGround[playerid] || slot<INV_MAIN) && RW_InvPack(playerid)>=0 && type!=ITEM_BACKPACK) PlayerTextDrawShow(playerid,gInvTD[playerid][161]);
+    if (gInvFromGround[playerid] || slot>=INV_MAIN) PlayerTextDrawShow(playerid,gInvTD[playerid][162]);
     return 1;
 }
 stock RW_InvRender(playerid)
@@ -379,15 +421,16 @@ stock RW_InvRender(playerid)
     else {
         new vehicle = -1;
         for (new v; v < VEHICLE_SLOTS; v++) if (gVeh[v][vsUsed] && gVehKeyUid[v] == data) vehicle = gVeh[v][vsVehicleId];
-        format(text, sizeof text, "KEY / CAR %d / 0.1kg", vehicle);
+        if (vehicle < 0) format(text, sizeof text, "KEY / GARAGED / 0.1kg");
+        else format(text, sizeof text, "KEY / CAR %d / 0.1kg", vehicle);
     }
     PlayerTextDrawSetString(playerid, gInvTD[playerid][153], text);
-    return 1;
+    return RW_InvContextRender(playerid);
 }
 stock RW_InvOpen(playerid)
 {
     if (gUIMode[playerid] == UI_INVENTORY) return RW_UI_Close(playerid);
-    if (!gLogged[playerid] || !gInvLoaded[playerid]) return RW_Error(playerid, "Инвентарь недоступен: проверьте базу.");
+    if (!gLogged[playerid] || !gInvLoaded[playerid]) return RW_Error(playerid, "Inventory unavailable: check the database.");
     new pstate = GetPlayerState(playerid);
     if (pstate != PLAYER_STATE_ONFOOT && pstate != PLAYER_STATE_DRIVER && pstate != PLAYER_STATE_PASSENGER) return 1;
     if (gUIInput[playerid]) return 1;
@@ -399,7 +442,7 @@ stock RW_InvOpen(playerid)
     for (new i = 139; i <= 142; i++) PlayerTextDrawShow(playerid, gInvTD[playerid][i]);
     PlayerTextDrawSetPreviewModel(playerid, gInvTD[playerid][130], GetPlayerSkin(playerid));
     for (new i = 130; i < 139; i++) PlayerTextDrawShow(playerid, gInvTD[playerid][i]);
-    for (new i = 143; i < INV_TDS; i++) PlayerTextDrawShow(playerid, gInvTD[playerid][i]);
+    for (new i = 143; i < 155; i++) if (i<149 || i>152) PlayerTextDrawShow(playerid, gInvTD[playerid][i]);
     RW_InvRender(playerid);
     SelectTextDraw(playerid, 0xD8C39BFF);
     return 1;
@@ -409,30 +452,37 @@ stock RW_InvClick(playerid, PlayerText:clicked)
     if (gUIMode[playerid] != UI_INVENTORY || !gLogged[playerid] || !gInvLoaded[playerid]) return 0;
     for (new i; i < 130; i++) if (clicked == gInvTD[playerid][i]) {
         if (i >= 50 && i < 80 && RW_InvPack(playerid) < 0) return 1;
+        gInvContext[playerid] = true;
         gInvFromGround[playerid] = i >= 80;
         gInvSelected[playerid] = i < 80 ? gInv[playerid][i][iiUid] : gInvNear[playerid][i-80];
         return RW_InvRender(playerid);
     }
+    if (clicked == gInvTD[playerid][164]) { gInvContext[playerid] = false; return RW_InvRender(playerid); }
     if (clicked == gInvTD[playerid][148]) return RW_UI_Close(playerid);
     if (GetTickCount()-gInvTick[playerid] < 250) return 1;
     gInvTick[playerid] = GetTickCount();
-    if (!gInvSelected[playerid]) return 1;
-    if (clicked == gInvTD[playerid][149]) return RW_InvTransfer(playerid, 0);
-    if (clicked == gInvTD[playerid][150]) return RW_InvTransfer(playerid, 1);
-    if (clicked == gInvTD[playerid][151]) return RW_InvDrop(playerid);
-    if (clicked == gInvTD[playerid][152] && !gInvFromGround[playerid]) {
+    if (!gInvSelected[playerid] || !gInvContext[playerid]) return 1;
+    if (clicked == gInvTD[playerid][160] && !gInvFromGround[playerid]) {
+        new slot=RW_InvFind(playerid,gInvSelected[playerid]);
+        if(slot>=0 && gInv[playerid][slot][iiType]==ITEM_BACKPACK) { RW_InvAttach(playerid); return RW_Ok(playerid,"Backpack equipped."); }
+    }
+    if (clicked == gInvTD[playerid][162]) return RW_InvTransfer(playerid, 0);
+    if (clicked == gInvTD[playerid][161]) return RW_InvTransfer(playerid, 1);
+    if (clicked == gInvTD[playerid][159]) return RW_InvDrop(playerid);
+    if (clicked == gInvTD[playerid][163] && !gInvFromGround[playerid]) {
         new slot = RW_InvFind(playerid, gInvSelected[playerid]);
         if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_CAR_KEY) {
             new token = gInv[playerid][slot][iiData];
             for (new v; v < VEHICLE_SLOTS; v++) if (gVeh[v][vsUsed] && gVehKeyUid[v] == token) {
                 RW_UI_Close(playerid); return RW_ControlExecute(playerid, gVeh[v][vsVehicleId], 2);
             }
-        } else if (slot >= 0) return RW_Info(playerid, "Рюкзак уже надет.");
+        } else if (slot >= 0) return RW_Info(playerid, "Backpack already equipped.");
     }
     return 1;
 }
 public RW_InvPulse()
 {
+    RW_GaragePulse();
     for (new p; p < MAX_PLAYERS; p++) if (IsPlayerConnected(p) && gUIMode[p] == UI_INVENTORY) {
         new pstate = GetPlayerState(p);
         if (!gLogged[p] || (pstate != PLAYER_STATE_ONFOOT && pstate != PLAYER_STATE_DRIVER && pstate != PLAYER_STATE_PASSENGER)) RW_UI_Close(p);
@@ -447,7 +497,7 @@ stock RW_InvExit()
 }
 stock RW_InvGiveCommand(playerid, const params[])
 {
-    if (!gLogged[playerid] || gAdminLevel[playerid] < 1) return RW_Error(playerid, "Только для администрации.");
+    if (!gLogged[playerid] || gAdminLevel[playerid] < 1) return RW_Error(playerid, "Administrators only.");
     new a[24], b[24], c[24], extra[24], rest[144], tail[144];
     RW_ParseCommand(params, a, sizeof a, rest, sizeof rest);
     RW_ParseCommand(rest, b, sizeof b, tail, sizeof tail);
@@ -455,15 +505,15 @@ stock RW_InvGiveCommand(playerid, const params[])
     if (!RW_IsNumeric(a) || !RW_IsNumeric(b) || extra[0] || (c[0] && !RW_IsNumeric(c)) || strlen(a)>5 || strlen(b)>2 || strlen(c)>5)
         return RW_Info(playerid, "/giveitem <playerid> <1=bag,2=key> [vehicleid]");
     new target = strval(a), type = strval(b), data;
-    if (target < 0 || target >= MAX_PLAYERS || !IsPlayerConnected(target) || !gLogged[target] || !gInvLoaded[target]) return RW_Error(playerid, "Игрок недоступен.");
-    if (type != ITEM_BACKPACK && type != ITEM_CAR_KEY) return RW_Error(playerid, "Предметы: 1 — рюкзак, 2 — ключ авто.");
+    if (target < 0 || target >= MAX_PLAYERS || !IsPlayerConnected(target) || !gLogged[target] || !gInvLoaded[target]) return RW_Error(playerid, "Player unavailable.");
+    if (type != ITEM_BACKPACK && type != ITEM_CAR_KEY) return RW_Error(playerid, "Items: 1 - backpack, 2 - car key.");
     if (type == ITEM_CAR_KEY) {
         new vehicle = strval(c), slot = RW_IsOwnedSlot(vehicle);
-        if (!c[0] || slot < 0 || !gVeh[slot][vsUsed] || gVehKeyUid[slot] <= 0) return RW_Error(playerid, "Укажите ID существующей персональной машины.");
+        if (!c[0] || slot < 0 || !gVeh[slot][vsUsed] || gVehKeyUid[slot] <= 0) return RW_Error(playerid, "Enter an existing managed vehicle ID.");
         data = gVehKeyUid[slot];
-    } else if (c[0]) return RW_Error(playerid, "Для рюкзака ID машины не нужен.");
-    if (!RW_InvGrant(target, type, data)) return RW_Error(playerid, "Нет места, превышен вес или ошибка БД.");
+    } else if (c[0]) return RW_Error(playerid, "A backpack does not need a vehicle ID.");
+    if (!RW_InvGrant(target, type, data)) return RW_Error(playerid, "No space, weight limit exceeded or database error.");
     printf("[inventory] admin account=%d gives type=%d data=%d to account=%d", gAccountId[playerid], type, data, gAccountId[target]);
-    RW_Ok(target, "Получен предмет. /inv");
-    return RW_Ok(playerid, "Предмет выдан.");
+    RW_Ok(target, "Item received. /inv");
+    return RW_Ok(playerid, "Item granted.");
 }

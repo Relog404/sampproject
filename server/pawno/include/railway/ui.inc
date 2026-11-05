@@ -12,6 +12,7 @@
 #define UI_BIND 5
 #define UI_MAP 6
 #define UI_INVENTORY 7
+#define UI_GARAGE 8
 new PlayerText:gUI[MAX_PLAYERS][UI_COUNT];
 new bool:gUICreated[MAX_PLAYERS], bool:gUIInput[MAX_PLAYERS];
 new bool:gUIPanelCreated[MAX_PLAYERS], bool:gUIRussianDialogs[MAX_PLAYERS];
@@ -37,12 +38,12 @@ stock RW_UI_CancelNative(playerid)
 public RW_UI_FlushNative(playerid)
 {
     gUINativeTimer[playerid] = 0;
-    if (!IsPlayerConnected(playerid) || !gUIRussianDialogs[playerid] || gUIInput[playerid] || gUIMode[playerid] == 0 || gUIMode[playerid] == UI_AUTH || gUIMode[playerid] == UI_INVENTORY) return 1;
+    if (!IsPlayerConnected(playerid) || !gUIRussianDialogs[playerid] || gUIInput[playerid] || gUIMode[playerid] == 0 || gUIMode[playerid] == UI_AUTH || gUIMode[playerid] >= UI_INVENTORY) return 1;
     new title[96], text[1400];
     format(title, sizeof title, "Railway | %s", gUINativeTitle[playerid]);
     if (gUIMode[playerid] == UI_MAP) {
-        format(text, sizeof text, "{D8C39B}%s{FFFFFF}\n\nТелепортироваться к выбранной точке?\n{939BA6}Только пешком, снаружи, в основном мире.", gUINativeSubtitle[playerid]);
-        ShowPlayerDialog(playerid, DIALOG_NATIVE_MENU, DIALOG_STYLE_MSGBOX, title, text, "Да", "Нет");
+        format(text, sizeof text, "{D8C39B}%s{FFFFFF}\n\nTeleport to the selected point?\n{939BA6}On foot, outdoors, in the main world only.", gUINativeSubtitle[playerid]);
+        ShowPlayerDialog(playerid, DIALOG_NATIVE_MENU, DIALOG_STYLE_MSGBOX, title, text, "Yes", "No");
         return 1;
     }
     format(text, sizeof text, "%s\n", gUINativeSubtitle[playerid]);
@@ -53,12 +54,12 @@ public RW_UI_FlushNative(playerid)
         strcat(text, gUINativeRows[playerid][i], sizeof text);
         strcat(text, "\n", sizeof text);
     }
-    ShowPlayerDialog(playerid, DIALOG_NATIVE_MENU, DIALOG_STYLE_TABLIST_HEADERS, title, text, "Выбрать", "Закрыть");
+    ShowPlayerDialog(playerid, DIALOG_NATIVE_MENU, DIALOG_STYLE_TABLIST_HEADERS, title, text, "Select", "Close");
     return 1;
 }
 stock RW_UI_NativeResponse(playerid, response, listitem)
 {
-    if (!gUIRussianDialogs[playerid] || !gLogged[playerid] || gUIMode[playerid] == 0 || gUIMode[playerid] == UI_AUTH || gUIMode[playerid] == UI_INVENTORY || gUIInput[playerid]) return 1;
+    if (!gUIRussianDialogs[playerid] || !gLogged[playerid] || gUIMode[playerid] == 0 || gUIMode[playerid] == UI_AUTH || gUIMode[playerid] >= UI_INVENTORY || gUIInput[playerid]) return 1;
     if (gUINativeTimer[playerid] != 0) return 1;
     if (gUIMode[playerid] == UI_MAP) return RW_UI_Click(playerid, response ? 0 : 1);
     if (!response) return RW_UI_Close(playerid);
@@ -138,7 +139,7 @@ stock RW_UI_BuildPanel(playerid, mode)
         PlayerTextDrawTextSize(playerid, gUI[playerid][3+i], x+width-12.0, 13.0);
         PlayerTextDrawSetSelectable(playerid, gUI[playerid][3+i], 1);
     }
-    gUI[playerid][11] = RW_TD_Label(playerid, x+12.0, y+height-18.0, "Закрыть / ESC", 0.17);
+    gUI[playerid][11] = RW_TD_Label(playerid, x+12.0, y+height-18.0, "Close / ESC", 0.17);
     PlayerTextDrawLetterSize(playerid, gUI[playerid][11], 0.17, 0.8);
     PlayerTextDrawColor(playerid, gUI[playerid][11], 0x939BA6FF);
     PlayerTextDrawTextSize(playerid, gUI[playerid][11], x+width-12.0, 12.0);
@@ -177,13 +178,13 @@ stock RW_UI_Create(playerid)
     if (gUICreated[playerid]) return 1;
     RW_UI_BuildPanel(playerid, 0);
     gUI[playerid][12] = RW_TD_Box(playerid, 508.0, 349.0, 118.0, 82.0, 0x171B23E8);
-    gUI[playerid][13] = RW_TD_Label(playerid, 518.0, 355.0, "Транспорт", 0.18);
+    gUI[playerid][13] = RW_TD_Label(playerid, 518.0, 355.0, "Vehicle", 0.18);
     gUI[playerid][14] = RW_TD_Label(playerid, 518.0, 366.0, "000", 0.72);
     PlayerTextDrawLetterSize(playerid, gUI[playerid][14], 0.72, 2.5);
-    gUI[playerid][15] = RW_TD_Label(playerid, 518.0, 392.0, "км/ч", 0.16);
+    gUI[playerid][15] = RW_TD_Label(playerid, 518.0, 392.0, "km/h", 0.16);
     gUI[playerid][16] = RW_TD_Label(playerid, 597.0, 373.0, "N", 0.4);
     PlayerTextDrawLetterSize(playerid, gUI[playerid][16], 0.4, 1.6);
-    gUI[playerid][17] = RW_TD_Label(playerid, 518.0, 405.0, "Ключ -  Мотор -", 0.14);
+    gUI[playerid][17] = RW_TD_Label(playerid, 518.0, 405.0, "Key -  Engine -", 0.14);
     PlayerTextDrawLetterSize(playerid, gUI[playerid][17], 0.14, 0.75);
     gUI[playerid][18] = RW_TD_Box(playerid, 518.0, 425.0, 1.0, 2.0, 0xD8C39BFF);
     gUI[playerid][19] = RW_TD_Box(playerid, 210.0, 365.0, 220.0, 34.0, 0x171B23EF);
@@ -204,6 +205,7 @@ stock RW_UI_Text(playerid, index, const text[])
 stock RW_UI_Panel(playerid, mode, const title[], const subtitle[])
 {
     if (gUIMode[playerid] == UI_INVENTORY) RW_InvHide(playerid);
+    if (gUIMode[playerid] == UI_GARAGE) RW_GarageHide(playerid);
     RW_UI_Create(playerid);
     for (new i = 12; i <= 18; i++) PlayerTextDrawHide(playerid, gUI[playerid][i]);
     gUIMode[playerid] = mode;
@@ -219,7 +221,7 @@ stock RW_UI_Panel(playerid, mode, const title[], const subtitle[])
         return RW_UI_ScheduleNative(playerid);
     }
     if (gUILayoutMode[playerid] != mode) RW_UI_BuildPanel(playerid, mode);
-    RW_UI_Text(playerid, 11, mode == UI_AUTH ? ("Выход с сервера") : ("Закрыть / ESC"));
+    RW_UI_Text(playerid, 11, mode == UI_AUTH ? ("Quit server") : ("Close / ESC"));
     RW_UI_Text(playerid, 1, title); RW_UI_Text(playerid, 2, subtitle);
     for (new i; i < 12; i++) PlayerTextDrawHide(playerid, gUI[playerid][i]);
     for (new i; i < 8; i++) RW_UI_Text(playerid, 3+i, "_");
@@ -245,6 +247,7 @@ stock RW_UI_Row(playerid, row, const text[])
 stock RW_UI_Close(playerid)
 {
     RW_InvHide(playerid);
+    RW_GarageHide(playerid);
     RW_UI_CancelNative(playerid);
     if (IsPlayerConnected(playerid)) ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
     if (gUIMode[playerid] == UI_MAP) gMapPending[playerid] = false;
@@ -266,11 +269,11 @@ stock RW_UI_OpenAuth(playerid)
     }
     new nick[MAX_PLAYER_NAME]; RW_GetNick(playerid, nick);
     new bool:exists = RW_DB_AccountExists(nick);
-    RW_UI_Panel(playerid, UI_AUTH, exists ? ("С возвращением") : ("Добро пожаловать"), nick);
-    RW_UI_Row(playerid, 0, exists ? ("Войти в аккаунт") : ("Создать аккаунт"));
-    RW_UI_Row(playerid, 1, exists ? ("Ваш аккаунт найден") : ("Начните свою историю в Railway"));
-    RW_UI_Row(playerid, 2, exists ? ("Введите пароль для продолжения") : ("Регистрация займёт меньше минуты"));
-    RW_UI_Row(playerid, 3, "Пароль вводится скрыто");
+    RW_UI_Panel(playerid, UI_AUTH, exists ? ("Welcome back") : ("Welcome"), nick);
+    RW_UI_Row(playerid, 0, exists ? ("Login") : ("Create account"));
+    RW_UI_Row(playerid, 1, exists ? ("Account found") : ("Begin your Railway story"));
+    RW_UI_Row(playerid, 2, exists ? ("Enter password to continue") : ("Registration takes a minute"));
+    RW_UI_Row(playerid, 3, "Password input is hidden");
     for (new i = 1; i <= 3; i++) {
         PlayerTextDrawSetSelectable(playerid, gUI[playerid][3+i], 0);
         PlayerTextDrawUseBox(playerid, gUI[playerid][3+i], 0);
@@ -312,7 +315,7 @@ stock RW_UI_SpeedoUpdate(playerid, speed, gear, rpm, flags)
     else if (gear == 0) format(buf, sizeof buf, "N");
     else format(buf, sizeof buf, "%d", gear);
     RW_UI_Text(playerid, 16, buf);
-    format(buf, sizeof buf, "Ключ %s  Мотор %s~n~Двери %s", (flags & 2) ? ("+") : ("-"), (flags & 1) ? ("+") : ("-"), (flags & 4) ? ("откр.") : ("закр."));
+    format(buf, sizeof buf, "Key %s  Engine %s~n~Doors %s", (flags & 2) ? ("+") : ("-"), (flags & 1) ? ("+") : ("-"), (flags & 4) ? ("open") : ("locked"));
     RW_UI_Text(playerid, 17, buf);
     new Float:width = float(rpm)*96.0/6500.0;
     if (width < 1.0) width = 1.0; if (width > 96.0) width = 96.0;
@@ -350,6 +353,7 @@ public RW_UITick()
 stock RW_UI_Reset(playerid)
 {
     RW_InvReset(playerid);
+    RW_GarageReset(playerid);
     RW_UI_CancelNative(playerid);
     if (IsPlayerConnected(playerid)) ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
     gUIMode[playerid] = 0; gControlMode[playerid] = 0;

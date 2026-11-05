@@ -28,22 +28,22 @@ stock RW_ControlOpen(playerid, bool:settings)
     if (!gLogged[playerid]) return 1;
     if (settings) { gControlMode[playerid] = 1; return RW_UI_Settings(playerid); }
     new v = RW_ControlTarget(playerid);
-    if (v <= 0 || v >= MAX_VEHICLES || v == INVALID_VEHICLE_ID || gVehSlotOf[v] < 0) return RW_ControlNotify(playerid, "Наведите центр экрана на машину не дальше 6 метров.");
+    if (v <= 0 || v >= MAX_VEHICLES || v == INVALID_VEHICLE_ID || gVehSlotOf[v] < 0) return RW_ControlNotify(playerid, "Aim at a managed car within 6 metres.");
     gControlVehicle[playerid] = v;
     gControlMode[playerid] = 2;
     return RW_UI_Vehicle(playerid);
 }
 stock RW_UI_Settings(playerid)
 {
-    RW_UI_Panel(playerid, UI_SETTINGS, "Настройки", "Нажмите на действие для смены клавиши");
+    RW_UI_Panel(playerid, UI_SETTINGS, "Settings", "Select an action to change its key");
     new label[64], key[16];
     for (new i; i < 3; i++) {
         RW_KeyName(gControlKeys[playerid][i], key, sizeof key);
-        format(label, sizeof label, "%s: [%s]", i == 0 ? ("Двери") : (i == 1 ? ("Двигатель") : ("Меню машины")), key);
+        format(label, sizeof label, "%s: [%s]", i == 0 ? ("Doors") : (i == 1 ? ("Engine") : ("Car menu")), key);
         RW_UI_Row(playerid, i, label);
     }
-    RW_UI_Row(playerid, 5, "Сохраняется на время подключения");
-    RW_UI_Row(playerid, 6, "Сбросить: H / N / Y");
+    RW_UI_Row(playerid, 5, "Saved for this session");
+    RW_UI_Row(playerid, 6, "Reset: H / N / Y");
     return 1;
 }
 stock RW_UI_Vehicle(playerid)
@@ -52,19 +52,19 @@ stock RW_UI_Vehicle(playerid)
     if (v <= 0 || v >= MAX_VEHICLES || gVehSlotOf[v] < 0) return RW_UI_Close(playerid);
     new slot = gVehSlotOf[v], name[48];
     RW_VehicleName(GetVehicleModel(v), name, sizeof name);
-    RW_UI_Panel(playerid, UI_VEHICLE, name, RW_IsVehicleOwner(playerid, v) ? ("Ваш автомобиль") : ("Чужой автомобиль"));
-    RW_UI_Row(playerid, 0, gVeh[slot][vsDoors] ? ("Закрыть двери") : ("Открыть двери"));
-    RW_UI_Row(playerid, 1, gVeh[slot][vsEngine] ? ("Заглушить двигатель") : ("Завести двигатель"));
-    RW_UI_Row(playerid, 2, gVeh[slot][vsKey] ? ("Вынуть ключ") : ("Вставить ключ"));
-    RW_UI_Row(playerid, 3, gVeh[slot][vsLights] ? ("Выключить фары") : ("Включить фары"));
-    RW_UI_Row(playerid, 4, "Пассажиры / высадить");
-    RW_UI_Row(playerid, 7, "Обновить состояние");
+    RW_UI_Panel(playerid, UI_VEHICLE, name, RW_IsVehicleOwner(playerid, v) ? ("Your car") : ("Another player's car"));
+    RW_UI_Row(playerid, 0, gVeh[slot][vsDoors] ? ("Lock doors") : ("Unlock doors"));
+    RW_UI_Row(playerid, 1, gVeh[slot][vsEngine] ? ("Stop engine") : ("Start engine"));
+    RW_UI_Row(playerid, 2, gVeh[slot][vsKey] ? ("Remove key") : ("Insert key"));
+    RW_UI_Row(playerid, 3, gVeh[slot][vsLights] ? ("Lights off") : ("Lights on"));
+    RW_UI_Row(playerid, 4, "Passengers / eject");
+    RW_UI_Row(playerid, 7, "Refresh status");
     return 1;
 }
 stock RW_UI_Passengers(playerid)
 {
     new v = gControlVehicle[playerid], count;
-    RW_UI_Panel(playerid, UI_PASSENGERS, "Пассажиры", "Выберите пассажира для высадки");
+    RW_UI_Panel(playerid, UI_PASSENGERS, "Passengers", "Select a passenger to eject");
     for (new j; j < 6; j++) gUITarget[playerid][j] = INVALID_PLAYER_ID;
     for (new i; i < MAX_PLAYERS; i++) {
         if (!IsPlayerConnected(i) || !IsPlayerInVehicle(i, v) || GetPlayerVehicleSeat(i) <= 0) continue;
@@ -78,10 +78,10 @@ stock RW_UI_Passengers(playerid)
         gUIPage[playerid] = 0; return RW_UI_Passengers(playerid);
     }
     gUIHasNext[playerid] = count > (gUIPage[playerid]+1)*6;
-    if (!count) RW_UI_Row(playerid, 0, "Пассажиров нет");
-    RW_UI_Row(playerid, 6, "Назад к машине");
-    if (gUIHasNext[playerid]) RW_UI_Row(playerid, 7, "Следующая страница >");
-    else if (gUIPage[playerid] > 0) RW_UI_Row(playerid, 7, "В начало");
+    if (!count) RW_UI_Row(playerid, 0, "No passengers");
+    RW_UI_Row(playerid, 6, "Back to car");
+    if (gUIHasNext[playerid]) RW_UI_Row(playerid, 7, "Next page >");
+    else if (gUIPage[playerid] > 0) RW_UI_Row(playerid, 7, "First page");
     return 1;
 }
 stock RW_UI_Click(playerid, row)
@@ -95,10 +95,10 @@ stock RW_UI_Click(playerid, row)
     if (mode == UI_SETTINGS) {
         if (row < 3) {
             gUIBind[playerid] = row;
-            RW_UI_Panel(playerid, UI_BIND, "Выбор клавиши", "Занятая клавиша поменяется местами");
+            RW_UI_Panel(playerid, UI_BIND, "Choose key", "Assigned keys will swap");
             RW_UI_Row(playerid, 0, "Y"); RW_UI_Row(playerid, 1, "N");
             RW_UI_Row(playerid, 2, "H"); RW_UI_Row(playerid, 3, "LALT");
-            RW_UI_Row(playerid, 7, "Назад");
+            RW_UI_Row(playerid, 7, "Back");
         } else if (row == 6) { RW_InteractionReset(playerid); gControlMode[playerid] = 1; RW_UI_Settings(playerid); }
     } else if (mode == UI_BIND) {
         if (row < 4) {
@@ -113,7 +113,7 @@ stock RW_UI_Click(playerid, row)
         gControlTick[playerid] = GetTickCount();
         if (row < 4) { RW_ControlExecute(playerid, gControlVehicle[playerid], row); RW_UI_Vehicle(playerid); }
         else if (row == 4) {
-            if (!RW_IsVehicleOwner(playerid, gControlVehicle[playerid])) return RW_ControlNotify(playerid, "Не ваша машина.");
+            if (!RW_IsVehicleOwner(playerid, gControlVehicle[playerid])) return RW_ControlNotify(playerid, "You do not own this car.");
             gUIPage[playerid] = 0; RW_UI_Passengers(playerid);
         } else if (row == 7) RW_UI_Vehicle(playerid);
     } else if (mode == UI_PASSENGERS) {
@@ -128,7 +128,7 @@ stock RW_UI_Click(playerid, row)
         if (!confirm || GetPlayerState(playerid) != PLAYER_STATE_ONFOOT || GetPlayerInterior(playerid) != 0 || GetPlayerVirtualWorld(playerid) != 0) return 1;
         SetPlayerPosFindZ(playerid, gMapPoint[playerid][0], gMapPoint[playerid][1], gMapPoint[playerid][2]+1.0);
         SetCameraBehindPlayer(playerid);
-        RW_ControlNotify(playerid, "Вы телепортировались к метке.");
+        RW_ControlNotify(playerid, "Teleported to your marker.");
     }
     return 1;
 }
@@ -179,55 +179,55 @@ stock RW_ControlExecute(playerid, v, action, target = -1)
     if (slot < 0 || !gVeh[slot][vsUsed]) return 0;
     new Float:x, Float:y, Float:z;
     GetVehiclePos(v, x, y, z);
-    if (GetVehicleVirtualWorld(v) != GetPlayerVirtualWorld(playerid) || GetPlayerInterior(playerid) != 0 || !IsPlayerInRangeOfPoint(playerid, KEY_RANGE, x, y, z)) return RW_ControlNotify(playerid, "Машина слишком далеко.");
-    if ((action == 0 || action == 2) && !RW_InvHasKey(playerid, v)) return RW_ControlNotify(playerid, "Нужен ключ от этой машины в инвентаре.");
-    if ((action == 3 || action == 4) && !RW_IsVehicleOwner(playerid, v)) return RW_ControlNotify(playerid, "Не ваша машина.");
+    if (GetVehicleVirtualWorld(v) != GetPlayerVirtualWorld(playerid) || GetPlayerInterior(playerid) != 0 || !IsPlayerInRangeOfPoint(playerid, KEY_RANGE, x, y, z)) return RW_ControlNotify(playerid, "Car is too far away.");
+    if ((action == 0 || action == 2) && !RW_InvHasKey(playerid, v)) return RW_ControlNotify(playerid, "You need this car's key in your inventory.");
+    if ((action == 3 || action == 4) && !RW_IsVehicleOwner(playerid, v)) return RW_ControlNotify(playerid, "You do not own this car.");
     switch (action) {
         case 0: RW_Veh_SetDoors(v, !gVeh[slot][vsDoors]);
         case 1: {
-            if (!IsPlayerInVehicle(playerid, v) || GetPlayerVehicleSeat(playerid) != 0) return RW_ControlNotify(playerid, "Сядьте за руль.");
-            if (!gVeh[slot][vsKey]) return RW_ControlNotify(playerid, "Сначала вставьте ключ.");
+            if (!IsPlayerInVehicle(playerid, v) || GetPlayerVehicleSeat(playerid) != 0) return RW_ControlNotify(playerid, "Sit in the driver seat.");
+            if (!gVeh[slot][vsKey]) return RW_ControlNotify(playerid, "Insert the key first.");
             gVeh[slot][vsEngine] = !gVeh[slot][vsEngine];
             RW_Veh_Sync(v);
         }
         case 2: {
-            if (!IsPlayerInVehicle(playerid, v) || GetPlayerVehicleSeat(playerid) != 0) return RW_ControlNotify(playerid, "Сядьте за руль.");
+            if (!IsPlayerInVehicle(playerid, v) || GetPlayerVehicleSeat(playerid) != 0) return RW_ControlNotify(playerid, "Sit in the driver seat.");
             RW_Veh_SetKey(v, !gVeh[slot][vsKey]);
         }
         case 3: { gVeh[slot][vsLights] = !gVeh[slot][vsLights]; RW_Veh_Sync(v); }
         case 4: {
             if (target < 0 || target >= MAX_PLAYERS || !IsPlayerConnected(target)) return 0;
-            if (!IsPlayerInVehicle(target, v) || GetPlayerVehicleSeat(target) <= 0) return RW_ControlNotify(playerid, "Пассажир уже вышел.");
+            if (!IsPlayerInVehicle(target, v) || GetPlayerVehicleSeat(target) <= 0) return RW_ControlNotify(playerid, "Passenger has already left.");
             RemovePlayerFromVehicle(target);
         }
         default: return 0;
     }
-    return RW_ControlNotify(playerid, "Готово.");
+    return RW_ControlNotify(playerid, "Done.");
 }
 stock RW_EngineCommand(playerid)
 {
-    if (!IsPlayerInAnyVehicle(playerid)) return RW_ControlNotify(playerid, "Сядьте за руль.");
+    if (!IsPlayerInAnyVehicle(playerid)) return RW_ControlNotify(playerid, "Sit in the driver seat.");
     return RW_ControlExecute(playerid, GetPlayerVehicleID(playerid), 1);
 }
 
 stock RW_MapPrompt(playerid)
 {
     if (!gLogged[playerid]) return 1;
-    if (!gMapHasPoint[playerid]) return RW_ControlNotify(playerid, "Сначала поставьте метку: ESC > Карта > правая кнопка мыши.");
-    if (GetPlayerState(playerid) != PLAYER_STATE_ONFOOT || GetPlayerInterior(playerid) != 0 || GetPlayerVirtualWorld(playerid) != 0) return RW_ControlNotify(playerid, "К метке можно телепортироваться только пешком в основном мире.");
-    if (gUIMode[playerid] != 0 && gUIMode[playerid] != UI_MAP) return RW_ControlNotify(playerid, "Метка сохранена. Закройте меню и введите /tpm.");
-    new coords[64]; format(coords, sizeof coords, "Метка: %.0f, %.0f", gMapPoint[playerid][0], gMapPoint[playerid][1]);
+    if (!gMapHasPoint[playerid]) return RW_ControlNotify(playerid, "Set a marker first: ESC > Map > right click.");
+    if (GetPlayerState(playerid) != PLAYER_STATE_ONFOOT || GetPlayerInterior(playerid) != 0 || GetPlayerVirtualWorld(playerid) != 0) return RW_ControlNotify(playerid, "Teleport is available on foot in the main world only.");
+    if (gUIMode[playerid] != 0 && gUIMode[playerid] != UI_MAP) return RW_ControlNotify(playerid, "Marker saved. Close the menu and use /tpm.");
+    new coords[64]; format(coords, sizeof coords, "Marker: %.0f, %.0f", gMapPoint[playerid][0], gMapPoint[playerid][1]);
     gMapPending[playerid] = true;
-    RW_UI_Panel(playerid, UI_MAP, "К метке на карте?", coords);
-    RW_UI_Row(playerid, 0, "Да, телепортироваться");
-    RW_UI_Row(playerid, 1, "Нет, остаться здесь");
+    RW_UI_Panel(playerid, UI_MAP, "Teleport to marker?", coords);
+    RW_UI_Row(playerid, 0, "Yes, teleport");
+    RW_UI_Row(playerid, 1, "No, stay here");
     return 1;
 }
 stock RW_UI_Language(playerid, bool:latin)
 {
-    if (gUIInput[playerid]) return RW_ControlNotify(playerid, "Сначала завершите или отмените ввод пароля.");
+    if (gUIInput[playerid]) return RW_ControlNotify(playerid, "Finish or cancel password input first.");
     gUIRussianDialogs[playerid] = !latin;
     RW_UI_Close(playerid);
     if (!gLogged[playerid]) return RW_UI_OpenAuth(playerid);
-    return RW_ControlNotify(playerid, latin ? ("TextDraw-меню включены. Русские окна — /uiru.") : ("Русские окна SA-MP включены. TextDraw-меню — /uitd."));
+    return RW_ControlNotify(playerid, latin ? ("TextDraw panels enabled. /uiru - native dialogs.") : ("Native dialogs enabled. /uitd - TextDraw panels. All text is English."));
 }

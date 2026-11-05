@@ -250,7 +250,7 @@ stock RW_Veh_Enforce(playerid)
         gEnforceLastTick[playerid] = GetTickCount();
 
         if (!gVeh[slot][vsKey]) {
-            RW_Info(playerid, "Ключ не вставлен. Вставьте ключ командой /key.");
+            RW_Info(playerid, "No key in the ignition. Use /key to insert it.");
         }
     }
     return 0;
@@ -296,12 +296,12 @@ stock RW_Veh_OnExitDriver(playerid)
 stock RW_Veh_Spawn(playerid, model)
 {
     if (model < 400 || model > 611 || RW_IS_TRAILER_OR_TRAIN(model)) {
-        RW_Error(playerid, "Неверный ID. Допустимы стандартные модели 400–611 (без поездов и прицепов).");
+        RW_Error(playerid, "Invalid ID. Use supported models 400-611 (no trains or trailers).");
         return 0;
     }
 
     if (GetTickCount() - gLastSpcarTick[playerid] < SPCAR_COOLDOWN_MS) {
-        RW_Info(playerid, "Не так быстро — подождите секунду.");
+        RW_Info(playerid, "Too fast. Wait a second.");
         return 0;
     }
     gLastSpcarTick[playerid] = GetTickCount();
@@ -324,7 +324,7 @@ stock RW_Veh_Spawn(playerid, model)
 
     new slot = RW_Veh_GetFreeSlot();
     if (slot < 0) {
-        RW_Error(playerid, "Нет свободных мест для машин на сервере.");
+        RW_Error(playerid, "Server vehicle limit reached.");
         return 0;
     }
 
@@ -333,24 +333,27 @@ stock RW_Veh_Spawn(playerid, model)
 
     new vehicleid = CreateVehicle(model, sx, sy, z + 0.25, a, c1, c2, -1);
     if (vehicleid == INVALID_VEHICLE_ID || vehicleid >= MAX_VEHICLES) {
-        RW_Error(playerid, "Эту модель нельзя создать. Проверьте ID (400–611).");
+        RW_Error(playerid, "Cannot create this model. Check ID (400-611).");
         return 0;
     }
 
     if (GetVehicleModel(vehicleid) != model) {
         DestroyVehicle(vehicleid);
-        RW_Error(playerid, "Модель не поддерживается сервером.");
+        RW_Error(playerid, "Model not supported by this server.");
         return 0;
     }
 
     new keyUid = RW_InvGrant(playerid, ITEM_CAR_KEY);
     if (!keyUid) {
         DestroyVehicle(vehicleid);
-        RW_Error(playerid, "Для ключа нужно место в основном инвентаре и доступная БД.");
+        RW_Error(playerid, "A key needs a free main inventory slot and a writable database.");
         return 0;
     }
     if (oldSlot >= 0 && gVeh[oldSlot][vsUsed]) RW_Veh_DestroySlot(oldSlot, false);
     gVehKeyUid[slot] = keyUid;
+    gVehGarageId[slot] = 0;
+    gVehSpawnStamp[slot] = ++gVehStampCounter;
+    RW_MotionReset(vehicleid);
 
     new nick[MAX_PLAYER_NAME];
     new plate[16];
@@ -382,9 +385,9 @@ stock RW_Veh_Spawn(playerid, model)
     new string[192];
     new vname[48];
     RW_VehicleName(model, vname, sizeof vname);
-    format(string, sizeof string, "Машина {F5B04C}%s{FFFFFF} (ID %d) создана. Владелец — вы.", vname, model);
+    format(string, sizeof string, "Car {F5B04C}%s{FFFFFF} (model %d) created. You own it.", vname, model);
     SendClientMessage(playerid, COLOR_WHITE, string);
-    RW_Info(playerid, "{F5B04C}/door{FFFFFF} — открыть двери, {F5B04C}/key{FFFFFF} — вставить ключ и завести двигатель.");
+    RW_Info(playerid, "{F5B04C}/door{FFFFFF} - unlock; /key - insert key; N - start engine.");
 
     return 1;
 }
@@ -397,7 +400,9 @@ stock RW_Veh_DestroySlot(slot, bool:notifyOwner)
 
     new vehicleid = gVeh[slot][vsVehicleId];
     new owner = gVeh[slot][vsOwnerPlayer];
-    RW_InvRevokeKey(gVehKeyUid[slot]);
+    if (!gVehGarageId[slot]) RW_InvRevokeKey(gVehKeyUid[slot]);
+    gVehGarageId[slot] = 0;
+    RW_MotionReset(vehicleid);
     gVehKeyUid[slot] = 0;
 
     if (vehicleid != INVALID_VEHICLE_ID && vehicleid < MAX_VEHICLES) {
@@ -410,7 +415,7 @@ stock RW_Veh_DestroySlot(slot, bool:notifyOwner)
     if (owner >= 0 && owner < MAX_PLAYERS && gPlayerVehSlot[owner] == slot) {
         gPlayerVehSlot[owner] = -1;
         if (notifyOwner && IsPlayerConnected(owner)) {
-            RW_Info(owner, "Ваша машина убрана.");
+            RW_Info(owner, "Your active car was removed.");
         }
     }
 
@@ -434,7 +439,7 @@ public RW_Veh_RespawnLater(vehicleid, token)
 {
     if (vehicleid <= 0 || vehicleid >= MAX_VEHICLES || token <= 0) return 1;
     new slot = gVehSlotOf[vehicleid];
-    if (slot >= 0 && gVeh[slot][vsUsed] && gVehKeyUid[slot] == token) {
+    if (slot >= 0 && gVeh[slot][vsUsed] && gVehSpawnStamp[slot] == token) {
         RW_Veh_DestroySlot(slot, true);
     }
     return 1;
@@ -471,18 +476,18 @@ stock RW_Veh_CommandSpcar(playerid, const params[])
     }
 
     if (gAdminLevel[playerid] < SPCAR_MIN_ADMIN_LEVEL) {
-        RW_Error(playerid, "Недостаточно прав для этой команды.");
+        RW_Error(playerid, "Insufficient permissions.");
         return 1;
     }
 
     if (params[0] == EOS) {
-        RW_Info(playerid, "Укажите ID модели: {F5B04C}/spcar 411{FFFFFF} (Infernus), /spcar 541 (Bullet), /spcar 560 (Sultan).");
-        RW_Info(playerid, "Все стандартные ID: 400–611. Ваша машина — только у вас.");
+        RW_Info(playerid, "Enter a model ID: {F5B04C}/spcar 411{FFFFFF} (Infernus), /spcar 541 (Bullet), /spcar 560 (Sultan).");
+        RW_Info(playerid, "Supported IDs: 400-611. /spcar cars and keys are temporary.");
         return 1;
     }
 
     if (!RW_IsNumeric(params)) {
-        RW_Error(playerid, "ID должен быть числом, например: /spcar 411");
+        RW_Error(playerid, "ID must be a number, e.g. /spcar 411");
         return 1;
     }
 
@@ -507,7 +512,7 @@ stock RW_Veh_CommandMyCar(playerid)
 
     new slot = gPlayerVehSlot[playerid];
     if (slot < 0 || !gVeh[slot][vsUsed]) {
-        RW_Info(playerid, "У вас пока нет машины. Создайте её: {F5B04C}/spcar 411{FFFFFF}.");
+        RW_Info(playerid, "No temporary car. Use {F5B04C}/spcar 411{FFFFFF}, or visit the garage for permanent cars.");
         return 1;
     }
 
@@ -517,20 +522,20 @@ stock RW_Veh_CommandMyCar(playerid)
 
     RW_VehicleName(gVeh[slot][vsModel], vname, sizeof vname);
 
-    format(string, sizeof string, "Машина: {F5B04C}%s{FFFFFF} (ID %d, номер RW-%03d)",
+    format(string, sizeof string, "Car: {F5B04C}%s{FFFFFF} (model %d, plate RW-%03d)",
         vname, gVeh[slot][vsModel], slot + 1);
     SendClientMessage(playerid, COLOR_WHITE, string);
 
-    format(string, sizeof string, "Ключ: %s   •   Двери: %s   •   Двигатель: %s",
-        gVeh[slot][vsKey] ? "{7BD88F}в замке" : "{FF6B6B}нет",
-        gVeh[slot][vsDoors] ? "{7BD88F}открыты" : "{FF6B6B}закрыты",
-        gVeh[slot][vsEngine] ? "{7BD88F}работает" : "{8A94A2}заглушен");
+    format(string, sizeof string, "Key: %s / Doors: %s / Engine: %s",
+        gVeh[slot][vsKey] ? "{7BD88F}inserted" : "{FF6B6B}none",
+        gVeh[slot][vsDoors] ? "{7BD88F}open" : "{FF6B6B}locked",
+        gVeh[slot][vsEngine] ? "{7BD88F}running" : "{8A94A2}off");
     SendClientMessage(playerid, COLOR_GREY, string);
 
     new Float:x, Float:y, Float:z;
     GetVehiclePos(vehicleid, x, y, z);
     if (!IsPlayerInRangeOfPoint(playerid, 30.0, x, y, z)) {
-        RW_Info(playerid, "Машина находится в другой части города.");
+        RW_Info(playerid, "Car is elsewhere in the city.");
     }
     return 1;
 }

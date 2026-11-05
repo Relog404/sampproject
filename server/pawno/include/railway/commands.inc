@@ -46,30 +46,30 @@ stock RW_ParseCommand(const cmdtext[], cmd[], cmdSize, params[], paramsSize)
 
 stock RW_CommandHelp(playerid)
 {
-    RW_Accent(playerid, "Ч Ч Ч {F5B04C}∆елезнодорожный вокзал{FFFFFF} Ч Ч Ч");
-    SendClientMessage(playerid, COLOR_GREY, "/inv Ч инвентарь. ¬ыберите предмет: MAIN / BAG / DROP / USE.");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}Y{FFFFFF} Ч меню авто /vmenu; {F5B04C}N{FFFFFF} Ч мотор /engine; {F5B04C}H{FFFFFF} Ч двери. /settings Ч настройки.");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/spcar <id>{FFFFFF} Ч создать машину (400Ц611). ¬ладелец Ч вы.");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} Ч двери машины под прицелом, нужен ключ в /inv.");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/key{FFFFFF} Ч вставить/вынуть ключ; N Ч зажигание.");
-    SendClientMessage(playerid, COLOR_GREY, " арта: ESC >  арта > права€ кнопка мыши. /tpm Ч к метке; /delmark Ч удалить; /tdlatin Ч шрифт.");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/mycar{FFFFFF} Ч состо€ние своей машины.");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/stats{FFFFFF} Ч ваш аккаунт   Х   {F5B04C}/admins{FFFFFF} Ч администраци€");
-    SendClientMessage(playerid, COLOR_DARK_GREY, "¬ машину сад€тс€ только с открытой дверью. — оставленным ключом завести может любой водитель.");
+    RW_Accent(playerid, "--- {F5B04C}Unity Station{FFFFFF} ---");
+    SendClientMessage(playerid, COLOR_GREY, "/inv - inventory. Click an item for its description and actions.");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}Y{FFFFFF} - car menu /vmenu; {F5B04C}N{FFFFFF} - engine /engine; {F5B04C}H{FFFFFF} - doors. /settings");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/spcar <id>{FFFFFF} - temporary car (400-611). /garage - station garage.");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} - unlock/lock the aimed car; its key must be in /inv.");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/key{FFFFFF} - insert/remove key; N - engine.");
+    SendClientMessage(playerid, COLOR_GREY, "Map: ESC > Map > right click. /tpm - confirm teleport; /delmark - remove marker.");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/mycar{FFFFFF} - temporary car status.");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/stats{FFFFFF} - account /admins - online administrators");
+    SendClientMessage(playerid, COLOR_DARK_GREY, "Doors must be open to enter. With a key left in the ignition, any driver can start the engine.");
     return 1;
 }
 
 stock RW_CommandAdminHelp(playerid)
 {
     if (gAdminLevel[playerid] < 1) {
-        RW_Error(playerid, "” вас нет прав администратора.");
+        RW_Error(playerid, "You are not an administrator.");
         return 0;
     }
 
-    RW_Accent(playerid, "Ч Ч Ч {F5B04C}јдмин-команды{FFFFFF} Ч Ч Ч");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/kick <id> [причина]{FFFFFF} Ч kick игрока.");
-    SendClientMessage(playerid, COLOR_GREY, "/giveitem <id> <1=рюкзак,2=ключ> [vehicleid]");
-    SendClientMessage(playerid, COLOR_DARK_GREY, "ћашины, созданные админом через /spcar, принадлежат админу.");
+    RW_Accent(playerid, "--- {F5B04C}Admin commands{FFFFFF} ---");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/kick <id> [reason]{FFFFFF} - kick a player.");
+    SendClientMessage(playerid, COLOR_GREY, "/giveitem <id> <1=backpack,2=key> [vehicleid]");
+    SendClientMessage(playerid, COLOR_DARK_GREY, "/givecar <id|name> <model> /flycar /speed <km/h> /usk <km/h/s>");
     return 1;
 }
 
@@ -80,11 +80,11 @@ stock RW_CommandStats(playerid)
 
     RW_GetNick(playerid, nick);
 
-    format(string, sizeof string, "јккаунт {F5B04C}%s{FFFFFF}   Х   ID %d   Х   јдмин: %d",
+    format(string, sizeof string, "Account {F5B04C}%s{FFFFFF} / ID %d / Admin %d",
         nick, gAccountId[playerid], gAdminLevel[playerid]);
     SendClientMessage(playerid, COLOR_WHITE, string);
 
-    format(string, sizeof string, "ƒеньги: {7BD88F}%d{FFFFFF}   Х   —кин: %d   Х   ћашин в системе: %d",
+    format(string, sizeof string, "Money: {7BD88F}%d{FFFFFF} / Skin: %d / Active cars: %d",
         GetPlayerMoney(playerid), gSkinId[playerid], gVehSlotCount);
     SendClientMessage(playerid, COLOR_GREY, string);
     return 1;
@@ -95,20 +95,20 @@ stock RW_CommandAdmins(playerid)
     new string[128];
     new count = 0;
 
-    RW_Accent(playerid, "јдминистраци€ онлайн:");
+    RW_Accent(playerid, "Online administrators:");
     for (new i = 0; i < MAX_PLAYERS; i++) {
         if (!IsPlayerConnected(i) || gAdminLevel[i] < 1) {
             continue;
         }
         new nick[MAX_PLAYER_NAME];
         RW_GetNick(i, nick);
-        format(string, sizeof string, "  {F5B04C}%s{FFFFFF} Ч уровень %d", nick, gAdminLevel[i]);
+        format(string, sizeof string, "  {F5B04C}%s{FFFFFF} - level %d", nick, gAdminLevel[i]);
         SendClientMessage(playerid, COLOR_GREY, string);
         count++;
     }
 
     if (count == 0) {
-        RW_Info(playerid, "—ейчас администраторов нет в сети.");
+        RW_Info(playerid, "No administrators online.");
     }
     return 1;
 }
@@ -133,7 +133,7 @@ stock RW_AdminSetLevel(const nick[], level)
         if (!strcmp(other, nick, true)) {
             gAdminLevel[i] = level;
             new string[128];
-            format(string, sizeof string, "¬аш уровень администратора изменЄн на %d.", level);
+            format(string, sizeof string, "Your admin level has been changed to %d.", level);
             RW_Accent(i, string);
         }
     }
@@ -143,12 +143,12 @@ stock RW_AdminSetLevel(const nick[], level)
 stock RW_CommandKick(playerid, const params[])
 {
     if (gAdminLevel[playerid] < 1) {
-        RW_Error(playerid, "” вас нет прав администратора.");
+        RW_Error(playerid, "You are not an administrator.");
         return 1;
     }
 
     if (params[0] == EOS) {
-        RW_Info(playerid, "»спользование: /kick <id> [причина]");
+        RW_Info(playerid, "Usage: /kick <id> [reason]");
         return 1;
     }
 
@@ -171,13 +171,13 @@ stock RW_CommandKick(playerid, const params[])
     strmid(reason, params, i, strlen(params), sizeof reason);
 
     if (!RW_IsNumeric(targetText)) {
-        RW_Error(playerid, "ID должен быть числом.");
+        RW_Error(playerid, "ID must be a number.");
         return 1;
     }
 
     new target = strval(targetText);
     if (target < 0 || target >= MAX_PLAYERS || !IsPlayerConnected(target)) {
-        RW_Error(playerid, "»грок не найден.");
+        RW_Error(playerid, "Player not found.");
         return 1;
     }
 
@@ -189,10 +189,10 @@ stock RW_CommandKick(playerid, const params[])
     RW_GetNick(target, targetNick);
 
     if (reason[0] == EOS) {
-        format(reason, sizeof reason, "–ешение администрации");
+        format(reason, sizeof reason, "Administrative decision");
     }
 
-    format(string, sizeof string, "{FF6B6B}%s{FFFFFF} кикнут администратором {F5B04C}%s{FFFFFF}. ѕричина: %s",
+    format(string, sizeof string, "{FF6B6B}%s{FFFFFF} kicked by {F5B04C}%s{FFFFFF}. Reason: %s",
         targetNick, adminNick, reason);
     SendClientMessageToAll(COLOR_WHITE, string);
     Kick(target);
@@ -210,13 +210,16 @@ stock RW_CommandProcess(playerid, cmdtext[])
     }
 
     if ((!strcmp(cmd, "tdlatin", true) || !strcmp(cmd, "uitd", true))) return RW_UI_Language(playerid, true);
-    if ((!strcmp(cmd, "tdrus", true) || !strcmp(cmd, "uiru", true))) return RW_UI_Language(playerid, false);
+    if ((!strcmp(cmd, "uinative", true) || !strcmp(cmd, "tdrus", true) || !strcmp(cmd, "uiru", true))) return RW_UI_Language(playerid, false);
     if (!gLogged[playerid]) {
-        RW_Error(playerid, "—начала войдите в аккаунт.");
+        RW_Error(playerid, "Log in first.");
         return 1;
     }
 
     if (!strcmp(cmd, "inv", true) || !strcmp(cmd, "inventory", true)) return RW_InvOpen(playerid);
+    if (!strcmp(cmd, "givecar", true)) return RW_GarageGive(playerid, params);
+    if (!strcmp(cmd, "flycar", true) || !strcmp(cmd, "speed", true) || !strcmp(cmd, "usk", true)) return RW_MotionCommand(playerid, cmd, params);
+    if (!strcmp(cmd, "garage", true)) return RW_GarageOpen(playerid);
     if (!strcmp(cmd, "giveitem", true)) return RW_InvGiveCommand(playerid, params);
     if (!strcmp(cmd, "spcar", true) || !strcmp(cmd, "veh", true) || !strcmp(cmd, "car", true)) {
         return RW_Veh_CommandSpcar(playerid, params);
@@ -227,7 +230,7 @@ stock RW_CommandProcess(playerid, cmdtext[])
         gMapPending[playerid] = false;
         RemovePlayerMapIcon(playerid, RW_MAP_ICON);
         if (gUIMode[playerid] == UI_MAP) RW_UI_Close(playerid);
-        return RW_ControlNotify(playerid, "ћетка удалена.");
+        return RW_ControlNotify(playerid, "Marker removed.");
     }
     if (!strcmp(cmd, "engine", true)) return RW_EngineCommand(playerid);
     if (!strcmp(cmd, "vmenu", true)) return RW_ControlOpen(playerid, false);
@@ -255,8 +258,8 @@ stock RW_CommandProcess(playerid, cmdtext[])
     if (!strcmp(cmd, "kick", true)) {
         return RW_CommandKick(playerid, params);
     }
-    if (!strcmp(cmd, "setadmin", true)) return RW_Error(playerid, "Ќазначение админов Ч только через консоль: setadmin <ник> <0-3>.");
+    if (!strcmp(cmd, "setadmin", true)) return RW_Error(playerid, "Admin assignment is console-only: setadmin <name> <0-3>.");
 
-    RW_Error(playerid, "Ќеизвестна€ команда. {FFFFFF}/help Ч список команд.");
+    RW_Error(playerid, "Unknown command. {FFFFFF}/help - commands.");
     return 1;
 }

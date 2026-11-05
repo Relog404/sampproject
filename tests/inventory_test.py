@@ -22,6 +22,8 @@ class InventoryStorageTests(unittest.TestCase):
     def setUp(self):
         self.db = sqlite3.connect(':memory:', isolation_level=None)
         self.db.execute(sql('CREATE TABLE'))
+        self.db.execute('CREATE TABLE permanent_keys(uid INTEGER PRIMARY KEY, car INTEGER)')
+        self.db.execute('CREATE TABLE owned_cars(id INTEGER PRIMARY KEY, owner INTEGER, model INTEGER, token INTEGER UNIQUE)')
 
     def tearDown(self):
         self.db.close()
@@ -153,7 +155,7 @@ class InventorySourceTests(unittest.TestCase):
         cancel = main.split('public OnPlayerClickTextDraw',1)[1].split('public OnPlayerKeyStateChange',1)[0]
         self.assertLess(cancel.index('UI_INVENTORY'), cancel.index('gUIRussianDialogs'))
         ui = pawn('ui')
-        self.assertIn('gUIMode[playerid] == UI_INVENTORY', ui.split('stock RW_UI_NativeResponse',1)[1].split('stock RW_TD_Encode',1)[0])
+        self.assertIn('gUIMode[playerid] >= UI_INVENTORY', ui.split('stock RW_UI_NativeResponse',1)[1].split('stock RW_TD_Encode',1)[0])
         self.assertIn('RW_InvReset(playerid)', ui)
 
     def test_admin_grants_and_console_only_admin_assignment(self):
@@ -171,9 +173,9 @@ class InventorySourceTests(unittest.TestCase):
     def test_delayed_vehicle_cleanup_cannot_destroy_recycled_vehicle_id(self):
         vehicles = pawn('vehicles')
         callback = vehicles.split('public RW_Veh_RespawnLater', 1)[1].split('stock RW_Veh_OnPlayerDisconnect', 1)[0]
-        self.assertIn('gVehKeyUid[slot] == token', callback)
+        self.assertIn('gVehSpawnStamp[slot] == token', callback)
         main = (ROOT/'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
-        self.assertIn('"ii", vehicleid, gVehKeyUid[slot]', main)
+        self.assertIn('"ii", vehicleid, gVehSpawnStamp[slot]', main)
 
     def test_spcar_grants_key_before_replacing_previous_vehicle(self):
         spawn = pawn('vehicles').split('stock RW_Veh_Spawn',1)[1].split('stock RW_Veh_DestroySlot',1)[0]

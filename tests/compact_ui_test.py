@@ -55,18 +55,18 @@ class CompactRussianUiTest(unittest.TestCase):
         commands = source('commands')
         self.assertIn('"tdlatin"', commands)
         self.assertIn('"tdrus"', commands)
-        for text in ('Закрыть двери', 'Вставить ключ', 'Пассажиры', 'Настройки', 'Выбор клавиши'):
+        for text in ('Lock doors', 'Insert key', 'Passengers', 'Settings', 'Choose key'):
             self.assertIn(text, self.control)
 
     def test_auth_card_hides_for_password_dialog_and_uses_two_steps(self):
-        self.assertIn('Добро пожаловать', self.ui)
-        self.assertIn('Войти в аккаунт', self.ui)
+        self.assertIn('Welcome', self.ui)
+        self.assertIn('Login', self.ui)
         begin = self.ui.split('stock RW_UI_PasswordBegin', 1)[1].split('\n}', 1)[0]
         self.assertIn('PlayerTextDrawHide', begin)
         self.assertIn('gUIInput[playerid] = true', begin)
         account = source('accounts')
-        self.assertIn('Регистрация 1/2', account)
-        self.assertIn('Регистрация 2/2', account)
+        self.assertIn('Register 1/2', account)
+        self.assertIn('Register 2/2', account)
         self.assertIn('DIALOG_REGISTER_CONFIRM, DIALOG_STYLE_PASSWORD', account)
         confirm = self.main.split('if (dialogid == DIALOG_REGISTER_CONFIRM) {', 1)[1].split('\n    }', 1)[0]
         self.assertIn('!gRegPending[playerid]', confirm)
@@ -89,8 +89,8 @@ class CompactRussianUiTest(unittest.TestCase):
         self.assertIn('RemovePlayerMapIcon', commands)
         prompt = self.control.split('stock RW_MapPrompt', 1)[1].split('stock RW_UI_Language', 1)[0]
         self.assertIn('PLAYER_STATE_ONFOOT', prompt)
-        self.assertIn('Да, телепортироваться', prompt)
-        self.assertIn('Нет, остаться здесь', prompt)
+        self.assertIn('Yes, teleport', prompt)
+        self.assertIn('No, stay here', prompt)
         confirm = self.control.split('mode == UI_MAP', 1)[1].split('// Camera ray', 1)[0]
         self.assertIn('gMapHasPoint[playerid]', confirm)
         self.assertNotIn('gMapHasPoint[playerid] = false', confirm)
