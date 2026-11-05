@@ -83,6 +83,7 @@ new bool:gDBWritable;
 new gVeh[VEHICLE_SLOTS][E_VEHICLE_SLOT];
 new gVehSlotOf[MAX_VEHICLES];          /* vehicleid -> слот (или -1)         */
 new gVehSlotCount;
+new gVehKeyUid[VEHICLE_SLOTS];
 
 new bool:gLogged[MAX_PLAYERS];         /* игрок авторизован                  */
 new gAccountId[MAX_PLAYERS];           /* id аккаунта в Ѕƒ (-1 Ч гость)      */

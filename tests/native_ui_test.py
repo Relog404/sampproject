@@ -73,7 +73,7 @@ class NativeInterfaceTest(unittest.TestCase):
     def test_vehicle_actions_remain_server_authoritative(self):
         execute = body(self.control, 'stock RW_ControlExecute', 'stock RW_EngineCommand')
         for required in ('!gLogged[playerid]', 'IsPlayerInRangeOfPoint', 'GetVehicleVirtualWorld',
-                         'action != 1 && !RW_IsVehicleOwner', '!gVeh[slot][vsKey]',
+                         '(action == 0 || action == 2) && !RW_InvHasKey', '(action == 3 || action == 4) && !RW_IsVehicleOwner', '!gVeh[slot][vsKey]',
                          'GetPlayerVehicleSeat(playerid) != 0', 'GetPlayerVehicleSeat(target) <= 0'):
             self.assertIn(required, execute)
         self.assertIn('RW_ControlExecute(playerid, gControlVehicle[playerid], 4, gUITarget', self.control)

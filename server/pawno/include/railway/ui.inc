@@ -11,6 +11,7 @@
 #define UI_PASSENGERS 4
 #define UI_BIND 5
 #define UI_MAP 6
+#define UI_INVENTORY 7
 new PlayerText:gUI[MAX_PLAYERS][UI_COUNT];
 new bool:gUICreated[MAX_PLAYERS], bool:gUIInput[MAX_PLAYERS];
 new bool:gUIPanelCreated[MAX_PLAYERS], bool:gUIRussianDialogs[MAX_PLAYERS];
@@ -36,7 +37,7 @@ stock RW_UI_CancelNative(playerid)
 public RW_UI_FlushNative(playerid)
 {
     gUINativeTimer[playerid] = 0;
-    if (!IsPlayerConnected(playerid) || !gUIRussianDialogs[playerid] || gUIInput[playerid] || gUIMode[playerid] == 0 || gUIMode[playerid] == UI_AUTH) return 1;
+    if (!IsPlayerConnected(playerid) || !gUIRussianDialogs[playerid] || gUIInput[playerid] || gUIMode[playerid] == 0 || gUIMode[playerid] == UI_AUTH || gUIMode[playerid] == UI_INVENTORY) return 1;
     new title[96], text[1400];
     format(title, sizeof title, "Railway | %s", gUINativeTitle[playerid]);
     if (gUIMode[playerid] == UI_MAP) {
@@ -57,7 +58,7 @@ public RW_UI_FlushNative(playerid)
 }
 stock RW_UI_NativeResponse(playerid, response, listitem)
 {
-    if (!gUIRussianDialogs[playerid] || !gLogged[playerid] || gUIMode[playerid] == 0 || gUIMode[playerid] == UI_AUTH || gUIInput[playerid]) return 1;
+    if (!gUIRussianDialogs[playerid] || !gLogged[playerid] || gUIMode[playerid] == 0 || gUIMode[playerid] == UI_AUTH || gUIMode[playerid] == UI_INVENTORY || gUIInput[playerid]) return 1;
     if (gUINativeTimer[playerid] != 0) return 1;
     if (gUIMode[playerid] == UI_MAP) return RW_UI_Click(playerid, response ? 0 : 1);
     if (!response) return RW_UI_Close(playerid);
@@ -202,6 +203,7 @@ stock RW_UI_Text(playerid, index, const text[])
 }
 stock RW_UI_Panel(playerid, mode, const title[], const subtitle[])
 {
+    if (gUIMode[playerid] == UI_INVENTORY) RW_InvHide(playerid);
     RW_UI_Create(playerid);
     for (new i = 12; i <= 18; i++) PlayerTextDrawHide(playerid, gUI[playerid][i]);
     gUIMode[playerid] = mode;
@@ -242,6 +244,7 @@ stock RW_UI_Row(playerid, row, const text[])
 }
 stock RW_UI_Close(playerid)
 {
+    RW_InvHide(playerid);
     RW_UI_CancelNative(playerid);
     if (IsPlayerConnected(playerid)) ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
     if (gUIMode[playerid] == UI_MAP) gMapPending[playerid] = false;
@@ -346,6 +349,7 @@ public RW_UITick()
 }
 stock RW_UI_Reset(playerid)
 {
+    RW_InvReset(playerid);
     RW_UI_CancelNative(playerid);
     if (IsPlayerConnected(playerid)) ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
     gUIMode[playerid] = 0; gControlMode[playerid] = 0;

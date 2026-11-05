@@ -180,7 +180,8 @@ stock RW_ControlExecute(playerid, v, action, target = -1)
     new Float:x, Float:y, Float:z;
     GetVehiclePos(v, x, y, z);
     if (GetVehicleVirtualWorld(v) != GetPlayerVirtualWorld(playerid) || GetPlayerInterior(playerid) != 0 || !IsPlayerInRangeOfPoint(playerid, KEY_RANGE, x, y, z)) return RW_ControlNotify(playerid, "Машина слишком далеко.");
-    if (action != 1 && !RW_IsVehicleOwner(playerid, v)) return RW_ControlNotify(playerid, "Не ваша машина.");
+    if ((action == 0 || action == 2) && !RW_InvHasKey(playerid, v)) return RW_ControlNotify(playerid, "Нужен ключ от этой машины в инвентаре.");
+    if ((action == 3 || action == 4) && !RW_IsVehicleOwner(playerid, v)) return RW_ControlNotify(playerid, "Не ваша машина.");
     switch (action) {
         case 0: RW_Veh_SetDoors(v, !gVeh[slot][vsDoors]);
         case 1: {

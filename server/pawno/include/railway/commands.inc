@@ -47,9 +47,10 @@ stock RW_ParseCommand(const cmdtext[], cmd[], cmdSize, params[], paramsSize)
 stock RW_CommandHelp(playerid)
 {
     RW_Accent(playerid, "Ч Ч Ч {F5B04C}∆елезнодорожный вокзал{FFFFFF} Ч Ч Ч");
+    SendClientMessage(playerid, COLOR_GREY, "/inv Ч инвентарь. ¬ыберите предмет: MAIN / BAG / DROP / USE.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}Y{FFFFFF} Ч меню авто /vmenu; {F5B04C}N{FFFFFF} Ч мотор /engine; {F5B04C}H{FFFFFF} Ч двери. /settings Ч настройки.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/spcar <id>{FFFFFF} Ч создать машину (400Ц611). ¬ладелец Ч вы.");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} Ч открыть/закрыть двери своей машины.");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} Ч двери машины под прицелом, нужен ключ в /inv.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/key{FFFFFF} Ч вставить/вынуть ключ; N Ч зажигание.");
     SendClientMessage(playerid, COLOR_GREY, " арта: ESC >  арта > права€ кнопка мыши. /tpm Ч к метке; /delmark Ч удалить; /tdlatin Ч шрифт.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/mycar{FFFFFF} Ч состо€ние своей машины.");
@@ -67,9 +68,7 @@ stock RW_CommandAdminHelp(playerid)
 
     RW_Accent(playerid, "Ч Ч Ч {F5B04C}јдмин-команды{FFFFFF} Ч Ч Ч");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/kick <id> [причина]{FFFFFF} Ч kick игрока.");
-    if (gAdminLevel[playerid] >= 2) {
-        SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/setadmin <ник> <0-3>{FFFFFF} Ч выдать уровень администратора.");
-    }
+    SendClientMessage(playerid, COLOR_GREY, "/giveitem <id> <1=рюкзак,2=ключ> [vehicleid]");
     SendClientMessage(playerid, COLOR_DARK_GREY, "ћашины, созданные админом через /spcar, принадлежат админу.");
     return 1;
 }
@@ -123,7 +122,7 @@ stock RW_AdminSetLevel(const nick[], level)
     }
 
     format(query, sizeof query, "UPDATE `accounts` SET `admin`=%d WHERE `name`='%s'", level, nick);
-    RW_DB_Exec(query);
+    if (!RW_DB_AccountExists(nick) || !RW_DB_Exec(query)) return 0;
 
     for (new i = 0; i < MAX_PLAYERS; i++) {
         if (!IsPlayerConnected(i) || !gLogged[i]) {
@@ -204,8 +203,6 @@ stock RW_CommandProcess(playerid, cmdtext[])
 {
     new cmd[32];
     new params[144];
-    new string[192];
-
     RW_ParseCommand(cmdtext, cmd, sizeof cmd, params, sizeof params);
 
     if (!strcmp(cmd, "help", true) || !strcmp(cmd, "commands", true)) {
@@ -219,6 +216,8 @@ stock RW_CommandProcess(playerid, cmdtext[])
         return 1;
     }
 
+    if (!strcmp(cmd, "inv", true) || !strcmp(cmd, "inventory", true)) return RW_InvOpen(playerid);
+    if (!strcmp(cmd, "giveitem", true)) return RW_InvGiveCommand(playerid, params);
     if (!strcmp(cmd, "spcar", true) || !strcmp(cmd, "veh", true) || !strcmp(cmd, "car", true)) {
         return RW_Veh_CommandSpcar(playerid, params);
     }
@@ -256,49 +255,7 @@ stock RW_CommandProcess(playerid, cmdtext[])
     if (!strcmp(cmd, "kick", true)) {
         return RW_CommandKick(playerid, params);
     }
-    if (!strcmp(cmd, "setadmin", true)) {
-        if (gAdminLevel[playerid] < 2) {
-            RW_Error(playerid, "Ќужен уровень администратора 2.");
-            return 1;
-        }
-
-        new nick[MAX_PLAYER_NAME];
-        new levelText[8];
-        new i = 0;
-        new j = 0;
-
-        while (params[i] == ' ') {
-            i++;
-        }
-        while (params[i] != EOS && params[i] != ' ' && j < sizeof nick - 1) {
-            nick[j++] = params[i++];
-        }
-        nick[j] = EOS;
-
-        while (params[i] == ' ') {
-            i++;
-        }
-        j = 0;
-        while (params[i] != EOS && j < sizeof levelText - 1) {
-            levelText[j++] = params[i++];
-        }
-        levelText[j] = EOS;
-
-        if (nick[0] == EOS || !RW_IsNumeric(levelText)) {
-            RW_Info(playerid, "»спользование: /setadmin <ник> <0-3>");
-            return 1;
-        }
-
-        new level = strval(levelText);
-        if (level < 0) level = 0;
-        if (level > 3) level = 3;
-
-        RW_AdminSetLevel(nick, level);
-
-        format(string, sizeof string, "”ровень %d выдан аккаунту {F5B04C}%s{FFFFFF}.", level, nick);
-        RW_Ok(playerid, string);
-        return 1;
-    }
+    if (!strcmp(cmd, "setadmin", true)) return RW_Error(playerid, "Ќазначение админов Ч только через консоль: setadmin <ник> <0-3>.");
 
     RW_Error(playerid, "Ќеизвестна€ команда. {FFFFFF}/help Ч список команд.");
     return 1;

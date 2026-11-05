@@ -40,7 +40,7 @@ forward bool:RW_Veh_CanDrive(playerid, vehicleid);
 forward RW_Veh_Enforce(playerid);
 forward RW_Veh_OnEnterDriver(playerid, vehicleid);
 forward RW_Veh_OnExitDriver(playerid);
-forward RW_Veh_RespawnLater(vehicleid);
+forward RW_Veh_RespawnLater(vehicleid, token);
 
 /* ------------------------------------------------------------------ слоты */
 
@@ -307,9 +307,6 @@ stock RW_Veh_Spawn(playerid, model)
     gLastSpcarTick[playerid] = GetTickCount();
 
     new oldSlot = gPlayerVehSlot[playerid];
-    if (oldSlot >= 0 && gVeh[oldSlot][vsUsed]) {
-        RW_Veh_DestroySlot(oldSlot, false);
-    }
 
     new Float:x, Float:y, Float:z, Float:a;
 
@@ -345,6 +342,15 @@ stock RW_Veh_Spawn(playerid, model)
         RW_Error(playerid, "Модель не поддерживается сервером.");
         return 0;
     }
+
+    new keyUid = RW_InvGrant(playerid, ITEM_CAR_KEY);
+    if (!keyUid) {
+        DestroyVehicle(vehicleid);
+        RW_Error(playerid, "Для ключа нужно место в основном инвентаре и доступная БД.");
+        return 0;
+    }
+    if (oldSlot >= 0 && gVeh[oldSlot][vsUsed]) RW_Veh_DestroySlot(oldSlot, false);
+    gVehKeyUid[slot] = keyUid;
 
     new nick[MAX_PLAYER_NAME];
     new plate[16];
@@ -391,6 +397,8 @@ stock RW_Veh_DestroySlot(slot, bool:notifyOwner)
 
     new vehicleid = gVeh[slot][vsVehicleId];
     new owner = gVeh[slot][vsOwnerPlayer];
+    RW_InvRevokeKey(gVehKeyUid[slot]);
+    gVehKeyUid[slot] = 0;
 
     if (vehicleid != INVALID_VEHICLE_ID && vehicleid < MAX_VEHICLES) {
         if (gVehSlotOf[vehicleid] == slot) {
@@ -421,11 +429,12 @@ stock RW_Veh_DestroySlot(slot, bool:notifyOwner)
     return 1;
 }
 
-forward RW_Veh_RespawnLater(vehicleid);
-public RW_Veh_RespawnLater(vehicleid)
+forward RW_Veh_RespawnLater(vehicleid, token);
+public RW_Veh_RespawnLater(vehicleid, token)
 {
+    if (vehicleid <= 0 || vehicleid >= MAX_VEHICLES || token <= 0) return 1;
     new slot = gVehSlotOf[vehicleid];
-    if (slot >= 0 && gVeh[slot][vsUsed]) {
+    if (slot >= 0 && gVeh[slot][vsUsed] && gVehKeyUid[slot] == token) {
         RW_Veh_DestroySlot(slot, true);
     }
     return 1;
@@ -483,53 +492,11 @@ stock RW_Veh_CommandSpcar(playerid, const params[])
 
 stock RW_Veh_CommandKey(playerid)
 {
-    if (!gLogged[playerid]) {
-        return 0;
-    }
-
-    new vehicleid = RW_Veh_NearOwnedVehicle(playerid, KEY_RANGE + 2.0);
-    if (vehicleid == -1) {
-        RW_Error(playerid, "Рядом нет вашей машины. Подойдите ближе (до 6 м) или сядьте в неё.");
-        return 1;
-    }
-
-    new slot = gVehSlotOf[vehicleid];
-
-    if (gVeh[slot][vsKey]) {
-        gVeh[slot][vsKey] = false;
-        gVeh[slot][vsEngine] = false;
-        RW_Veh_Sync(vehicleid);
-        RW_Veh_SyncAll(vehicleid);
-        RW_Info(playerid, "Ключ вынут. Двигатель заглушен.");
-    } else {
-        RW_Veh_SetKey(vehicleid, true);
-        RW_Ok(playerid, "Ключ вставлен. Нажмите N за рулём, чтобы завести.");
-    }
-    return 1;
+    return RW_ControlExecute(playerid, RW_ControlTarget(playerid), 2);
 }
-
 stock RW_Veh_CommandDoor(playerid)
 {
-    if (!gLogged[playerid]) {
-        return 0;
-    }
-
-    new vehicleid = RW_Veh_NearOwnedVehicle(playerid, KEY_RANGE + 2.0);
-    if (vehicleid == -1) {
-        RW_Error(playerid, "Рядом нет вашей машины. Подойдите ближе (до 6 м).");
-        return 1;
-    }
-
-    new slot = gVehSlotOf[vehicleid];
-
-    if (gVeh[slot][vsDoors]) {
-        RW_Veh_SetDoors(vehicleid, false);
-        RW_Info(playerid, "Двери закрыты. В машину больше никто не сядет.");
-    } else {
-        RW_Veh_SetDoors(vehicleid, true);
-        RW_Ok(playerid, "Двери открыты. Сесть может любой, но поехать — только вы с ключом.");
-    }
-    return 1;
+    return RW_ControlExecute(playerid, RW_ControlTarget(playerid), 0);
 }
 
 stock RW_Veh_CommandMyCar(playerid)

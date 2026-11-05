@@ -18,6 +18,7 @@
 #include <railway/core>
 #include <railway/ui>
 #include <railway/accounts>
+#include <railway/inventory>
 #include <railway/vehicles>
 #include <railway/speedo>
 #include <railway/interaction>
@@ -69,6 +70,7 @@ public OnGameModeInit()
         print("[railway] ВНИМАНИЕ: база данных недоступна, регистрация работать не будет.");
     }
 
+    if (!RW_InvInit()) print("[inventory] Inventory unavailable; existing data preserved.");
     RW_UI_Init();
     RW_Speedo_Init();
 
@@ -89,6 +91,7 @@ public OnGameModeExit()
         }
     }
 
+    RW_InvExit();
     if (gDB != DB:0) {
         db_close(gDB);
         gDB = DB:0;
@@ -105,6 +108,7 @@ public OnPlayerConnect(playerid)
     new string[256];
     new nick[MAX_PLAYER_NAME];
 
+    RW_InvReset(playerid);
     gLogged[playerid] = false;
     gAccountId[playerid] = -1;
     gAdminLevel[playerid] = 0;
@@ -207,6 +211,7 @@ public OnPlayerSpawn(playerid)
     SetPlayerColor(playerid, (gAdminLevel[playerid] > 0) ? 0xF5B04CFF : 0x8FD3FFFF);
 
     RW_Veh_OnPlayerSpawn(playerid);
+    RW_InvAttach(playerid);
 
     format(string, sizeof string, "%s Вы на перроне. {F5B04C}/spcar 411{FFFFFF} — получить машину.", RW_TAG);
     SendClientMessage(playerid, COLOR_WHITE, string);
@@ -280,7 +285,7 @@ public OnVehicleDeath(vehicleid, killerid)
 {
     new slot = gVehSlotOf[vehicleid];
     if (slot >= 0 && gVeh[slot][vsUsed]) {
-        SetTimerEx("RW_Veh_RespawnLater", 6000, false, "i", vehicleid);
+        SetTimerEx("RW_Veh_RespawnLater", 6000, false, "ii", vehicleid, gVehKeyUid[slot]);
     }
     return 1;
 }
@@ -347,7 +352,7 @@ public OnRconCommand(cmd[])
         if (level < 0) level = 0;
         if (level > 3) level = 3;
 
-        RW_AdminSetLevel(nick, level);
+        if (!RW_AdminSetLevel(nick, level)) { print("setadmin failed: check account name and database."); return 1; }
         printf("Уровень администратора %d выдан: %s", level, nick);
         return 1;
     }
@@ -428,6 +433,7 @@ public OnPlayerClickMap(playerid, Float:fX, Float:fY, Float:fZ)
 
 public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 {
+    if (gUIMode[playerid] == UI_INVENTORY) return RW_InvClick(playerid, playertextid);
     if (!gUICreated[playerid] || gUIRussianDialogs[playerid]) return 0;
     if (playertextid == gUI[playerid][11]) {
         if (!gLogged[playerid]) Kick(playerid);
@@ -439,6 +445,7 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 }
 public OnPlayerClickTextDraw(playerid, Text:clickedid)
 {
+    if (clickedid == Text:INVALID_TEXT_DRAW && gUIMode[playerid] == UI_INVENTORY) return RW_UI_Close(playerid);
     if (clickedid != Text:INVALID_TEXT_DRAW || gUIInput[playerid] || gUIRussianDialogs[playerid]) return 0;
     if (gUIMode[playerid] == UI_AUTH && !gLogged[playerid]) SelectTextDraw(playerid, 0xD8C39BFF);
     else if (gUIMode[playerid] != 0) RW_UI_Close(playerid);
