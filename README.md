@@ -110,3 +110,8 @@ TextDraw-экранов. Это не заменяет игровой тест н
 Полёт — серверная имитация управления самолётом, не замена физики GTA.
 
 [Команды, управление, сохранение и ограничения](docs/GARAGE_AND_ADMIN.md).
+
+Исправление выдачи админки: консоль `setadmin <online_playerid|account_name> <0-3>`.
+Нужно обновить также `filterscripts/admin_console.amx` и включить
+`filterscripts admin_console` в server.cfg, не только railway.amx.
+[Инструкция установки и RCON](docs/ADMIN_CONSOLE.md).

@@ -27,6 +27,14 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "Компиляция завершилась с кодом $LASTEXITCODE"
     }
+    $relaySource = Join-Path $serverDir 'filterscripts\admin_console.pwn'
+    $relayOutput = Join-Path $serverDir 'filterscripts\admin_console.amx'
+    & $pawncc $relaySource "-i$include" "-o$relayOutput" '-d3'
+    if ($LASTEXITCODE -ne 0) { throw "Console relay compilation failed: $LASTEXITCODE" }
+    if (-not (Test-Path -LiteralPath $relayOutput)) { throw 'admin_console.amx was not created.' }
+    $relayBytes = [System.IO.File]::ReadAllBytes($relayOutput)
+    if ($relayBytes[6] -ne 8) { throw 'admin_console.amx must use AMX version 8.' }
+
 } finally {
     Pop-Location
 }

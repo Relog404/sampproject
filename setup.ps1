@@ -4,7 +4,7 @@
 param([switch]$Build)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-foreach ($file in @('server\samp-server.exe', 'server\server.cfg', 'server\gamemodes\railway.amx')) {
+foreach ($file in @('server\samp-server.exe', 'server\server.cfg', 'server\gamemodes\railway.amx', 'server\filterscripts\admin_console.amx')) {
     if (-not (Test-Path -LiteralPath (Join-Path $root $file))) { throw "Missing file: $file" }
 }
 New-Item -ItemType Directory -Path (Join-Path $root 'server\scriptfiles') -Force | Out-Null

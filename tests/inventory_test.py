@@ -168,7 +168,7 @@ class InventorySourceTests(unittest.TestCase):
         self.assertNotIn('RW_AdminSetLevel(', ingame)
         self.assertIn('RW_InvGiveCommand', ingame)
         main = (ROOT/'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
-        self.assertIn('RW_AdminSetLevel(nick, level)', main.split('public OnRconCommand',1)[1])
+        self.assertIn('RW_AdminConsoleSet(params)', main.split('public RW_ConsoleCommand',1)[1])
 
     def test_delayed_vehicle_cleanup_cannot_destroy_recycled_vehicle_id(self):
         vehicles = pawn('vehicles')

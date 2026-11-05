@@ -319,49 +319,17 @@ public OnPlayerCommandText(playerid, cmdtext[])
     return RW_CommandProcess(playerid, cmdtext);
 }
 
-public OnRconCommand(cmd[])
+// SA-MP 0.3.7 dispatches custom RCON commands to filterscripts. The bundled
+// admin_console relay calls this unique public; OnRconCommand is a fallback.
+public OnRconCommand(cmd[]) { return RW_ConsoleCommand(cmd); }
+forward RW_ConsoleCommand(cmd[]);
+public RW_ConsoleCommand(cmd[])
 {
-    new cmdName[32];
-    new params[144];
-
-    RW_ParseCommand(cmd, cmdName, sizeof cmdName, params, sizeof params);
-
-    if (!strcmp(cmdName, "setadmin", true)) {
-        new nick[MAX_PLAYER_NAME];
-        new levelText[8];
-        new i = 0;
-        new j = 0;
-
-        while (params[i] == ' ') {
-            i++;
-        }
-        while (params[i] != EOS && params[i] != ' ' && j < sizeof nick - 1) {
-            nick[j++] = params[i++];
-        }
-        nick[j] = EOS;
-
-        while (params[i] == ' ') {
-            i++;
-        }
-        j = 0;
-        while (params[i] != EOS && j < sizeof levelText - 1) {
-            levelText[j++] = params[i++];
-        }
-        levelText[j] = EOS;
-
-        if (nick[0] == EOS || !RW_IsNumeric(levelText)) {
-            print("Usage: setadmin <account_name> <0-3>");
-            return 1;
-        }
-
-        new level = strval(levelText);
-        if (level < 0) level = 0;
-        if (level > 3) level = 3;
-
-        if (!RW_AdminSetLevel(nick, level)) { print("setadmin failed: check account name and database."); return 1; }
-        printf("Admin level %d assigned to: %s", level, nick);
-        return 1;
-    }
+    new cmdName[32], params[144], clean[200];
+    if (strlen(cmd) >= sizeof clean) { print("[console] Command too long."); return 0; }
+    RW_TrimLeft(cmd, clean, sizeof clean);
+    RW_ParseCommand(clean, cmdName, sizeof cmdName, params, sizeof params);
+    if (!strcmp(cmdName, "setadmin", true)) return RW_AdminConsoleSet(params);
 
     if (!strcmp(cmdName, "dbcheck", true)) {
         printf("Database: handle=%d, accounts=%d", _:gDB, RW_DB_AccountCount());

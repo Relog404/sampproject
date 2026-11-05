@@ -22,12 +22,12 @@ stock RW_ParseCommand(const cmdtext[], cmd[], cmdSize, params[], paramsSize)
         i = 1;
     }
 
-    while (cmdtext[i] != EOS && cmdtext[i] != ' ' && j < cmdSize - 1) {
+    while (cmdtext[i] != EOS && cmdtext[i] != ' ' && cmdtext[i] != '\t' && j < cmdSize - 1) {
         cmd[j++] = cmdtext[i++];
     }
     cmd[j] = EOS;
 
-    while (cmdtext[i] == ' ') {
+    while (cmdtext[i] == ' ' || cmdtext[i] == '\t') {
         i++;
     }
 
@@ -116,28 +116,67 @@ stock RW_CommandAdmins(playerid)
 
 stock RW_AdminSetLevel(const nick[], level)
 {
-    new query[256];
-
-    if (!RW_ValidNick(nick) || !RW_SafeSqlText(nick)) {
+    if (level < 0 || level > 3 || !RW_ValidNick(nick) || !RW_SafeSqlText(nick)) {
+        print("[admin] Invalid account name or level (0-3).");
         return 0;
     }
-
-    format(query, sizeof query, "UPDATE `accounts` SET `admin`=%d WHERE `name`='%s'", level, nick);
-    if (!RW_DB_AccountExists(nick) || !RW_DB_Exec(query)) return 0;
-
-    for (new i = 0; i < MAX_PLAYERS; i++) {
-        if (!IsPlayerConnected(i) || !gLogged[i]) {
-            continue;
-        }
-        new other[MAX_PLAYER_NAME];
-        RW_GetNick(i, other);
-        if (!strcmp(other, nick, true)) {
-            gAdminLevel[i] = level;
-            new string[128];
-            format(string, sizeof string, "Your admin level has been changed to %d.", level);
-            RW_Accent(i, string);
-        }
+    if (gDB == DB:0 || !gDBWritable) {
+        print("[admin] Database unavailable/read-only. Run dbcheck; do not delete railway.db.");
+        return 0;
     }
+    new query[256], account;
+    format(query, sizeof query, "SELECT id FROM accounts WHERE name='%s' COLLATE NOCASE", nick);
+    new DBResult:res = db_query(gDB, query);
+    if (res == DBResult:0) { print("[admin] Account lookup failed. Run dbcheck."); return 0; }
+    if (db_num_rows(res) == 1) account = db_get_field_assoc_int(res, "id");
+    db_free_result(res);
+    if (account <= 0) { print("[admin] Account not found. Register/log in first, then retry with the account name."); return 0; }
+    if (!RW_DB_Exec("SAVEPOINT admin_level")) return 0;
+    format(query, sizeof query, "UPDATE accounts SET admin=%d WHERE id=%d", level, account);
+    new bool:ok = RW_DB_Exec(query);
+    if (ok) {
+        format(query, sizeof query, "SELECT admin FROM accounts WHERE id=%d", account);
+        res = db_query(gDB, query);
+        if (res == DBResult:0) ok = false;
+        else { ok = db_num_rows(res) == 1 && db_get_field_assoc_int(res, "admin") == level; db_free_result(res); }
+    }
+    if (!ok || !RW_DB_Exec("RELEASE admin_level")) {
+        RW_DB_Exec("ROLLBACK TO admin_level"); RW_DB_Exec("RELEASE admin_level");
+        print("[admin] Level not saved. Check database permissions, locks and schema; run dbcheck.");
+        return 0;
+    }
+    for (new i; i < MAX_PLAYERS; i++) {
+        if (!IsPlayerConnected(i) || !gLogged[i] || gAccountId[i] != account) continue;
+        gAdminLevel[i] = level;
+        SetPlayerColor(i, level > 0 ? 0xF5B04CFF : 0x8FD3FFFF);
+        new message[128]; format(message, sizeof message, "Your admin level has been changed to %d.", level);
+        RW_Accent(i, message);
+    }
+    printf("[admin] Account %d (%s) saved with admin level %d.", account, nick, level);
+    return 1;
+}
+
+stock RW_AdminConsoleSet(const params[])
+{
+    new targetText[64], rest[144], levelText[16], extra[144], nick[MAX_PLAYER_NAME];
+    RW_ParseCommand(params, targetText, sizeof targetText, rest, sizeof rest);
+    RW_ParseCommand(rest, levelText, sizeof levelText, extra, sizeof extra);
+    if (!targetText[0] || strlen(levelText) != 1 || levelText[0] < '0' || levelText[0] > '3' || extra[0]) {
+        print("Usage: setadmin <online_playerid|account_name> <0-3>; 0 removes admin rights.");
+        return 1;
+    }
+    if (RW_IsNumeric(targetText)) {
+        new target = strval(targetText);
+        if (strlen(targetText) > 4 || target < 0 || target >= MAX_PLAYERS || !IsPlayerConnected(target) || !gLogged[target]) {
+            print("[admin] Player ID must be online and logged in. For an offline account use its name.");
+            return 1;
+        }
+        RW_GetNick(target, nick);
+    } else {
+        if (!RW_ValidNick(targetText) || !RW_SafeSqlText(targetText)) { print("[admin] Invalid account name."); return 1; }
+        format(nick, sizeof nick, "%s", targetText);
+    }
+    if (!RW_AdminSetLevel(nick, levelText[0]-'0')) print("[admin] setadmin failed; see the error above.");
     return 1;
 }
 
@@ -290,7 +329,7 @@ stock RW_CommandProcess(playerid, cmdtext[])
     if (!strcmp(cmd, "kick", true)) {
         return RW_CommandKick(playerid, params);
     }
-    if (!strcmp(cmd, "setadmin", true)) return RW_Error(playerid, "Admin assignment is console-only: setadmin <name> <0-3>.");
+    if (!strcmp(cmd, "setadmin", true)) return RW_Error(playerid, "Admin assignment is console-only: setadmin <playerid|name> <0-3>.");
 
     RW_Error(playerid, "Unknown command. {FFFFFF}/help - commands.");
     return 1;
