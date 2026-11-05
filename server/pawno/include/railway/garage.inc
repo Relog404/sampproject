@@ -78,7 +78,7 @@ stock RW_GarageOpen(playerid, bool:resetPage = true)
 {
     if (!RW_GarageNear(playerid) || !gGarageReady) return 1;
     if (gUIInput[playerid]) return 1;
-    RW_UI_Close(playerid);
+    RW_UI_Close(playerid, true);
     if (resetPage) gGaragePage[playerid] = 0;
     gGarageCount[playerid] = 0;
     new query[400]; format(query, sizeof query, "SELECT DISTINCT c.id,c.model FROM owned_cars c JOIN inventory_items i ON i.data=c.token AND i.type=2 WHERE i.owner=%d ORDER BY c.id LIMIT 80", gAccountId[playerid]);
@@ -125,7 +125,7 @@ stock RW_GarageOpen(playerid, bool:resetPage = true)
     }
     new label[80]; format(label, sizeof label, "%d CARS / PAGE %d", gGarageCount[playerid], gGaragePage[playerid]+1);
     PlayerTextDrawSetString(playerid, gGarageTD[playerid][12], label);
-    SelectTextDraw(playerid, 0xD8C39BFF);
+    RW_UI_SelectBegin(playerid);
     return 1;
 }
 stock RW_GarageSpawn(playerid, id)

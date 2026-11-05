@@ -112,7 +112,7 @@ class GarageSourceContractsTest(unittest.TestCase):
         self.assertIn('gGarageLatch[playerid]', GARAGE)
         self.assertIn('IsPlayerInRangeOfPoint(p, 1.3', GARAGE)
         self.assertIn('UI_GARAGE', source('ui'))
-        self.assertIn('SelectTextDraw', GARAGE)
+        self.assertIn('RW_UI_SelectBegin', GARAGE)
         self.assertNotIn('ShowPlayerDialog', GARAGE)
 
     def test_context_menu_has_conditional_actions_and_stays_in_budget(self):

@@ -434,7 +434,7 @@ stock RW_InvOpen(playerid)
     new pstate = GetPlayerState(playerid);
     if (pstate != PLAYER_STATE_ONFOOT && pstate != PLAYER_STATE_DRIVER && pstate != PLAYER_STATE_PASSENGER) return 1;
     if (gUIInput[playerid]) return 1;
-    RW_UI_Close(playerid);
+    RW_UI_Close(playerid, true);
     for (new i = 12; i <= 18; i++) PlayerTextDrawHide(playerid, gUI[playerid][i]);
     RW_InvCreate(playerid);
     gUIMode[playerid] = UI_INVENTORY;
@@ -444,7 +444,7 @@ stock RW_InvOpen(playerid)
     for (new i = 130; i < 139; i++) PlayerTextDrawShow(playerid, gInvTD[playerid][i]);
     for (new i = 143; i < 155; i++) if (i<149 || i>152) PlayerTextDrawShow(playerid, gInvTD[playerid][i]);
     RW_InvRender(playerid);
-    SelectTextDraw(playerid, 0xD8C39BFF);
+    RW_UI_SelectBegin(playerid);
     return 1;
 }
 stock RW_InvClick(playerid, PlayerText:clicked)

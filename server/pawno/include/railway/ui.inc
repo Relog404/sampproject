@@ -17,6 +17,8 @@ new PlayerText:gUI[MAX_PLAYERS][UI_COUNT];
 new bool:gUICreated[MAX_PLAYERS], bool:gUIInput[MAX_PLAYERS];
 new bool:gUIPanelCreated[MAX_PLAYERS], bool:gUIRussianDialogs[MAX_PLAYERS];
 new gUILayoutMode[MAX_PLAYERS];
+new bool:gUISelecting[MAX_PLAYERS];
+new gUIExpectedCancels[MAX_PLAYERS];
 new gUIMode[MAX_PLAYERS], gUIBind[MAX_PLAYERS], gUIPage[MAX_PLAYERS];
 new gUITarget[MAX_PLAYERS][6], gToastStart[MAX_PLAYERS];
 new bool:gToastActive[MAX_PLAYERS], bool:gUIHasNext[MAX_PLAYERS];
@@ -25,6 +27,22 @@ forward RW_UI_FlushNative(playerid);
 new gUINativeTimer[MAX_PLAYERS], gUINativeCount[MAX_PLAYERS];
 new gUINativeTitle[MAX_PLAYERS][64], gUINativeSubtitle[MAX_PLAYERS][96];
 new gUINativeRows[MAX_PLAYERS][8][128], gUINativeMap[MAX_PLAYERS][8];
+// CancelSelectTextDraw generates INVALID_TEXT_DRAW too. Never cancel an
+// inactive cursor, and clear state BEFORE the native can invoke callbacks.
+stock RW_UI_SelectBegin(playerid)
+{
+    gUISelecting[playerid] = true;
+    SelectTextDraw(playerid, 0xD8C39BFF);
+    return 1;
+}
+stock RW_UI_SelectEnd(playerid)
+{
+    if (!gUISelecting[playerid]) return 1;
+    gUISelecting[playerid] = false;
+    gUIExpectedCancels[playerid]++;
+    CancelSelectTextDraw(playerid);
+    return 1;
+}
 stock RW_UI_ScheduleNative(playerid)
 {
     if (gUINativeTimer[playerid] == 0) gUINativeTimer[playerid] = SetTimerEx("RW_UI_FlushNative", 50, false, "i", playerid);
@@ -213,7 +231,7 @@ stock RW_UI_Panel(playerid, mode, const title[], const subtitle[])
     if (gUIRussianDialogs[playerid]) {
         for (new i; i < 12; i++) PlayerTextDrawHide(playerid, gUI[playerid][i]);
         PlayerTextDrawHide(playerid, gUI[playerid][22]); PlayerTextDrawHide(playerid, gUI[playerid][23]);
-        CancelSelectTextDraw(playerid);
+        RW_UI_SelectEnd(playerid);
         gUINativeCount[playerid] = 0;
         format(gUINativeTitle[playerid], 64, "%s", title);
         format(gUINativeSubtitle[playerid], 96, "%s", subtitle);
@@ -231,7 +249,7 @@ stock RW_UI_Panel(playerid, mode, const title[], const subtitle[])
     PlayerTextDrawShow(playerid, gUI[playerid][11]);
     PlayerTextDrawShow(playerid, gUI[playerid][22]);
     PlayerTextDrawShow(playerid, gUI[playerid][23]);
-    SelectTextDraw(playerid, 0xD8C39BFF);
+    RW_UI_SelectBegin(playerid);
     return 1;
 }
 stock RW_UI_Row(playerid, row, const text[])
@@ -244,7 +262,7 @@ stock RW_UI_Row(playerid, row, const text[])
     PlayerTextDrawShow(playerid, gUI[playerid][3+row]);
     return 1;
 }
-stock RW_UI_Close(playerid)
+stock RW_UI_Close(playerid, bool:keepSelection = false)
 {
     RW_InvHide(playerid);
     RW_GarageHide(playerid);
@@ -256,7 +274,7 @@ stock RW_UI_Close(playerid)
     gUIInput[playerid] = false;
     if (gUICreated[playerid]) for (new i; i < 12; i++) PlayerTextDrawHide(playerid, gUI[playerid][i]);
     if (gUICreated[playerid]) { PlayerTextDrawHide(playerid, gUI[playerid][22]); PlayerTextDrawHide(playerid, gUI[playerid][23]); }
-    CancelSelectTextDraw(playerid);
+    if (!keepSelection) RW_UI_SelectEnd(playerid);
     if (gLogged[playerid] && GetPlayerState(playerid) == PLAYER_STATE_DRIVER) RW_UI_SpeedoShow(playerid, GetPlayerVehicleID(playerid));
     return 1;
 }
@@ -289,7 +307,7 @@ stock RW_UI_PasswordBegin(playerid)
     gUIInput[playerid] = true;
     for (new i; i < 12; i++) PlayerTextDrawHide(playerid, gUI[playerid][i]);
     PlayerTextDrawHide(playerid, gUI[playerid][22]); PlayerTextDrawHide(playerid, gUI[playerid][23]);
-    CancelSelectTextDraw(playerid);
+    RW_UI_SelectEnd(playerid);
 }
 stock RW_UI_CloseAuth(playerid) { return RW_UI_Close(playerid); }
 stock RW_UI_SpeedoShow(playerid, vehicleid)
@@ -361,6 +379,8 @@ stock RW_UI_Reset(playerid)
     if (gUICreated[playerid]) for (new i; i < UI_COUNT; i++) PlayerTextDrawDestroy(playerid, gUI[playerid][i]);
     gUIPanelCreated[playerid] = false;
     gUICreated[playerid] = false;
-    if (IsPlayerConnected(playerid)) CancelSelectTextDraw(playerid);
+    if (IsPlayerConnected(playerid)) RW_UI_SelectEnd(playerid);
+    gUISelecting[playerid] = false;
+    gUIExpectedCancels[playerid] = 0;
     return 1;
 }

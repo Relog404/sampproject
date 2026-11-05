@@ -53,8 +53,8 @@ class NativeInterfaceTest(unittest.TestCase):
     def test_native_clicks_and_safe_cursor_cancellation(self):
         self.assertIn('public OnPlayerClickPlayerTextDraw', self.main)
         self.assertIn('playertextid == gUI[playerid][3+i]', self.main)
-        close = body(self.ui, 'stock RW_UI_Close(playerid)', 'stock RW_UI_OpenAuth')
-        self.assertLess(close.index('gUIMode[playerid] = 0'), close.index('CancelSelectTextDraw'))
+        close = body(self.ui, 'stock RW_UI_Close(playerid,', 'stock RW_UI_OpenAuth')
+        self.assertLess(close.index('gUIMode[playerid] = 0'), close.index('RW_UI_SelectEnd'))
         cancel = body(self.main, 'public OnPlayerClickTextDraw', 'public OnPlayerKeyStateChange')
         self.assertIn('gUIInput[playerid]', cancel)
         reset = self.ui.split('stock RW_UI_Reset', 1)[1]

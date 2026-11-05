@@ -452,9 +452,17 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 }
 public OnPlayerClickTextDraw(playerid, Text:clickedid)
 {
-    if (clickedid == Text:INVALID_TEXT_DRAW && (gUIMode[playerid] == UI_INVENTORY || gUIMode[playerid] == UI_GARAGE)) return RW_UI_Close(playerid);
-    if (clickedid != Text:INVALID_TEXT_DRAW || gUIInput[playerid] || gUIRussianDialogs[playerid]) return 0;
-    if (gUIMode[playerid] == UI_AUTH && !gLogged[playerid]) SelectTextDraw(playerid, 0xD8C39BFF);
+    if (clickedid != Text:INVALID_TEXT_DRAW) return 0;
+    // Consume cancellation echoes even if a new panel is already selecting.
+    if (gUIExpectedCancels[playerid] > 0) { gUIExpectedCancels[playerid]--; return 1; }
+    // Programmatic cancellation has already cleared this flag. A genuine
+    // client Esc consumes the current selection once, without another cancel.
+    if (!gUISelecting[playerid]) return 1;
+    gUISelecting[playerid] = false;
+    if (gUIInput[playerid]) return 1;
+    if (gUIMode[playerid] == UI_INVENTORY || gUIMode[playerid] == UI_GARAGE) return RW_UI_Close(playerid);
+    if (gUIRussianDialogs[playerid]) return 1;
+    if (gUIMode[playerid] == UI_AUTH && !gLogged[playerid]) RW_UI_SelectBegin(playerid);
     else if (gUIMode[playerid] != 0) RW_UI_Close(playerid);
     return 1;
 }
