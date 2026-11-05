@@ -51,6 +51,7 @@ stock RW_CommandHelp(playerid)
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/spcar <id>{FFFFFF} Ч создать машину (400Ц611). ¬ладелец Ч вы.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} Ч открыть/закрыть двери своей машины.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/key{FFFFFF} Ч вставить/вынуть ключ; N Ч зажигание.");
+    SendClientMessage(playerid, COLOR_GREY, " арта: ESC >  арта > права€ кнопка мыши. /tpm Ч к метке; /delmark Ч удалить; /tdlatin Ч шрифт.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/mycar{FFFFFF} Ч состо€ние своей машины.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/stats{FFFFFF} Ч ваш аккаунт   Х   {F5B04C}/admins{FFFFFF} Ч администраци€");
     SendClientMessage(playerid, COLOR_DARK_GREY, "¬ машину сад€тс€ только с открытой дверью. — оставленным ключом завести может любой водитель.");
@@ -211,6 +212,8 @@ stock RW_CommandProcess(playerid, cmdtext[])
         return RW_CommandHelp(playerid);
     }
 
+    if (!strcmp(cmd, "tdlatin", true)) return RW_UI_Language(playerid, true);
+    if (!strcmp(cmd, "tdrus", true)) return RW_UI_Language(playerid, false);
     if (!gLogged[playerid]) {
         RW_Error(playerid, "—начала войдите в аккаунт.");
         return 1;
@@ -218,6 +221,14 @@ stock RW_CommandProcess(playerid, cmdtext[])
 
     if (!strcmp(cmd, "spcar", true) || !strcmp(cmd, "veh", true) || !strcmp(cmd, "car", true)) {
         return RW_Veh_CommandSpcar(playerid, params);
+    }
+    if (!strcmp(cmd, "tpm", true)) return RW_MapPrompt(playerid);
+    if (!strcmp(cmd, "delmark", true)) {
+        gMapHasPoint[playerid] = false;
+        gMapPending[playerid] = false;
+        RemovePlayerMapIcon(playerid, RW_MAP_ICON);
+        if (gUIMode[playerid] == UI_MAP) RW_UI_Close(playerid);
+        return RW_ControlNotify(playerid, "ћетка удалена.");
     }
     if (!strcmp(cmd, "engine", true)) return RW_EngineCommand(playerid);
     if (!strcmp(cmd, "vmenu", true)) return RW_ControlOpen(playerid, false);

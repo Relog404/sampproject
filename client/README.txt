@@ -8,5 +8,7 @@ ACTIONS for this session, not arbitrary physical keys. /vmenu, /engine,
 /door and /key also work. Physical Ъ / ] and backslash cannot be captured
 by a plain SA-MP server and are no longer used.
 
-TextDraw labels use transliteration for stock GTA fonts. Password entry
+Russian TextDraw labels require compatible CP1251 GTA fonts (models/fonts.txd).
+Use /tdlatin on stock English fonts; /tdrus restores Russian. No client
+script is required, and the server never replaces your font textures. Password entry
 uses a native masked dialog; account data stays in the server SQLite file.

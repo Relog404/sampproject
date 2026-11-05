@@ -83,7 +83,7 @@ class NativeInterfaceTest(unittest.TestCase):
         panel = body(self.ui, 'stock RW_UI_Panel', 'stock RW_UI_Row')
         self.assertIn('i = 12; i <= 18', panel)
         self.assertIn('PlayerTextDrawHide', panel)
-        update = body(self.ui, 'stock RW_UI_SpeedoUpdate', '// Stock GTA fonts')
+        update = body(self.ui, 'stock RW_UI_SpeedoUpdate', '// Notices use')
         self.assertIn('if (gUIMode[playerid] != 0) return 1', update)
         self.assertIn('gSpeedoShown[playerid] = false', self.ui)
 
@@ -96,10 +96,11 @@ class NativeInterfaceTest(unittest.TestCase):
 
     def test_map_teleport_is_textdraw_confirmed_and_rechecked(self):
         click = body(self.main, 'public OnPlayerClickMap', 'public OnPlayerClickPlayerTextDraw')
-        self.assertIn('RW_UI_Panel(playerid, UI_MAP', click)
+        self.assertIn('RW_MapPrompt(playerid)', click)
+        self.assertIn('RW_UI_Panel(playerid, UI_MAP', self.control)
         self.assertNotIn('ShowPlayerDialog', click)
         confirm = self.control.split('mode == UI_MAP', 1)[1]
-        self.assertIn('gMapPending[playerid] && row == 0', confirm)
+        self.assertIn('gMapPending[playerid] && gMapHasPoint[playerid] && row == 0', confirm)
         self.assertIn('PLAYER_STATE_ONFOOT', confirm)
         self.assertIn('GetPlayerVirtualWorld(playerid) != 0', confirm)
         self.assertIn('SetPlayerPosFindZ', confirm)

@@ -79,6 +79,7 @@ public OnGameModeInit()
 public OnGameModeExit()
 {
     for (new p; p < MAX_PLAYERS; p++) if (IsPlayerConnected(p)) {
+        RW_ClearRegisterPassword(p);
         RW_SaveAccount(p);
         RW_UI_Reset(p);
     }
@@ -121,6 +122,10 @@ public OnPlayerConnect(playerid)
     RW_Speedo_ResetPlayer(playerid);
     RW_InteractionReset(playerid);
     gMapPending[playerid] = false;
+    gMapHasPoint[playerid] = false;
+    gUILatin[playerid] = false;
+    RW_ClearRegisterPassword(playerid);
+    RemovePlayerMapIcon(playerid, RW_MAP_ICON);
 
     RW_GetNick(playerid, nick);
 
@@ -136,12 +141,14 @@ public OnPlayerConnect(playerid)
 
     format(string, sizeof string, "%s {F5B04C}%s{FFFFFF}, добро пожаловать на вокзал!", RW_TAG, nick);
     SendClientMessage(playerid, COLOR_WHITE, string);
+    SendClientMessage(playerid, COLOR_GREY, "TextDraw: /tdrus Ч русский; /tdlatin Ч если шрифт GTA не поддерживает кириллицу.");
 
     return 1;
 }
 
 public OnPlayerDisconnect(playerid, reason)
 {
+    RW_ClearRegisterPassword(playerid);
     RW_SaveAccount(playerid);
     RW_Veh_OnPlayerDisconnect(playerid);
 
@@ -370,32 +377,51 @@ public OnRconCommand(cmd[])
 public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 {
     if (gLogged[playerid]) return 0;
-    if (dialogid != DIALOG_LOGIN && dialogid != DIALOG_REGISTER) return 0;
+    if (dialogid != DIALOG_LOGIN && dialogid != DIALOG_REGISTER && dialogid != DIALOG_REGISTER_CONFIRM) return 0;
     gUIInput[playerid] = false;
-    if (!response) { Kick(playerid); return 1; }
-    new nick[MAX_PLAYER_NAME];
-    RW_GetNick(playerid, nick);
+    if (!response) {
+        RW_ClearRegisterPassword(playerid);
+        if (dialogid == DIALOG_REGISTER_CONFIRM) RW_ShowLoginDialog(playerid);
+        else Kick(playerid);
+        return 1;
+    }
+    new nick[MAX_PLAYER_NAME]; RW_GetNick(playerid, nick);
     new bool:exists = RW_DB_AccountExists(nick);
-    if ((dialogid == DIALOG_REGISTER && exists) || (dialogid == DIALOG_LOGIN && !exists)) {
+    if ((dialogid != DIALOG_LOGIN && exists) || (dialogid == DIALOG_LOGIN && !exists)) {
+        RW_ClearRegisterPassword(playerid);
         RW_ShowLoginDialog(playerid);
         return 1;
     }
-    RW_AuthSubmit(playerid, !exists, inputtext, inputtext);
+    if (dialogid == DIALOG_REGISTER) {
+        if (strlen(inputtext) < 6 || strlen(inputtext) > 64 || !RW_SafeSqlText(inputtext)) {
+            RW_AuthSubmit(playerid, true, inputtext, inputtext);
+            return 1;
+        }
+        format(gRegPassword[playerid], 65, "%s", inputtext);
+        gRegPending[playerid] = true;
+        return RW_ShowRegisterConfirm(playerid);
+    }
+    if (dialogid == DIALOG_REGISTER_CONFIRM) {
+        if (!gRegPending[playerid]) return RW_ShowLoginDialog(playerid);
+        new password[65]; format(password, sizeof password, "%s", gRegPassword[playerid]);
+        RW_ClearRegisterPassword(playerid);
+        RW_AuthSubmit(playerid, true, password, inputtext);
+        for (new i; i < sizeof password; i++) password[i] = 0;
+        return 1;
+    }
+    RW_AuthSubmit(playerid, false, inputtext, "");
     return 1;
 }
 
 public OnPlayerClickMap(playerid, Float:fX, Float:fY, Float:fZ)
 {
-    if (!gLogged[playerid] || GetPlayerState(playerid) != PLAYER_STATE_ONFOOT) return 1;
+    if (!gLogged[playerid]) return 1;
     if (GetPlayerInterior(playerid) != 0 || GetPlayerVirtualWorld(playerid) != 0) return 1;
-    if (gControlMode[playerid] != 0) return 1;
     if (!(fX >= -3000.0 && fX <= 3000.0 && fY >= -3000.0 && fY <= 3000.0 && fZ >= -100.0 && fZ <= 1500.0)) return 1;
     gMapPoint[playerid][0] = fX; gMapPoint[playerid][1] = fY; gMapPoint[playerid][2] = fZ;
-    gMapPending[playerid] = true;
-    RW_UI_Panel(playerid, UI_MAP, "TELEPORT", "K METKE NA KARTE?");
-    RW_UI_Row(playerid, 0, "DA / TELEPORT");
-    RW_UI_Row(playerid, 1, "NET / OTMENA");
-    return 1;
+    gMapHasPoint[playerid] = true;
+    SetPlayerMapIcon(playerid, RW_MAP_ICON, fX, fY, fZ, 0, 0xD8C39BFF, MAPICON_GLOBAL);
+    return RW_MapPrompt(playerid);
 }
 
 

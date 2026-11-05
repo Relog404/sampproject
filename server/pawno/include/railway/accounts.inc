@@ -585,17 +585,18 @@ stock RW_ShowAuthDialog(playerid, bool:registerMode, const note[])
         format(head, sizeof head, "{FF8080}%s{FFFFFF}\n\n", note);
     }
 
+    RW_ClearRegisterPassword(playerid);
     RW_UI_PasswordBegin(playerid);
     registerMode = !RW_DB_AccountExists(nick);
     if (registerMode) {
         format(info, sizeof info,
-            "%sАккаунт для {F5B04C}%s{FFFFFF} ещё не создан.\nПридумайте пароль (минимум 6 символов).",
+            "%s{D8C39B}RAILWAY  /  СОЗДАНИЕ АККАУНТА{FFFFFF}\n\nИмя: {D8C39B}%s{FFFFFF}\nПридумайте пароль от 6 до 64 символов.\nНа следующем шаге повторите его.\n\n{939BA6}Не используйте пароль от других сервисов.",
             head, nick);
-        ShowPlayerDialog(playerid, DIALOG_REGISTER, DIALOG_STYLE_PASSWORD, "Регистрация", info, "Создать", "Выход");
+        ShowPlayerDialog(playerid, DIALOG_REGISTER, DIALOG_STYLE_PASSWORD, "Railway | Регистрация 1/2", info, "Далее", "Выход");
     } else {
         format(info, sizeof info,
-            "%sАккаунт {F5B04C}%s{FFFFFF} найден.\nВведите пароль для входа.", head, nick);
-        ShowPlayerDialog(playerid, DIALOG_LOGIN, DIALOG_STYLE_PASSWORD, "Вход", info, "Войти", "Выход");
+            "%s{D8C39B}RAILWAY  /  С ВОЗВРАЩЕНИЕМ{FFFFFF}\n\nИмя: {D8C39B}%s{FFFFFF}\nВведите пароль, чтобы продолжить игру.\n\n{939BA6}Ввод скрыт. Проверьте раскладку и Caps Lock.", head, nick);
+        ShowPlayerDialog(playerid, DIALOG_LOGIN, DIALOG_STYLE_PASSWORD, "Railway | Вход", info, "Войти", "Выход");
     }
     return 1;
 }
@@ -626,5 +627,18 @@ stock RW_AuthDialogRespond(playerid, bool:ok, const code[])
     new nick[MAX_PLAYER_NAME];
     RW_GetNick(playerid, nick);
     RW_ShowAuthDialog(playerid, !RW_DB_AccountExists(nick), text);
+    return 1;
+}
+
+stock RW_ClearRegisterPassword(playerid)
+{
+    for (new i; i < 65; i++) gRegPassword[playerid][i] = 0;
+    gRegPending[playerid] = false;
+}
+stock RW_ShowRegisterConfirm(playerid)
+{
+    RW_UI_PasswordBegin(playerid);
+    ShowPlayerDialog(playerid, DIALOG_REGISTER_CONFIRM, DIALOG_STYLE_PASSWORD, "Railway | Регистрация 2/2",
+        "{D8C39B}ПОДТВЕРЖДЕНИЕ ПАРОЛЯ{FFFFFF}\n\nПовторите придуманный пароль.\nПосле подтверждения аккаунт сохранится в базе.\n\n{939BA6}Пароль не показывается и не записывается в лог.", "Создать", "Назад");
     return 1;
 }

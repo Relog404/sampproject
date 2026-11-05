@@ -52,6 +52,8 @@
 
 #define DIALOG_LOGIN                 (9100)
 #define DIALOG_REGISTER              (9101)
+#define DIALOG_REGISTER_CONFIRM      (9102)
+#define RW_MAP_ICON                  (99)
 
 /* ------------------------------------------------------------------ слоты авто */
 enum E_VEHICLE_SLOT
@@ -69,7 +71,9 @@ enum E_VEHICLE_SLOT
 };
 
 /* ------------------------------------------------------------------ состояние */
-new bool:gMapPending[MAX_PLAYERS];
+new bool:gMapPending[MAX_PLAYERS], bool:gMapHasPoint[MAX_PLAYERS];
+new bool:gRegPending[MAX_PLAYERS];
+new gRegPassword[MAX_PLAYERS][65];
 new Float:gMapPoint[MAX_PLAYERS][3];
 new gControlKeys[MAX_PLAYERS][3], gControlVehicle[MAX_PLAYERS], gControlMode[MAX_PLAYERS], gControlTick[MAX_PLAYERS];
 new DB:gDB;
