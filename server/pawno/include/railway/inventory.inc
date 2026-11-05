@@ -341,7 +341,7 @@ stock RW_InvLabel(playerid, index, Float:x, Float:y, const text[], Float:width, 
     new label[144]; format(label, sizeof label, "%s", text);
     gInvTD[playerid][index] = CreatePlayerTextDraw(playerid, x, y, label);
     PlayerTextDrawFont(playerid, gInvTD[playerid][index], 1);
-    PlayerTextDrawLetterSize(playerid, gInvTD[playerid][index], 0.18, 0.95);
+    PlayerTextDrawLetterSize(playerid, gInvTD[playerid][index], 0.16, 0.85);
     PlayerTextDrawColor(playerid, gInvTD[playerid][index], 0xEEECE7FF);
     PlayerTextDrawSetShadow(playerid, gInvTD[playerid][index], 0);
     PlayerTextDrawTextSize(playerid, gInvTD[playerid][index], x+width, 14.0);
@@ -360,45 +360,45 @@ stock RW_InvSprite(playerid, index, Float:x, Float:y, Float:w, Float:h, color, b
 stock RW_InvCreate(playerid)
 {
     if (gInvCreated[playerid]) return 1;
-    RW_InvSprite(playerid, 139, 10.0, 42.0, 620.0, 365.0, 0x11151DF5);
-    RW_InvSprite(playerid, 140, 10.0, 42.0, 620.0, 2.0, 0xD8C39BFF);
-    RW_InvSprite(playerid, 141, 229.0, 79.0, 1.0, 275.0, 0xFFFFFF12);
-    RW_InvSprite(playerid, 142, 409.0, 79.0, 1.0, 275.0, 0xFFFFFF12);
+    RW_InvSprite(playerid, 139, 14.0, 48.0, 592.0, 330.0, 0x11151DF5);
+    RW_InvSprite(playerid, 140, 14.0, 48.0, 592.0, 2.0, 0xD8C39BFF);
+    RW_InvSprite(playerid, 141, 215.0, 82.0, 1.0, 248.0, 0xFFFFFF12);
+    RW_InvSprite(playerid, 142, 409.0, 82.0, 1.0, 248.0, 0xFFFFFF12);
     for (new i; i < 130; i++) {
         new Float:x, Float:y;
-        if (i < 50) { x = 20.0+(i%10)*20.0; y = 88.0+(i/10)*27.0; }
-        else if (i < 80) { x = 20.0+((i-50)%10)*20.0; y = 267.0+((i-50)/10)*27.0; }
-        else { x = 420.0+((i-80)%10)*20.0; y = 88.0+((i-80)/10)*27.0; }
-        RW_InvSprite(playerid, i, x, y, 18.0, 24.0, 0xFFFFFF12, true);
+        if (i < 50) { x = 22.0+(i%10)*19.0; y = 84.0+(i/10)*24.0; }
+        else if (i < 80) { x = 22.0+((i-50)%10)*19.0; y = 232.0+((i-50)/10)*24.0; }
+        else { x = 416.0+((i-80)%10)*18.0; y = 84.0+((i-80)/10)*24.0; }
+        RW_InvSprite(playerid, i, x, y, 17.0, 22.0, 0xFFFFFF12, true);
     }
-    RW_InvSprite(playerid, 130, 267.0, 105.0, 102.0, 180.0, 0xFFFFFFFF);
+    RW_InvSprite(playerid, 130, 267.0, 100.0, 96.0, 170.0, 0xFFFFFFFF);
     PlayerTextDrawFont(playerid, gInvTD[playerid][130], 5);
     PlayerTextDrawBackgroundColor(playerid, gInvTD[playerid][130], 0x14192000);
     PlayerTextDrawSetPreviewRot(playerid, gInvTD[playerid][130], 0.0, 0.0, 15.0, 1.0);
-    for (new i; i < 8; i++) RW_InvSprite(playerid, 131+i, i < 4 ? 240.0 : 376.0, 100.0+float(i%4)*46.0, 24.0, 30.0, 0xD8C39B22);
-    RW_InvLabel(playerid, 143, 20.0, 56.0, "INVENTORY", 196.0);
-    RW_InvLabel(playerid, 144, 20.0, 246.0, "BACKPACK", 196.0);
-    RW_InvLabel(playerid, 145, 420.0, 56.0, "NEARBY / 3m", 195.0);
+    for (new i; i < 8; i++) RW_InvSprite(playerid, 131+i, i < 4 ? 240.0 : 376.0, 100.0+float(i%4)*44.0, 22.0, 28.0, 0xD8C39B22);
+    RW_InvLabel(playerid, 143, 22.0, 56.0, "INVENTORY", 190.0);
+    RW_InvLabel(playerid, 144, 22.0, 214.0, "BACKPACK", 190.0);
+    RW_InvLabel(playerid, 145, 420.0, 56.0, "NEARBY / 3m", 190.0);
     RW_InvLabel(playerid, 146, 265.0, 56.0, "CHARACTER", 130.0);
-    RW_InvLabel(playerid, 147, 253.0, 304.0, "BACK / ACTIVE / 6 SOON", 143.0);
+    RW_InvLabel(playerid, 147, 250.0, 276.0, "BACK / ACTIVE / 6 SOON", 140.0);
     PlayerTextDrawSetSelectable(playerid,gInvTD[playerid][131],1);
-    RW_InvLabel(playerid, 148, 595.0, 377.0, "X", 22.0, true);
-    RW_InvLabel(playerid, 149, 285.0, 377.0, "MAIN", 62.0, true);
-    RW_InvLabel(playerid, 150, 360.0, 377.0, "BAG", 62.0, true);
-    RW_InvLabel(playerid, 151, 435.0, 377.0, "DROP", 62.0, true);
-    RW_InvLabel(playerid, 152, 510.0, 377.0, "USE", 62.0, true);
-    RW_InvLabel(playerid, 153, 20.0, 377.0, "SELECT ITEM", 255.0);
-    RW_InvLabel(playerid, 154, 420.0, 240.0, "CLICK ITEM / ACTIONS", 195.0);
-    RW_InvSprite(playerid, 155, 420.0, 261.0, 198.0, 108.0, 0x171F2CFF);
-    RW_InvLabel(playerid, 156, 430.0, 266.0, "ITEM", 175.0);
-    RW_InvLabel(playerid, 157, 430.0, 281.0, "DESCRIPTION", 175.0);
-    RW_InvLabel(playerid, 158, 430.0, 296.0, "STATS", 175.0);
-    RW_InvLabel(playerid, 159, 430.0, 313.0, "DROP", 80.0, true);
-    RW_InvLabel(playerid, 160, 530.0, 313.0, "WEAR", 80.0, true);
-    RW_InvLabel(playerid, 161, 430.0, 330.0, "TO BAG", 80.0, true);
-    RW_InvLabel(playerid, 162, 530.0, 330.0, "TO MAIN", 80.0, true);
-    RW_InvLabel(playerid, 163, 430.0, 347.0, "USE KEY", 80.0, true);
-    RW_InvLabel(playerid, 164, 530.0, 347.0, "CLOSE", 80.0, true);
+    RW_InvLabel(playerid, 148, 578.0, 358.0, "X", 22.0, true);
+    RW_InvLabel(playerid, 149, 285.0, 358.0, "MAIN", 62.0, true);
+    RW_InvLabel(playerid, 150, 360.0, 358.0, "BAG", 62.0, true);
+    RW_InvLabel(playerid, 151, 435.0, 358.0, "DROP", 62.0, true);
+    RW_InvLabel(playerid, 152, 510.0, 358.0, "USE", 62.0, true);
+    RW_InvLabel(playerid, 153, 22.0, 358.0, "SELECT ITEM", 250.0);
+    RW_InvLabel(playerid, 154, 420.0, 214.0, "CLICK ITEM / ACTIONS", 190.0);
+    RW_InvSprite(playerid, 155, 420.0, 226.0, 190.0, 104.0, 0x171F2CFF);
+    RW_InvLabel(playerid, 156, 428.0, 230.0, "ITEM", 170.0);
+    RW_InvLabel(playerid, 157, 428.0, 244.0, "DESCRIPTION", 170.0);
+    RW_InvLabel(playerid, 158, 428.0, 258.0, "STATS", 170.0);
+    RW_InvLabel(playerid, 159, 428.0, 276.0, "DROP", 76.0, true);
+    RW_InvLabel(playerid, 160, 522.0, 276.0, "WEAR", 76.0, true);
+    RW_InvLabel(playerid, 161, 428.0, 294.0, "TO BAG", 76.0, true);
+    RW_InvLabel(playerid, 162, 522.0, 294.0, "TO MAIN", 76.0, true);
+    RW_InvLabel(playerid, 163, 428.0, 312.0, "USE KEY", 76.0, true);
+    RW_InvLabel(playerid, 164, 522.0, 312.0, "CLOSE", 76.0, true);
     gInvCreated[playerid] = true;
     return 1;
 }
@@ -623,7 +623,23 @@ stock RW_InvItemWord(const word[])
     if (!word[0]) return -1;
     if (!strcmp(word, "1", true) || !strcmp(word, "bag", true) || !strcmp(word, "backpack", true)) return ITEM_BACKPACK;
     if (!strcmp(word, "2", true) || !strcmp(word, "key", true) || !strcmp(word, "carkey", true) || !strcmp(word, "keys", true)) return ITEM_CAR_KEY;
+    if (!strcmp(word, "3", true) || !strcmp(word, "gun", true) || !strcmp(word, "weapon", true)) return ITEM_WEAPON;
+    if (!strcmp(word, "4", true) || !strcmp(word, "ammo", true) || !strcmp(word, "bullets", true) || !strcmp(word, "rounds", true)) return ITEM_AMMO;
+    if (!strcmp(word, "5", true) || !strcmp(word, "bandage", true) || !strcmp(word, "bandages", true)) return ITEM_BANDAGE;
+    if (!strcmp(word, "6", true) || !strcmp(word, "syringe", true) || !strcmp(word, "adrenaline", true)) return ITEM_SYRINGE;
     return -1;
+}
+// Calibre by name or number: 9mm, .44, 12ga, 5.56, 7.62, .308.
+stock RW_InvCaliberWord(const word[])
+{
+    if (!word[0]) return 0;
+    if (!strcmp(word, "1", true) || !strcmp(word, "9mm", true) || !strcmp(word, "9", true)) return CAL_9MM;
+    if (!strcmp(word, "2", true) || !strcmp(word, "44", true) || !strcmp(word, ".44", true)) return CAL_44;
+    if (!strcmp(word, "3", true) || !strcmp(word, "12ga", true) || !strcmp(word, "12", true)) return CAL_12GA;
+    if (!strcmp(word, "4", true) || !strcmp(word, "5.56", true) || !strcmp(word, "556", true)) return CAL_556;
+    if (!strcmp(word, "5", true) || !strcmp(word, "7.62", true) || !strcmp(word, "762", true)) return CAL_762;
+    if (!strcmp(word, "6", true) || !strcmp(word, ".308", true) || !strcmp(word, "308", true)) return CAL_308;
+    return 0;
 }
 // Resolves the vehicle argument and reports the exact reason when it cannot.
 // Returns the vehicle slot, VEHICLE_SLOTS for a stored permanent car, or -1.
@@ -689,22 +705,48 @@ stock RW_InvGiveCommand(playerid, const params[])
     RW_ParseCommand(params, a, sizeof a, rest, sizeof rest);
     RW_ParseCommand(rest, b, sizeof b, tail, sizeof tail);
     RW_ParseCommand(tail, c, sizeof c, extra, sizeof extra);
-    if (!a[0] || !b[0] || extra[0] || strlen(a) > 5 || strlen(b) > 12 || strlen(c) > 8)
-        return RW_Info(playerid, "/giveitem <playerid> <bag|key> [vehicle id, p<plate> or c<garage car id>]");
+    if (!a[0] || !b[0] || strlen(a) > 5 || strlen(b) > 12 || strlen(c) > 8 || strlen(extra) > 8)
+        return RW_Info(playerid, "/giveitem <playerid> <bag|key|gun|ammo|bandage|syringe> [argument] [count]");
     if (!RW_IsNumeric(a)) return RW_Error(playerid, "Player id must be a number, for example /giveitem 0 key 7");
-    new target = strval(a), type = RW_InvItemWord(b), data;
-    if (type < 0) return RW_Error(playerid, "Items: bag (backpack) or key (car key).");
+    new target = strval(a), type = RW_InvItemWord(b), data, amount = 1;
+    if (type < 0) return RW_Error(playerid, "Items: bag, key, gun <weapon id>, ammo <9mm|.44|12ga|5.56|7.62|.308> [rounds], bandage [n], syringe [n].");
     if (target < 0 || target >= MAX_PLAYERS || !IsPlayerConnected(target) || !gLogged[target]) return RW_Error(playerid, "Player must be connected and logged in. /givecar <name> <model> works offline.");
     if (!gInvLoaded[target]) return RW_Error(playerid, "Player inventory is not loaded yet. Ask them to reconnect.");
     if (type == ITEM_CAR_KEY) {
+        if (extra[0]) return RW_Error(playerid, "A key takes one argument: /giveitem <playerid> key <vehicle id, p<plate> or c<garage car id>>");
         if (RW_InvGiveVehicle(playerid, c, data) < 0) return 1;
-    } else if (c[0]) return RW_Error(playerid, "A backpack takes no vehicle. Use /giveitem <playerid> bag.");
-    new uid = RW_InvGrant(target, type, data);
+    } else if (type == ITEM_WEAPON) {
+        if (!c[0] || !RW_IsNumeric(c) || !RW_WeaponValid(strval(c))) return RW_Error(playerid, "Use /giveitem <playerid> gun <weapon id 1-46>.");
+        if (extra[0]) return RW_Error(playerid, "A gun takes no third argument.");
+        data = strval(c);
+    } else if (type == ITEM_AMMO) {
+        new caliber = RW_InvCaliberWord(c);
+        if (!caliber) return RW_Error(playerid, "Calibres: 9mm, .44, 12ga, 5.56, 7.62, .308 (or 1-6).");
+        data = caliber; amount = RW_CaliberMax(caliber);
+        if (extra[0]) {
+            if (!RW_IsNumeric(extra) || strval(extra) < 1) return RW_Error(playerid, "Round count must be a positive number.");
+            amount = strval(extra);
+            if (amount > RW_CaliberMax(caliber)) amount = RW_CaliberMax(caliber);
+        }
+    } else if (type == ITEM_BANDAGE || type == ITEM_SYRINGE) {
+        if (extra[0]) return RW_Error(playerid, "Bandages and syringes take one count, 1-20.");
+        if (c[0]) {
+            if (!RW_IsNumeric(c) || strval(c) < 1 || strval(c) > 20) return RW_Error(playerid, "Count must be 1-20.");
+            amount = strval(c);
+        }
+    } else if (c[0] || extra[0]) return RW_Error(playerid, "A backpack takes no arguments. Use /giveitem <playerid> bag.");
+    new uid;
+    if (type == ITEM_AMMO) uid = RW_InvGrant(target, type, data, amount);
+    else for (new given; given < amount; given++) { uid = RW_InvGrant(target, type, data, 1); if (!uid) break; }
     if (!uid) return RW_InvExplainGrant(playerid, target, type, data);
     printf("[inventory] admin account=%d gives type=%d data=%d uid=%d to account=%d", gAccountId[playerid], type, data, uid, gAccountId[target]);
     RW_Ok(target, "Item received. /inv");
     new message[144];
     if (type == ITEM_CAR_KEY) format(message, sizeof message, "Key granted (item %d, car token %d). It starts that car.", uid, data);
+    else if (type == ITEM_WEAPON) { new wname[32]; RW_WeaponName(data, wname, sizeof wname); format(message, sizeof message, "%s granted (item %d). Equip it from the inventory.", wname, uid); }
+    else if (type == ITEM_AMMO) { new cname[16]; RW_CaliberName(data, cname, sizeof cname); format(message, sizeof message, "%s ammunition: %d rounds (item %d).", cname, amount, uid); }
+    else if (type == ITEM_BANDAGE) format(message, sizeof message, "%d bandage(s) granted.", amount);
+    else if (type == ITEM_SYRINGE) format(message, sizeof message, "%d adrenaline syringe(s) granted.", amount);
     else format(message, sizeof message, "Backpack granted (item %d). Equip it in the BACK slot to unlock 30 bag slots.", uid);
     return RW_Ok(playerid, message);
 }

@@ -58,7 +58,13 @@ stock RW_UI_Vehicle(playerid)
     RW_UI_Row(playerid, 2, gVeh[slot][vsKey] ? ("Remove key") : ("Insert key"));
     RW_UI_Row(playerid, 3, gVeh[slot][vsLights] ? ("Lights off") : ("Lights on"));
     RW_UI_Row(playerid, 4, "Passengers / eject");
+    if (RW_CabinIsPlane(GetVehicleModel(v))) {
+        new label[64];
+        format(label, sizeof label, "%s (%d / %d)", RW_CabinInside(playerid) ? ("Leave cabin") : ("Board cabin"), RW_CabinCount(v), CABIN_MAX);
+        RW_UI_Row(playerid, 5, label);
+    }
     RW_UI_Row(playerid, 7, "Refresh status");
+    RW_UI_PreviewShow(playerid, GetVehicleModel(v), 452.0, 120.0, 128.0, 96.0);
     return 1;
 }
 stock RW_UI_Passengers(playerid)
@@ -115,6 +121,12 @@ stock RW_UI_Click(playerid, row)
         else if (row == 4) {
             if (!RW_IsVehicleOwner(playerid, gControlVehicle[playerid])) return RW_ControlNotify(playerid, "You do not own this car.");
             gUIPage[playerid] = 0; RW_UI_Passengers(playerid);
+        } else if (row == 5) {
+            new cv = gControlVehicle[playerid];
+            if (!RW_CabinIsPlane(GetVehicleModel(cv))) return 1;
+            if (RW_CabinInside(playerid) || GetPlayerVehicleID(playerid) == cv) RW_CabinLeave(playerid);
+            else RW_CabinBoard(playerid, cv);
+            RW_UI_Vehicle(playerid);
         } else if (row == 7) RW_UI_Vehicle(playerid);
     } else if (mode == UI_PASSENGERS) {
         if (row < 6 && gUITarget[playerid][row] != INVALID_PLAYER_ID) {

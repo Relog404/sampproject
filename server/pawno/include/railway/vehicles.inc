@@ -398,6 +398,7 @@ stock RW_Veh_DestroySlot(slot, bool:notifyOwner)
     if (slot < 0 || slot >= VEHICLE_SLOTS || !gVeh[slot][vsUsed]) {
         return 0;
     }
+    RW_CabinClearVehicle(gVeh[slot][vsVehicleId]);
 
     new vehicleid = gVeh[slot][vsVehicleId];
     new owner = gVeh[slot][vsOwnerPlayer];

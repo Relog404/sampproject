@@ -12,14 +12,6 @@
 
 #include <railway/core>
 
-#define CAL_9MM   1
-#define CAL_44    2
-#define CAL_12GA  3
-#define CAL_556   4
-#define CAL_762   5
-#define CAL_308   6
-#define CAL_COUNT 6
-
 stock bool:RW_WeaponValid(id) { return id >= 1 && id <= 46; }
 stock bool:RW_CaliberValid(cal) { return cal >= 1 && cal <= CAL_COUNT; }
 
@@ -298,7 +290,10 @@ stock RW_WpEquip(playerid, uid)
     if (gUIMode[playerid] == UI_INVENTORY) RW_InvRender(playerid);
     new name[32], message[110]; RW_WeaponName(weapon, name, sizeof name);
     if (rounds > 0) format(message, sizeof message, "%s equipped with %d rounds.", name, rounds);
-    else if (RW_WpCaliber(weapon)) format(message, sizeof message, "%s equipped, empty. Load %s ammunition.", name, RW_WpCaliber(weapon));
+    else if (RW_WpCaliber(weapon)) {
+        new cbuf[16]; RW_CaliberName(RW_WpCaliber(weapon), cbuf, sizeof cbuf);
+        format(message, sizeof message, "%s equipped, empty. Load %s ammunition.", name, cbuf);
+    }
     else format(message, sizeof message, "%s equipped.", name);
     return RW_Ok(playerid, message);
 }
@@ -365,9 +360,10 @@ stock RW_WpReloadFrom(playerid, slot)
 {
     if (gInv[playerid][slot][iiType] != ITEM_AMMO) return RW_Error(playerid, "Select an ammunition stack.");
     if (gWpActive[playerid] <= 0) return RW_Error(playerid, "Equip a weapon first.");
-    if (gInv[playerid][slot][iiData] != RW_WpCaliber(gWpWeapon[playerid])) {
+    new cal = gInv[playerid][slot][iiData];
+    if (cal != RW_WpCaliber(gWpWeapon[playerid])) {
         new cname[16], wcal[16], message[128];
-        RW_CaliberName(gInv[playerid][slot][iiData], cname, sizeof cname);
+        RW_CaliberName(cal, cname, sizeof cname);
         RW_CaliberName(RW_WpCaliber(gWpWeapon[playerid]), wcal, sizeof wcal);
         format(message, sizeof message, "That is %s ammunition; the weapon takes %s.", cname, wcal);
         return RW_Error(playerid, message);
@@ -389,7 +385,7 @@ stock RW_WpReloadFrom(playerid, slot)
     RW_WpFlush(playerid);
     RW_WpSync(playerid);
     if (gUIMode[playerid] == UI_INVENTORY) RW_InvRender(playerid);
-    new cname[16], message[110]; RW_CaliberName(gInv[playerid][slot][iiData], cname, sizeof cname);
+    new cname[16], message[110]; RW_CaliberName(cal, cname, sizeof cname);
     format(message, sizeof message, "Loaded %d %s rounds (%d / %d).", take, cname, gWpAmmo[playerid], mag);
     return RW_Ok(playerid, message);
 }

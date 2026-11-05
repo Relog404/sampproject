@@ -53,6 +53,7 @@ stock RW_CommandHelp(playerid)
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} - unlock/lock the aimed car; its key must be in /inv.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/key{FFFFFF} - insert/remove key; N - engine.");
     SendClientMessage(playerid, COLOR_GREY, "Map: ESC > Map > right click. /tpm - confirm teleport; /delmark - remove marker.");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/board{FFFFFF} - board the aimed plane (up to 20 people); {F5B04C}/unboard{FFFFFF} - leave.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/mycar{FFFFFF} - temporary car status.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/stats{FFFFFF} - account /admins - online administrators");
     SendClientMessage(playerid, COLOR_DARK_GREY, "Doors must be open to enter. With a key left in the ignition, any driver can start the engine.");
@@ -299,6 +300,8 @@ stock RW_CommandProcess(playerid, cmdtext[])
     }
 
     if (!strcmp(cmd, "take", true)) return RW_GroundTake(playerid);
+    if (!strcmp(cmd, "board", true)) return RW_CabinCommand(playerid, params);
+    if (!strcmp(cmd, "unboard", true)) return RW_CabinLeave(playerid);
     if (!strcmp(cmd, "bagfit", true)) return RW_InvFitCommand(playerid);
     if (!strcmp(cmd, "inv", true) || !strcmp(cmd, "inventory", true)) return RW_InvOpen(playerid);
     if (!strcmp(cmd, "setskin", true)) return RW_CommandSetSkin(playerid, params);

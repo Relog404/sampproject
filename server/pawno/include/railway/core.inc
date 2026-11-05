@@ -42,7 +42,15 @@
 /* ------------------------------------------------------------------ настройки */
 #define SPCAR_MIN_ADMIN_LEVEL       (0)      /* 0 — /spcar доступна всем игрокам */
 #define SPCAR_COOLDOWN_MS           (1200)
-#define VEHICLE_SLOTS               (100)    /* максимум персональных машин  */
+#define VEHICLE_SLOTS               (100)
+#define CABIN_MAX                   (20)
+#define CAL_9MM                     1
+#define CAL_44                      2
+#define CAL_12GA                    3
+#define CAL_556                     4
+#define CAL_762                     5
+#define CAL_308                     6
+#define CAL_COUNT                   6    /* максимум персональных машин  */
 #define KEY_RANGE                   (6.0)    /* радиус взаимодействия с авто */
 #define SPEEDO_INTERVAL             (150)    /* мс, частота обновления HUD   */
 #define ENFORCE_INTERVAL            (400)    /* мс, проверка права на езду   */
@@ -115,6 +123,8 @@ new gLoginAttempts[MAX_PLAYERS];
 new gLastSpcarTick[MAX_PLAYERS];
 
 new gAuthTimer[MAX_PLAYERS];           /* таймер камеры на экране входа      */
+new gCabinVehicle[MAX_PLAYERS];
+new gCabinSeat[MAX_PLAYERS];
 new gPlayerVehSlot[MAX_PLAYERS];       /* слот персональной машины (-1)      */
 
 /* ------------------------------------------------------------------ утилиты */
@@ -366,4 +376,12 @@ stock RW_VehicleName(model, dest[], size = sizeof dest)
         default:  format(dest, size, "Vehicle #%d", model);
     }
     return 1;
+}
+
+stock bool:RW_CabinIsPlane(model)
+{
+    switch (model) {
+        case 460, 464, 476, 511, 512, 513, 519, 520, 553, 577, 592: return true;
+    }
+    return false;
 }

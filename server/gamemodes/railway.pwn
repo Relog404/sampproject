@@ -27,6 +27,7 @@
 #include <railway/interaction>
 #include <railway/garage>
 #include <railway/motion>
+#include <railway/cabin>
 #include <railway/commands>
 
 /* ------------------------------------------------------------------ запуск */
@@ -80,6 +81,7 @@ public OnGameModeInit()
     if (!RW_InvInit()) print("[inventory] Inventory unavailable; existing data preserved.");
     RW_GarageInit();
     RW_MotionInit();
+    SetTimer("RW_CabinPulse", 100, true);
     RW_UI_Init();
     RW_Speedo_Init();
 
@@ -165,6 +167,7 @@ public OnPlayerConnect(playerid)
 public OnPlayerDisconnect(playerid, reason)
 {
     RW_WpFlush(playerid);
+    RW_CabinReset(playerid);
     RW_ClearRegisterPassword(playerid);
     RW_SaveAccount(playerid);
     RW_Veh_OnPlayerDisconnect(playerid);

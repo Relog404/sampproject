@@ -15,6 +15,7 @@
 #define UI_GARAGE 8
 #define UI_KEYMENU 9
 #define UI_DOWNED 10
+new PlayerText:gUIPreview[MAX_PLAYERS];
 new PlayerText:gUI[MAX_PLAYERS][UI_COUNT];
 new bool:gUICreated[MAX_PLAYERS], bool:gUIInput[MAX_PLAYERS];
 new bool:gUIPanelCreated[MAX_PLAYERS], bool:gUIRussianDialogs[MAX_PLAYERS];
@@ -207,14 +208,38 @@ stock RW_UI_Create(playerid)
     gUI[playerid][17] = RW_TD_Label(playerid, 518.0, 405.0, "Key -  Engine -", 0.14);
     PlayerTextDrawLetterSize(playerid, gUI[playerid][17], 0.14, 0.75);
     gUI[playerid][18] = RW_TD_Box(playerid, 518.0, 425.0, 1.0, 2.0, 0xD8C39BFF);
-    gUI[playerid][19] = RW_TD_Box(playerid, 210.0, 365.0, 220.0, 34.0, 0x171B23EF);
-    gUI[playerid][20] = RW_TD_Label(playerid, 220.0, 371.0, "_", 0.20);
-    PlayerTextDrawTextSize(playerid, gUI[playerid][20], 420.0, 0.0);
-    gUI[playerid][21] = RW_TD_Box(playerid, 210.0, 397.0, 220.0, 2.0, 0xD8C39BFF);
+    gUI[playerid][19] = RW_TD_Box(playerid, 250.0, 386.0, 160.0, 20.0, 0x171B23EF);
+    gUI[playerid][20] = RW_TD_Label(playerid, 258.0, 390.0, "_", 0.15);
+    PlayerTextDrawLetterSize(playerid, gUI[playerid][20], 0.15, 0.8);
+    PlayerTextDrawTextSize(playerid, gUI[playerid][20], 404.0, 0.0);
+    gUI[playerid][21] = RW_TD_Box(playerid, 250.0, 405.0, 160.0, 1.5, 0xD8C39BFF);
     gUICreated[playerid] = true;
     gUIMode[playerid] = 0;
     gUIInput[playerid] = false;
     gToastActive[playerid] = false;
+    return 1;
+}
+// Card preview: recreated on every show so its pool id stays above the panel.
+stock RW_UI_PreviewHide(playerid)
+{
+    if (gUIPreview[playerid] != PlayerText:INVALID_TEXT_DRAW) {
+        PlayerTextDrawDestroy(playerid, gUIPreview[playerid]);
+        gUIPreview[playerid] = PlayerText:INVALID_TEXT_DRAW;
+    }
+    return 1;
+}
+stock RW_UI_PreviewShow(playerid, model, Float:x, Float:y, Float:w, Float:h)
+{
+    RW_UI_PreviewHide(playerid);
+    if (model < 400 || model > 611) return 1;
+    gUIPreview[playerid] = CreatePlayerTextDraw(playerid, x, y, "_");
+    PlayerTextDrawFont(playerid, gUIPreview[playerid], 5);
+    PlayerTextDrawTextSize(playerid, gUIPreview[playerid], w, h);
+    PlayerTextDrawColor(playerid, gUIPreview[playerid], 0xFFFFFFFF);
+    PlayerTextDrawBackgroundColor(playerid, gUIPreview[playerid], 0x14192000);
+    PlayerTextDrawSetPreviewModel(playerid, gUIPreview[playerid], model);
+    PlayerTextDrawSetPreviewRot(playerid, gUIPreview[playerid], -16.0, 0.0, -35.0, 0.9);
+    PlayerTextDrawShow(playerid, gUIPreview[playerid]);
     return 1;
 }
 stock RW_UI_Text(playerid, index, const text[])
@@ -272,6 +297,7 @@ stock RW_UI_Close(playerid, bool:keepSelection = false)
     RW_GarageHide(playerid);
     RW_KeyMenuHide(playerid);
     RW_MedHide(playerid);
+    RW_UI_PreviewHide(playerid);
     RW_UI_CancelNative(playerid);
     if (IsPlayerConnected(playerid)) ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
     if (gUIMode[playerid] == UI_MAP) gMapPending[playerid] = false;
@@ -381,6 +407,7 @@ stock RW_UI_Reset(playerid)
     RW_GarageReset(playerid);
     RW_KeyMenuReset(playerid);
     RW_MedReset(playerid);
+    RW_UI_PreviewHide(playerid);
     RW_UI_CancelNative(playerid);
     if (IsPlayerConnected(playerid)) ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
     gUIMode[playerid] = 0; gControlMode[playerid] = 0;
