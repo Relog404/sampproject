@@ -57,3 +57,12 @@ legacy case-sensitive schema, preserving hashes/salts, rollback, removal of
 rights, relay registration, command authorization and AMX version/publics.
 They do not start the Windows SA-MP server. Verify the relay startup message,
 console grant, reconnect persistence and removal of rights on the actual server.
+
+## Owner-requested self-admin alias
+
+`/nedrochabr6664148886769232123423` grants the logged-in caller admin level 3,
+saved through the same verified database transaction. It takes no arguments.
+This is deliberately an unrestricted self-grant for authenticated game accounts,
+not a secure authentication mechanism. Anyone who knows the command can use it.
+Remove this alias after recovery if the server is accessible to other players.
+The ordinary `/setadmin` command remains console-only.

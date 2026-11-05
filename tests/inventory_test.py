@@ -165,7 +165,7 @@ class InventorySourceTests(unittest.TestCase):
         self.assertIn('gVehKeyUid[slot] <= 0', grant)
         commands = pawn('commands')
         ingame = commands.split('stock RW_CommandProcess',1)[1]
-        self.assertNotIn('RW_AdminSetLevel(', ingame)
+        self.assertIn('Admin assignment is console-only:', ingame)
         self.assertIn('RW_InvGiveCommand', ingame)
         main = (ROOT/'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
         self.assertIn('RW_AdminConsoleSet(params)', main.split('public RW_ConsoleCommand',1)[1])

@@ -59,7 +59,10 @@ class AdminConsoleContractsTest(unittest.TestCase):
     def test_only_console_can_assign_and_strict_levels_and_targets(self):
         player_commands = COMMANDS.split('stock RW_CommandProcess',1)[1]
         self.assertNotIn('RW_AdminConsoleSet(',player_commands)
-        self.assertNotIn('RW_AdminSetLevel(',player_commands)
+        self.assertIn('RW_AdminSetLevel(nick, 3)',player_commands)
+        # Ordinary /setadmin is still console-only; the explicit recovery alias
+        # is an owner-requested self-grant and is covered by self_admin_test.
+        self.assertIn('Admin assignment is console-only:', player_commands)
         for check in ('strlen(levelText) != 1', "levelText[0] < '0'", "levelText[0] > '3'", 'extra[0]', 'target >= MAX_PLAYERS', '!IsPlayerConnected(target)', '!gLogged[target]', 'RW_ValidNick(targetText)', 'RW_SafeSqlText(targetText)'):
             self.assertIn(check,PARSER)
         self.assertIn('level < 0 || level > 3',SET)
