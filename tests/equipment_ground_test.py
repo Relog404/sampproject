@@ -22,6 +22,7 @@ class EquipmentSqlTest(unittest.TestCase):
         self.db=sqlite3.connect(':memory:',isolation_level=None)
         self.db.execute(query(INV,'CREATE TABLE IF NOT EXISTS inventory_items'))
         self.db.execute(query(INV,'CREATE TABLE IF NOT EXISTS inventory_equipment'))
+        self.db.execute("CREATE TABLE IF NOT EXISTS inventory_active (owner INTEGER PRIMARY KEY, uid INTEGER NOT NULL UNIQUE)")
     def tearDown(self):
         self.db.close()
     def item(self,owner=1,slot=0,kind=1,data=0):
@@ -40,7 +41,7 @@ class EquipmentSqlTest(unittest.TestCase):
         self.assertEqual(self.db.execute('SELECT COUNT(*) FROM inventory_items').fetchone()[0],2)
     def test_equipment_is_not_ground_and_cannot_be_stolen_by_pickup_sql(self):
         uid=self.item(); self.equip(uid)
-        self.assertEqual(self.db.execute(query(INV,'SELECT uid,type,data,x,y,z')).fetchall(),[])
+        self.assertEqual(self.db.execute(query(INV,'SELECT uid,type,data,amount,x,y,z')).fetchall(),[])
         take=query(INV,'UPDATE inventory_items SET owner=%d')
         self.assertEqual(self.db.execute(take % (2,0,uid)).rowcount,0)
     def test_unequip_moves_uid_back_without_copying(self):

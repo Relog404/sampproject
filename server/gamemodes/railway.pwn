@@ -20,6 +20,8 @@
 #include <railway/accounts>
 #include <railway/inventory>
 #include <railway/ground>
+#include <railway/weapons>
+#include <railway/medical>
 #include <railway/vehicles>
 #include <railway/speedo>
 #include <railway/interaction>
@@ -117,6 +119,8 @@ public OnPlayerConnect(playerid)
     new nick[MAX_PLAYER_NAME];
 
     RW_InvReset(playerid);
+    RW_WpReset(playerid);
+    RW_MedReset(playerid);
     gLogged[playerid] = false;
     gAccountId[playerid] = -1;
     gAdminLevel[playerid] = 0;
@@ -160,6 +164,7 @@ public OnPlayerConnect(playerid)
 
 public OnPlayerDisconnect(playerid, reason)
 {
+    RW_WpFlush(playerid);
     RW_ClearRegisterPassword(playerid);
     RW_SaveAccount(playerid);
     RW_Veh_OnPlayerDisconnect(playerid);
@@ -203,6 +208,8 @@ public OnPlayerSpawn(playerid)
         return 0;
     }
 
+    if (RW_MedSpawn(playerid)) return 1;
+
     SetPlayerPos(playerid, STATION_X, STATION_Y, STATION_Z);
     SetPlayerFacingAngle(playerid, STATION_ANGLE);
     SetPlayerInterior(playerid, 0);
@@ -233,6 +240,14 @@ public OnPlayerDeath(playerid, killerid, reason)
     RW_UI_SpeedoHide(playerid);
     gMapPending[playerid] = false;
     gNoDrive[playerid] = false;
+    new Float:dx, Float:dy, Float:dz;
+    GetPlayerPos(playerid, dx, dy, dz);
+    RW_MedDown(playerid, dx, dy, dz);
+    return 1;
+}
+public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY, Float:fZ)
+{
+    RW_WpShot(playerid, weaponid);
     return 1;
 }
 
@@ -411,6 +426,7 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 {
     if (gUIMode[playerid] == UI_GARAGE) return RW_GarageClick(playerid, playertextid);
     if (gUIMode[playerid] == UI_KEYMENU) return RW_KeyMenuClick(playerid, playertextid);
+    if (gUIMode[playerid] == UI_DOWNED) return RW_MedClick(playerid, playertextid);
     if (gUIMode[playerid] == UI_INVENTORY) return RW_InvClick(playerid, playertextid);
     if (!gUICreated[playerid] || gUIRussianDialogs[playerid]) return 0;
     if (playertextid == gUI[playerid][11]) {
@@ -431,7 +447,7 @@ public OnPlayerClickTextDraw(playerid, Text:clickedid)
     if (!gUISelecting[playerid]) return 1;
     gUISelecting[playerid] = false;
     if (gUIInput[playerid]) return 1;
-    if (gUIMode[playerid] == UI_INVENTORY || gUIMode[playerid] == UI_GARAGE || gUIMode[playerid] == UI_KEYMENU) return RW_UI_Close(playerid);
+    if (gUIMode[playerid] == UI_INVENTORY || gUIMode[playerid] == UI_GARAGE || gUIMode[playerid] == UI_KEYMENU || gUIMode[playerid] == UI_DOWNED) return RW_UI_Close(playerid);
     if (gUIRussianDialogs[playerid]) return 1;
     if (gUIMode[playerid] == UI_AUTH && !gLogged[playerid]) RW_UI_SelectBegin(playerid);
     else if (gUIMode[playerid] != 0) RW_UI_Close(playerid);

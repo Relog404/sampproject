@@ -6,6 +6,11 @@
 #define INV_MAIN 50
 #define INV_BAG 30
 #define INV_SLOTS 80
+#define ITEM_WEAPON 3
+#define ITEM_AMMO 4
+#define ITEM_BANDAGE 5
+#define ITEM_SYRINGE 6
+#define INV_TYPE_MAX 6
 #define INV_NEAR 50
 #define INV_WORLD 500
 #define INV_TDS 165
@@ -15,8 +20,8 @@
 #define INV_MAIN_GRAMS 50000
 #define INV_BAG_GRAMS 40000
 
-enum E_INV_ITEM { iiUid, iiType, iiData };
-enum E_INV_GROUND { igUid, igType, igData, igObject, Float:igX, Float:igY, Float:igZ };
+enum E_INV_ITEM { iiUid, iiType, iiData, iiAmount };
+enum E_INV_GROUND { igUid, igType, igData, igAmount, igObject, Float:igX, Float:igY, Float:igZ };
 new gInv[MAX_PLAYERS][INV_SLOTS][E_INV_ITEM];
 new gGround[INV_WORLD][E_INV_GROUND];
 new PlayerText:gInvTD[MAX_PLAYERS][INV_TDS];
@@ -29,8 +34,25 @@ new bool:gInvFitting[MAX_PLAYERS];
 new gInvFitSkin[MAX_PLAYERS], gInvFitUid[MAX_PLAYERS];
 forward RW_InvPulse();
 
-stock RW_InvModel(type) { return type == ITEM_BACKPACK ? 3026 : 11746; }
-stock RW_InvGrams(type) { return type == ITEM_BACKPACK ? 1000 : 100; }
+stock RW_InvModel(type, data = 0)
+{
+    if (type == ITEM_BACKPACK) return 3026;
+    if (type == ITEM_WEAPON) return RW_WeaponModel(data);
+    if (type == ITEM_AMMO) return RW_AmmoModel(data);
+    if (type == ITEM_BANDAGE) return 1240;
+    if (type == ITEM_SYRINGE) return 11736;
+    return 11746;
+}
+// Weight in grams. Ammunition is weighed per round, so a stack scales with it.
+stock RW_InvGrams(type, data = 0, amount = 1)
+{
+    if (type == ITEM_BACKPACK) return 1000;
+    if (type == ITEM_WEAPON) return RW_WeaponGrams(data);
+    if (type == ITEM_AMMO) return amount * RW_CaliberGrams(data);
+    if (type == ITEM_BANDAGE) return 200;
+    if (type == ITEM_SYRINGE) return 300;
+    return 100;
+}
 stock RW_InvPack(playerid)
 {
     return gInvEquipped[playerid]>0 ? INV_SLOTS : -1;
@@ -38,14 +60,17 @@ stock RW_InvPack(playerid)
 stock RW_InvWeight(playerid, section)
 {
     new weight, start = section ? INV_MAIN : 0, end = section ? INV_SLOTS : INV_MAIN;
-    for (new i = start; i < end; i++) if (gInv[playerid][i][iiUid]) weight += RW_InvGrams(gInv[playerid][i][iiType]);
-    if (!section && gInvEquipped[playerid]>0) weight += RW_InvGrams(ITEM_BACKPACK);
+    for (new i = start; i < end; i++) if (gInv[playerid][i][iiUid]) weight += RW_InvGrams(gInv[playerid][i][iiType], gInv[playerid][i][iiData], gInv[playerid][i][iiAmount]);
+    if (!section) {
+        if (gInvEquipped[playerid]>0) weight += RW_InvGrams(ITEM_BACKPACK);
+        weight += RW_WpCarriedGrams(playerid);
+    }
     return weight;
 }
-stock RW_InvFree(playerid, section, type)
+stock RW_InvFree(playerid, section, type, data = 0, amount = 1)
 {
     if (section && (RW_InvPack(playerid) < 0 || type == ITEM_BACKPACK)) return -1;
-    if (RW_InvWeight(playerid, section) + RW_InvGrams(type) > (section ? INV_BAG_GRAMS : INV_MAIN_GRAMS)) return -1;
+    if (RW_InvWeight(playerid, section) + RW_InvGrams(type, data, amount) > (section ? INV_BAG_GRAMS : INV_MAIN_GRAMS)) return -1;
     new start = section ? INV_MAIN : 0, end = section ? INV_SLOTS : INV_MAIN;
     for (new i = start; i < end; i++) if (!gInv[playerid][i][iiUid]) return i;
     return -1;
@@ -103,11 +128,13 @@ stock bool:RW_InvWrite(query[])
 stock RW_InvInit()
 {
     if (gDB == DB:0 || !gDBWritable) return 0;
-    if (!RW_DB_Exec("CREATE TABLE IF NOT EXISTS inventory_items (uid INTEGER PRIMARY KEY AUTOINCREMENT, owner INTEGER, slot INTEGER NOT NULL, type INTEGER NOT NULL CHECK(type IN (1,2)), data INTEGER NOT NULL DEFAULT 0, x REAL NOT NULL DEFAULT 0, y REAL NOT NULL DEFAULT 0, z REAL NOT NULL DEFAULT 0, UNIQUE(owner,slot), CHECK((owner IS NULL AND slot=-1) OR (owner>0 AND slot>=0 AND slot<80)))")) return 0;
+    if (!RW_DB_Exec("CREATE TABLE IF NOT EXISTS inventory_items (uid INTEGER PRIMARY KEY AUTOINCREMENT, owner INTEGER, slot INTEGER NOT NULL, type INTEGER NOT NULL, data INTEGER NOT NULL DEFAULT 0, amount INTEGER NOT NULL DEFAULT 1, x REAL NOT NULL DEFAULT 0, y REAL NOT NULL DEFAULT 0, z REAL NOT NULL DEFAULT 0, UNIQUE(owner,slot), CHECK((owner IS NULL AND slot=-1) OR (owner>0 AND slot>=0 AND slot<80)))")) return 0;
     if (!RW_InvEquipmentSchema()) return 0;
+    if (!RW_WeaponsSchema()) return 0;
+    if (!RW_InvUpgradeSchema()) return 0;
     // Personal cars are session-only. Never let a recycled vehicle ID revive a key.
     if (!RW_DB_Exec("DELETE FROM inventory_items WHERE type=2 AND data NOT IN (SELECT token FROM owned_cars)")) return 0;
-    new DBResult:r = db_query(gDB, "SELECT uid,type,data,x,y,z FROM inventory_items WHERE owner IS NULL AND uid NOT IN(SELECT uid FROM inventory_equipment) ORDER BY uid");
+    new DBResult:r = db_query(gDB, "SELECT uid,type,data,amount,x,y,z FROM inventory_items WHERE owner IS NULL AND uid NOT IN(SELECT uid FROM inventory_equipment) AND uid NOT IN(SELECT uid FROM inventory_active) ORDER BY uid");
     if (r == DBResult:0) return 0;
     new count = db_num_rows(r);
     if (count > INV_WORLD) { db_free_result(r); print("[inventory] Ground capacity exceeded; inventory disabled, data preserved."); return 0; }
@@ -117,6 +144,7 @@ stock RW_InvInit()
         gGround[i][igUid] = uid;
         gGround[i][igType] = db_get_field_assoc_int(r, "type");
         gGround[i][igData] = db_get_field_assoc_int(r, "data");
+        gGround[i][igAmount] = db_get_field_assoc_int(r, "amount");
         gGround[i][igX] = db_get_field_assoc_float(r, "x");
         gGround[i][igY] = db_get_field_assoc_float(r, "y");
         gGround[i][igZ] = db_get_field_assoc_float(r, "z");
@@ -140,22 +168,29 @@ stock RW_InvLoad(playerid)
     gInvLoaded[playerid] = false;
     if (!gInvReady) return 0;
     for (new i; i < INV_SLOTS; i++) for (new E_INV_ITEM:j; j < E_INV_ITEM; j++) gInv[playerid][i][j] = 0;
-    new query[160]; format(query, sizeof query, "SELECT uid,slot,type,data FROM inventory_items WHERE owner=%d ORDER BY slot", gAccountId[playerid]);
+    new query[160]; format(query, sizeof query, "SELECT uid,slot,type,data,amount FROM inventory_items WHERE owner=%d ORDER BY slot", gAccountId[playerid]);
     new DBResult:r = db_query(gDB, query);
     if (r == DBResult:0) return 0;
     new count = db_num_rows(r), valid = 1;
     for (new i; i < count; i++) {
         new slot = db_get_field_assoc_int(r, "slot"), type = db_get_field_assoc_int(r, "type");
-        if (slot < 0 || slot >= INV_SLOTS || (type != ITEM_BACKPACK && type != ITEM_CAR_KEY) || (slot >= INV_MAIN && type == ITEM_BACKPACK)) { valid = 0; break; }
+        if (slot < 0 || slot >= INV_SLOTS || type <= 0 || type > INV_TYPE_MAX) { valid = 0; break; }
+        if (slot >= INV_MAIN && type == ITEM_BACKPACK) { valid = 0; break; }
+        if ((type == ITEM_WEAPON && !RW_WeaponValid(db_get_field_assoc_int(r, "data"))) || (type == ITEM_AMMO && !RW_CaliberValid(db_get_field_assoc_int(r, "data")))) { valid = 0; break; }
+        if (db_get_field_assoc_int(r, "amount") < 0) { valid = 0; break; }
         new uid = db_get_field_assoc_int(r, "uid");
         if (uid <= 0) { valid = 0; break; }
         gInv[playerid][slot][iiUid] = uid;
         gInv[playerid][slot][iiType] = type;
         gInv[playerid][slot][iiData] = db_get_field_assoc_int(r, "data");
+        gInv[playerid][slot][iiAmount] = db_get_field_assoc_int(r, "amount");
+        if (type == ITEM_AMMO && gInv[playerid][slot][iiAmount] > RW_CaliberMax(gInv[playerid][slot][iiData])) { valid = 0; break; }
+        if (type != ITEM_AMMO && gInv[playerid][slot][iiAmount] < 1) { valid = 0; break; }
         db_next_row(r);
     }
     db_free_result(r);
     if (!RW_InvEquipmentLoad(playerid)) valid = 0;
+    if (!RW_WpLoadState(playerid)) valid = 0;
     if (RW_InvWeight(playerid, 0) > INV_MAIN_GRAMS || RW_InvWeight(playerid, 1) > INV_BAG_GRAMS || (RW_InvPack(playerid) < 0 && RW_InvWeight(playerid, 1) > 0)) valid = 0;
     if (!valid) { print("[inventory] Invalid inventory state; data preserved, player inventory locked."); return 0; }
     gInvLoaded[playerid] = true;
@@ -179,11 +214,14 @@ stock RW_InvReset(playerid)
     return 1;
 }
 // Returns a durable item UID, or zero; no in-memory grant before COMMIT.
-stock RW_InvGrant(playerid, type, data = 0)
+stock RW_InvGrant(playerid, type, data = 0, amount = 1)
 {
-    if (!gLogged[playerid] || !gInvLoaded[playerid] || (type != ITEM_BACKPACK && type != ITEM_CAR_KEY)) return 0;
+    if (!gLogged[playerid] || !gInvLoaded[playerid] || type <= 0 || type > INV_TYPE_MAX) return 0;
     if ((type==ITEM_BACKPACK && data!=0) || data<0 || (type==ITEM_CAR_KEY && data>0 && !RW_InvKeyTokenKnown(data))) return 0;
-    new slot = RW_InvFree(playerid, 0, type);
+    if ((type==ITEM_BACKPACK || type==ITEM_BANDAGE || type==ITEM_SYRINGE) && amount!=1) return 0;
+    if (type==ITEM_WEAPON && (!RW_WeaponValid(data) || amount!=1)) return 0;
+    if (type==ITEM_AMMO && (!RW_CaliberValid(data) || amount<1 || amount>RW_CaliberMax(data))) return 0;
+    new slot = RW_InvFree(playerid, 0, type, data, amount);
     if (slot < 0) return 0;
     if (!RW_DB_Exec("SAVEPOINT inventory_grant")) return 0;
     new query[256]; format(query, sizeof query, "INSERT INTO inventory_items(owner,slot,type,data) VALUES(%d,%d,%d,%d)", gAccountId[playerid], slot, type, data);
@@ -202,7 +240,7 @@ stock RW_InvGrant(playerid, type, data = 0)
     if (ok && type == ITEM_CAR_KEY) ok = RW_GarageMarkKey(uid, data);
     if (!ok) { RW_DB_Exec("ROLLBACK TO inventory_grant"); RW_DB_Exec("RELEASE inventory_grant"); return 0; }
     if (!RW_DB_Exec("RELEASE inventory_grant")) { RW_DB_Exec("ROLLBACK TO inventory_grant"); RW_DB_Exec("RELEASE inventory_grant"); return 0; }
-    gInv[playerid][slot][iiUid] = uid; gInv[playerid][slot][iiType] = type; gInv[playerid][slot][iiData] = data;
+    gInv[playerid][slot][iiUid] = uid; gInv[playerid][slot][iiType] = type; gInv[playerid][slot][iiData] = data; gInv[playerid][slot][iiAmount] = amount;
     RW_InvAttach(playerid);
     if (gUIMode[playerid] == UI_INVENTORY) RW_InvRender(playerid);
     return uid;
@@ -236,6 +274,7 @@ stock RW_InvRevokeKey(token)
 }
 stock bool:RW_InvCanRemove(playerid, slot)
 {
+    if (gInv[playerid][slot][iiUid] > 0 && gInv[playerid][slot][iiUid] == gWpActive[playerid]) { RW_Error(playerid, "Unequip the weapon first."); return false; }
     if (gInv[playerid][slot][iiType] == ITEM_CAR_KEY) for (new v; v < VEHICLE_SLOTS; v++)
         if (gVeh[v][vsUsed] && gVeh[v][vsKey] && gVehKeyUid[v] == gInv[playerid][slot][iiData]) {
             RW_Error(playerid, "Remove the key from the ignition first."); return false;
@@ -252,11 +291,11 @@ stock RW_InvTransfer(playerid, section)
     if (gInvFromGround[playerid]) {
         new ground = RW_InvGroundFind(uid);
         if (!RW_InvNearGround(playerid, ground)) return RW_Error(playerid, "Item is no longer available.");
-        new dest = RW_InvFree(playerid, section, gGround[ground][igType]);
+        new dest = RW_InvFree(playerid, section, gGround[ground][igType], gGround[ground][igData], gGround[ground][igAmount]);
         if (dest < 0) return RW_Error(playerid, "No space or weight limit exceeded.");
-        format(query, sizeof query, "UPDATE inventory_items SET owner=%d,slot=%d,x=0,y=0,z=0 WHERE uid=%d AND owner IS NULL AND uid NOT IN(SELECT uid FROM inventory_equipment)", gAccountId[playerid], dest, uid);
+        format(query, sizeof query, "UPDATE inventory_items SET owner=%d,slot=%d,x=0,y=0,z=0 WHERE uid=%d AND owner IS NULL AND uid NOT IN(SELECT uid FROM inventory_equipment) AND uid NOT IN(SELECT uid FROM inventory_active)", gAccountId[playerid], dest, uid);
         if (!RW_InvWrite(query)) return RW_Error(playerid, "Could not save the item.");
-        gInv[playerid][dest][iiUid] = uid; gInv[playerid][dest][iiType] = gGround[ground][igType]; gInv[playerid][dest][iiData] = gGround[ground][igData];
+        gInv[playerid][dest][iiUid] = uid; gInv[playerid][dest][iiType] = gGround[ground][igType]; gInv[playerid][dest][iiData] = gGround[ground][igData]; gInv[playerid][dest][iiAmount] = gGround[ground][igAmount];
         if (IsValidObject(gGround[ground][igObject])) DestroyObject(gGround[ground][igObject]);
         gGround[ground][igUid] = 0;
         gInvFromGround[playerid] = false;
@@ -265,7 +304,7 @@ stock RW_InvTransfer(playerid, section)
         if (source < 0) return 1;
         if ((source >= INV_MAIN) == (section != 0)) return 1;
         if (!RW_InvCanRemove(playerid, source)) return 1;
-        new dest = RW_InvFree(playerid, section, gInv[playerid][source][iiType]);
+        new dest = RW_InvFree(playerid, section, gInv[playerid][source][iiType], gInv[playerid][source][iiData], gInv[playerid][source][iiAmount]);
         if (dest < 0) return RW_Error(playerid, "No space or weight limit exceeded.");
         format(query, sizeof query, "UPDATE inventory_items SET slot=%d WHERE uid=%d AND owner=%d AND slot=%d", dest, uid, gAccountId[playerid], source);
         if (!RW_InvWrite(query)) return RW_Error(playerid, "Could not save the transfer.");
@@ -290,7 +329,7 @@ stock RW_InvDrop(playerid)
     if (object == INVALID_OBJECT_ID) return RW_Error(playerid, "Could not create the world item.");
     new query[320]; format(query, sizeof query, "UPDATE inventory_items SET owner=NULL,slot=-1,x=%f,y=%f,z=%f WHERE uid=%d AND owner=%d AND slot=%d", x, y, z, gInv[playerid][source][iiUid], gAccountId[playerid], source);
     if (!RW_InvWrite(query)) { DestroyObject(object); return RW_Error(playerid, "Could not save the item."); }
-    gGround[ground][igUid] = gInv[playerid][source][iiUid]; gGround[ground][igType] = gInv[playerid][source][iiType]; gGround[ground][igData] = gInv[playerid][source][iiData];
+    gGround[ground][igUid] = gInv[playerid][source][iiUid]; gGround[ground][igType] = gInv[playerid][source][iiType]; gGround[ground][igData] = gInv[playerid][source][iiData]; gGround[ground][igAmount] = gInv[playerid][source][iiAmount];
     gGround[ground][igObject] = object; gGround[ground][igX] = x; gGround[ground][igY] = y; gGround[ground][igZ] = z;
     for (new E_INV_ITEM:j; j < E_INV_ITEM; j++) gInv[playerid][source][j] = 0;
     gInvSelected[playerid] = 0;
@@ -341,7 +380,7 @@ stock RW_InvCreate(playerid)
     RW_InvLabel(playerid, 144, 20.0, 246.0, "BACKPACK", 196.0);
     RW_InvLabel(playerid, 145, 420.0, 56.0, "NEARBY / 3m", 195.0);
     RW_InvLabel(playerid, 146, 265.0, 56.0, "CHARACTER", 130.0);
-    RW_InvLabel(playerid, 147, 253.0, 304.0, "BACK / 7 EQUIP SOON", 143.0);
+    RW_InvLabel(playerid, 147, 253.0, 304.0, "BACK / ACTIVE / 6 SOON", 143.0);
     PlayerTextDrawSetSelectable(playerid,gInvTD[playerid][131],1);
     RW_InvLabel(playerid, 148, 595.0, 377.0, "X", 22.0, true);
     RW_InvLabel(playerid, 149, 285.0, 377.0, "MAIN", 62.0, true);
@@ -363,14 +402,14 @@ stock RW_InvCreate(playerid)
     gInvCreated[playerid] = true;
     return 1;
 }
-stock RW_InvCell(playerid, index, type, bool:selected)
+stock RW_InvCell(playerid, index, type, bool:selected, data = 0)
 {
     PlayerTextDrawHide(playerid, gInvTD[playerid][index]);
     if (type) {
         PlayerTextDrawFont(playerid, gInvTD[playerid][index], 5);
         PlayerTextDrawColor(playerid, gInvTD[playerid][index], 0xFFFFFFFF);
         PlayerTextDrawBackgroundColor(playerid, gInvTD[playerid][index], selected ? 0xD8C39B99 : 0x232A36FF);
-        PlayerTextDrawSetPreviewModel(playerid, gInvTD[playerid][index], RW_InvModel(type));
+        PlayerTextDrawSetPreviewModel(playerid, gInvTD[playerid][index], RW_InvModel(type, data));
         PlayerTextDrawSetPreviewRot(playerid, gInvTD[playerid][index], type == ITEM_CAR_KEY ? 90.0 : 0.0, 0.0, 25.0, 1.0);
     } else {
         PlayerTextDrawFont(playerid, gInvTD[playerid][index], 4);
@@ -384,12 +423,32 @@ stock RW_InvContextRender(playerid)
 {
     for (new i = 155; i < INV_TDS; i++) PlayerTextDrawHide(playerid, gInvTD[playerid][i]);
     if (!gInvContext[playerid] || !gInvSelected[playerid]) return 1;
-    new slot = RW_InvFind(playerid, gInvSelected[playerid]), ground = RW_InvGroundFind(gInvSelected[playerid]), type, data;
+    new slot = RW_InvFind(playerid, gInvSelected[playerid]), ground = RW_InvGroundFind(gInvSelected[playerid]), type, data, amount;
     if (gInvFromGround[playerid]) { if (!RW_InvNearGround(playerid, ground)) return 1; type=gGround[ground][igType]; data=gGround[ground][igData]; }
-    else { if(slot<0) { if(gInvSelected[playerid]!=gInvEquipped[playerid]) return 1; type=ITEM_BACKPACK; } else { type=gInv[playerid][slot][iiType]; data=gInv[playerid][slot][iiData]; } }
-    PlayerTextDrawSetString(playerid, gInvTD[playerid][156], type == ITEM_BACKPACK ? ("BACKPACK") : ("CAR KEY"));
+    else { if(slot<0) {
+            if(gWpActive[playerid]>0 && gInvSelected[playerid]==gWpActive[playerid]) { type=ITEM_WEAPON; data=gWpWeapon[playerid]; amount=gWpAmmo[playerid]; }
+            else if(gInvSelected[playerid]==gInvEquipped[playerid]) type=ITEM_BACKPACK;
+            else return 1;
+        } else { type=gInv[playerid][slot][iiType]; data=gInv[playerid][slot][iiData]; amount=gInv[playerid][slot][iiAmount]; } }
+    if (gInvFromGround[playerid]) amount = gGround[ground][igAmount];
+    new title[32];
+    if (type == ITEM_BACKPACK) format(title, sizeof title, "%s", "BACKPACK");
+    else if (type == ITEM_WEAPON) RW_WeaponName(data, title, sizeof title);
+    else if (type == ITEM_AMMO) { new cname[16]; RW_CaliberName(data, cname, sizeof cname); format(title, sizeof title, "%s AMMO", cname); }
+    else if (type == ITEM_BANDAGE) format(title, sizeof title, "%s", "BANDAGE");
+    else if (type == ITEM_SYRINGE) format(title, sizeof title, "%s", "ADRENALINE");
+    else format(title, sizeof title, "%s", "CAR KEY");
+    PlayerTextDrawSetString(playerid, gInvTD[playerid][156], title);
     new stats[128], desc[128];
     if (type == ITEM_BACKPACK) { format(desc,sizeof desc,"%s",gInvSelected[playerid]==gInvEquipped[playerid] ? ("Equipped / BACK slot") : ("Equip in BACK slot")); format(stats,sizeof stats,"1kg / +30 slots / 40kg"); }
+    else if (type == ITEM_WEAPON) {
+        new cal = RW_WpCaliber(data);
+        if (!cal) { format(desc, sizeof desc, "Melee or thrown / no ammo"); format(stats, sizeof stats, "%.1fkg", float(RW_WeaponGrams(data))/1000.0); }
+        else { new cname[16]; RW_CaliberName(cal, cname, sizeof cname); format(desc, sizeof desc, "Uses %s / magazine %d", cname, RW_WpMag(data)); format(stats, sizeof stats, "%.1fkg / %d / %d", float(RW_WeaponGrams(data))/1000.0, amount, RW_WpMag(data)); }
+    }
+    else if (type == ITEM_AMMO) { format(desc, sizeof desc, "%d rounds, max %d per stack", amount, RW_CaliberMax(data)); format(stats, sizeof stats, "%.1fkg / %dg per round", float(amount*RW_CaliberGrams(data))/1000.0, RW_CaliberGrams(data)); }
+    else if (type == ITEM_BANDAGE) { format(desc, sizeof desc, "Heals 15 HP over 3 seconds"); format(stats, sizeof stats, "0.2kg / 1s cooldown"); }
+    else if (type == ITEM_SYRINGE) { format(desc, sizeof desc, "Revives a downed player in 3s"); format(stats, sizeof stats, "0.3kg / single use"); }
     else {
         new model, bool:permanent = RW_GarageKeyModel(data, model);
         format(desc,sizeof desc,"%s vehicle access", permanent ? ("Permanent") : ("Temporary"));
@@ -399,10 +458,17 @@ stock RW_InvContextRender(playerid)
     PlayerTextDrawSetString(playerid,gInvTD[playerid][158],stats);
     for(new i=155;i<=158;i++) PlayerTextDrawShow(playerid,gInvTD[playerid][i]);
     PlayerTextDrawShow(playerid,gInvTD[playerid][164]);
+    new action[16]; format(action, sizeof action, "%s", "USE KEY");
+    if (type == ITEM_WEAPON) format(action, sizeof action, "%s", gWpActive[playerid] == gInvSelected[playerid] ? ("UNEQUIP") : ("EQUIP"));
+    else if (type == ITEM_AMMO) format(action, sizeof action, "%s", "LOAD");
+    else if (type == ITEM_BANDAGE || type == ITEM_SYRINGE) format(action, sizeof action, "%s", "USE");
+    PlayerTextDrawSetString(playerid, gInvTD[playerid][163], action);
+    if (type == ITEM_WEAPON && !gInvFromGround[playerid]) PlayerTextDrawSetString(playerid, gInvTD[playerid][160], gWpActive[playerid] == gInvSelected[playerid] ? ("UNEQUIP") : ("EQUIP"));
+    else PlayerTextDrawSetString(playerid, gInvTD[playerid][160], "WEAR");
     if (!gInvFromGround[playerid] && gInvSelected[playerid]!=gInvEquipped[playerid]) {
         PlayerTextDrawShow(playerid,gInvTD[playerid][159]);
-        if(type==ITEM_BACKPACK) PlayerTextDrawShow(playerid,gInvTD[playerid][160]);
-        if(type==ITEM_CAR_KEY) PlayerTextDrawShow(playerid,gInvTD[playerid][163]);
+        if(type==ITEM_BACKPACK || (type==ITEM_WEAPON && gWpActive[playerid]!=gInvSelected[playerid])) PlayerTextDrawShow(playerid,gInvTD[playerid][160]);
+        if(type==ITEM_CAR_KEY || type==ITEM_AMMO || type==ITEM_BANDAGE || type==ITEM_SYRINGE || (type==ITEM_WEAPON && gWpActive[playerid]==gInvSelected[playerid])) PlayerTextDrawShow(playerid,gInvTD[playerid][163]);
     }
     if ((gInvFromGround[playerid] || slot<INV_MAIN) && RW_InvPack(playerid)>=0 && type!=ITEM_BACKPACK) PlayerTextDrawShow(playerid,gInvTD[playerid][161]);
     if (gInvFromGround[playerid] || slot>=INV_MAIN || (gInvEquipped[playerid]>0 && gInvSelected[playerid]==gInvEquipped[playerid])) PlayerTextDrawShow(playerid,gInvTD[playerid][162]);
@@ -413,16 +479,17 @@ stock RW_InvRender(playerid)
     if (gUIMode[playerid] != UI_INVENTORY || !gInvCreated[playerid]) return 1;
     new hasBag = RW_InvPack(playerid) >= 0;
     RW_InvCell(playerid,131,hasBag ? ITEM_BACKPACK : 0,gInvSelected[playerid]>0 && gInvSelected[playerid]==gInvEquipped[playerid]);
+    RW_InvCell(playerid,132,gWpActive[playerid]>0 ? ITEM_WEAPON : 0,gInvSelected[playerid]>0 && gInvSelected[playerid]==gWpActive[playerid],gWpWeapon[playerid]);
     for (new i; i < INV_SLOTS; i++) {
         if (i >= INV_MAIN && !hasBag) { PlayerTextDrawHide(playerid, gInvTD[playerid][i]); continue; }
-        RW_InvCell(playerid, i, gInv[playerid][i][iiType], !gInvFromGround[playerid] && gInv[playerid][i][iiUid] > 0 && gInv[playerid][i][iiUid] == gInvSelected[playerid]);
+        RW_InvCell(playerid, i, gInv[playerid][i][iiType], !gInvFromGround[playerid] && gInv[playerid][i][iiUid] > 0 && gInv[playerid][i][iiUid] == gInvSelected[playerid], gInv[playerid][i][iiData]);
     }
     new count;
     for (new i; i < INV_WORLD && count < INV_NEAR; i++) if (RW_InvNearGround(playerid, i)) gInvNear[playerid][count++] = gGround[i][igUid];
     for (new i = count; i < INV_NEAR; i++) gInvNear[playerid][i] = 0;
     for (new i; i < INV_NEAR; i++) {
         new ground = RW_InvGroundFind(gInvNear[playerid][i]);
-        RW_InvCell(playerid, 80+i, ground < 0 ? 0 : gGround[ground][igType], gInvFromGround[playerid] && gInvNear[playerid][i] > 0 && gInvNear[playerid][i] == gInvSelected[playerid]);
+        RW_InvCell(playerid, 80+i, ground < 0 ? 0 : gGround[ground][igType], gInvFromGround[playerid] && gInvNear[playerid][i] > 0 && gInvNear[playerid][i] == gInvSelected[playerid], ground < 0 ? 0 : gGround[ground][igData]);
     }
     new text[128];
     format(text, sizeof text, "INVENTORY  %.1f / 50kg", float(RW_InvWeight(playerid, 0))/1000.0);
@@ -432,17 +499,27 @@ stock RW_InvRender(playerid)
     PlayerTextDrawSetString(playerid, gInvTD[playerid][144], text);
     format(text, sizeof text, "NEARBY  %d / 50  / 3m", count);
     PlayerTextDrawSetString(playerid, gInvTD[playerid][145], text);
-    new type, data;
+    new type, data, amountShown;
     if (gInvFromGround[playerid]) {
         new ground = RW_InvGroundFind(gInvSelected[playerid]);
-        if (RW_InvNearGround(playerid, ground)) { type = gGround[ground][igType]; data = gGround[ground][igData]; }
+        if (RW_InvNearGround(playerid, ground)) { type = gGround[ground][igType]; data = gGround[ground][igData]; amountShown = gGround[ground][igAmount]; }
     } else {
         new slot = RW_InvFind(playerid, gInvSelected[playerid]);
-        if (slot >= 0) { type = gInv[playerid][slot][iiType]; data = gInv[playerid][slot][iiData]; }
+        if (slot >= 0) { type = gInv[playerid][slot][iiType]; data = gInv[playerid][slot][iiData]; amountShown = gInv[playerid][slot][iiAmount]; }
         else if(gInvEquipped[playerid]>0 && gInvSelected[playerid]==gInvEquipped[playerid]) type=ITEM_BACKPACK;
+        else if(gWpActive[playerid]>0 && gInvSelected[playerid]==gWpActive[playerid]) { type=ITEM_WEAPON; data=gWpWeapon[playerid]; amountShown=gWpAmmo[playerid]; }
     }
     if (!type) { gInvSelected[playerid] = 0; format(text, sizeof text, "SELECT ITEM"); }
     else if (type == ITEM_BACKPACK) format(text, sizeof text, "BACKPACK / 1kg / +30");
+    else if (type == ITEM_WEAPON) {
+        new wname[32], cal = RW_WpCaliber(data);
+        RW_WeaponName(data, wname, sizeof wname);
+        if (!cal) format(text, sizeof text, "%s / no ammo", wname);
+        else format(text, sizeof text, "%s / %d rnd / cal %d", wname, amountShown, cal);
+    }
+    else if (type == ITEM_AMMO) { new cname[16]; RW_CaliberName(data, cname, sizeof cname); format(text, sizeof text, "%s ammo / %d rnd", cname, amountShown); }
+    else if (type == ITEM_BANDAGE) format(text, sizeof text, "BANDAGE / +15 HP / 3s");
+    else if (type == ITEM_SYRINGE) format(text, sizeof text, "ADRENALINE / revive / 3s");
     else {
         new vehicle = -1;
         for (new v; v < VEHICLE_SLOTS; v++) if (gVeh[v][vsUsed] && gVehKeyUid[v] == data) vehicle = gVeh[v][vsVehicleId];
@@ -456,6 +533,7 @@ stock RW_InvOpen(playerid)
 {
     if (gUIMode[playerid] == UI_INVENTORY) return RW_UI_Close(playerid);
     if (!gLogged[playerid] || !gInvLoaded[playerid]) return RW_Error(playerid, "Inventory unavailable: check the database.");
+    if (gDowned[playerid]) return RW_Error(playerid, "You are downed and cannot reach your backpack.");
     new pstate = GetPlayerState(playerid);
     if (pstate != PLAYER_STATE_ONFOOT && pstate != PLAYER_STATE_DRIVER && pstate != PLAYER_STATE_PASSENGER) return 1;
     if (gUIInput[playerid] || gInvFitting[playerid]) return 1;
@@ -482,6 +560,10 @@ stock RW_InvClick(playerid, PlayerText:clicked)
         gInvSelected[playerid] = i < 80 ? gInv[playerid][i][iiUid] : gInvNear[playerid][i-80];
         return RW_InvRender(playerid);
     }
+    if (clicked == gInvTD[playerid][132]) {
+        if(gWpActive[playerid]>0) { gInvSelected[playerid]=gWpActive[playerid]; gInvFromGround[playerid]=false; gInvContext[playerid]=true; return RW_InvRender(playerid); }
+        return RW_Info(playerid, "Put a weapon here: select it in MAIN and press EQUIP.");
+    }
     if (clicked == gInvTD[playerid][131]) {
         if(gInvEquipped[playerid]>0) { gInvSelected[playerid]=gInvEquipped[playerid]; gInvFromGround[playerid]=false; gInvContext[playerid]=true; return RW_InvRender(playerid); }
         return RW_InvEquip(playerid);
@@ -494,12 +576,17 @@ stock RW_InvClick(playerid, PlayerText:clicked)
     if (clicked == gInvTD[playerid][160] && !gInvFromGround[playerid]) {
         new slot=RW_InvFind(playerid,gInvSelected[playerid]);
         if(slot>=0 && gInv[playerid][slot][iiType]==ITEM_BACKPACK) return RW_InvEquip(playerid);
+        if(slot>=0 && gInv[playerid][slot][iiType]==ITEM_WEAPON) return RW_WpEquip(playerid, gInv[playerid][slot][iiUid]);
     }
     if (clicked == gInvTD[playerid][162]) return RW_InvTransfer(playerid, 0);
     if (clicked == gInvTD[playerid][161]) return RW_InvTransfer(playerid, 1);
     if (clicked == gInvTD[playerid][159]) return RW_InvDrop(playerid);
     if (clicked == gInvTD[playerid][163] && !gInvFromGround[playerid]) {
+        if (gWpActive[playerid] > 0 && gInvSelected[playerid] == gWpActive[playerid]) return RW_WpUnequip(playerid);
         new slot = RW_InvFind(playerid, gInvSelected[playerid]);
+        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_AMMO) return RW_WpReloadFrom(playerid, slot);
+        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_BANDAGE) return RW_UseBandage(playerid, slot);
+        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_SYRINGE) return RW_UseSyringe(playerid, slot);
         if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_CAR_KEY) {
             new token = gInv[playerid][slot][iiData];
             for (new v; v < VEHICLE_SLOTS; v++) if (gVeh[v][vsUsed] && gVehKeyUid[v] == token) {
@@ -512,11 +599,16 @@ stock RW_InvClick(playerid, PlayerText:clicked)
 public RW_InvPulse()
 {
     RW_GaragePulse();
-    for (new p; p < MAX_PLAYERS; p++) if (IsPlayerConnected(p) && gUIMode[p] == UI_INVENTORY) {
-        new pstate = GetPlayerState(p);
-        if (!gLogged[p] || (pstate != PLAYER_STATE_ONFOOT && pstate != PLAYER_STATE_DRIVER && pstate != PLAYER_STATE_PASSENGER)) RW_UI_Close(p);
-        else RW_InvRender(p);
+    for (new p; p < MAX_PLAYERS; p++) {
+        if (!IsPlayerConnected(p)) continue;
+        if (gUIMode[p] == UI_INVENTORY) {
+            new pstate = GetPlayerState(p);
+            if (!gLogged[p] || (pstate != PLAYER_STATE_ONFOOT && pstate != PLAYER_STATE_DRIVER && pstate != PLAYER_STATE_PASSENGER)) RW_UI_Close(p);
+            else RW_InvRender(p);
+        }
+        RW_WpFlush(p);
     }
+    RW_MedPulse();
     return 1;
 }
 stock RW_InvExit()

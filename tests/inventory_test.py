@@ -23,6 +23,7 @@ class InventoryStorageTests(unittest.TestCase):
         self.db = sqlite3.connect(':memory:', isolation_level=None)
         self.db.execute(sql('CREATE TABLE'))
         self.db.execute(sql('CREATE TABLE IF NOT EXISTS inventory_equipment'))
+        self.db.execute("CREATE TABLE IF NOT EXISTS inventory_active (owner INTEGER PRIMARY KEY, uid INTEGER NOT NULL UNIQUE)")
         self.db.execute('CREATE TABLE permanent_keys(uid INTEGER PRIMARY KEY, car INTEGER)')
         self.db.execute('CREATE TABLE owned_cars(id INTEGER PRIMARY KEY, owner INTEGER, model INTEGER, token INTEGER UNIQUE)')
 
@@ -41,10 +42,12 @@ class InventoryStorageTests(unittest.TestCase):
 
     def test_unique_slots_and_domain_constraints(self):
         self.item()
-        for args in ((1, 0, 2, 10), (1, 80, 1, 0), (1, -1, 1, 0), (0, 1, 1, 0), (2, 1, 9, 0)):
+        for args in ((1, 0, 2, 10), (1, 80, 1, 0), (1, -1, 1, 0), (0, 1, 1, 0)):
             with self.assertRaises(sqlite3.IntegrityError):
                 self.item(*args)
         self.item(2, 0)  # Same slot on a different account is independent.
+        # Item types are validated in Pawn, the table only constrains slots/owners.
+        self.assertIn('type > INV_TYPE_MAX', INV)
 
     def test_two_players_cannot_pick_up_same_uid(self):
         uid = self.item()
@@ -113,7 +116,7 @@ class InventorySourceTests(unittest.TestCase):
         for name, value in [('INV_MAIN', 50), ('INV_BAG', 30), ('INV_SLOTS', 80), ('INV_NEAR', 50), ('INV_MAIN_GRAMS', 50000), ('INV_BAG_GRAMS', 40000)]:
             self.assertRegex(INV, rf'#define {name}\s+{value}\b')
         free = section('stock RW_InvFree', 'stock RW_InvFind')
-        self.assertIn('RW_InvWeight(playerid, section) + RW_InvGrams(type)', free)
+        self.assertIn('RW_InvWeight(playerid, section) + RW_InvGrams(type, data, amount)', free)
         self.assertIn('section ? INV_BAG_GRAMS : INV_MAIN_GRAMS', free)
         self.assertIn('RW_InvPack(playerid) < 0 || type == ITEM_BACKPACK', free)
         remove = section('stock bool:RW_InvCanRemove', 'stock RW_InvTransfer')

@@ -85,6 +85,18 @@ new gVehSlotOf[MAX_VEHICLES];          /* vehicleid -> слот (или -1)         */
 new gVehSlotCount;
 new gVehKeyUid[VEHICLE_SLOTS], gVehGarageId[VEHICLE_SLOTS], gVehSpawnStamp[VEHICLE_SLOTS], gVehStampCounter;
 
+/* Weapon state lives here because the inventory include needs it earlier. */
+new gWpActive[MAX_PLAYERS], gWpWeapon[MAX_PLAYERS], gWpAmmo[MAX_PLAYERS];
+new bool:gWpDirty[MAX_PLAYERS];
+
+/* Medical state: bandages, adrenaline and the downed state after death. */
+new bool:gDowned[MAX_PLAYERS];
+new gDownEnd[MAX_PLAYERS], gDownStamp[MAX_PLAYERS];
+new Float:gDownX[MAX_PLAYERS], Float:gDownY[MAX_PLAYERS], Float:gDownZ[MAX_PLAYERS];
+new bool:gMedBusy[MAX_PLAYERS], gMedCooldown[MAX_PLAYERS], gMedTick[MAX_PLAYERS];
+new PlayerText:gMedTD[MAX_PLAYERS][9];
+new bool:gMedCreated[MAX_PLAYERS];
+
 new bool:gLogged[MAX_PLAYERS];         /* игрок авторизован                  */
 new gAccountId[MAX_PLAYERS];           /* id аккаунта в Ѕƒ (-1 Ч гость)      */
 new gAdminLevel[MAX_PLAYERS];

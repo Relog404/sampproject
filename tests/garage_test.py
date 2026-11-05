@@ -19,6 +19,7 @@ class PermanentGarageStorageTest(unittest.TestCase):
         self.db = sqlite3.connect(':memory:', isolation_level=None)
         self.db.execute(query(INV, 'CREATE TABLE'))
         self.db.execute(query(INV, 'CREATE TABLE IF NOT EXISTS inventory_equipment'))
+        self.db.execute("CREATE TABLE IF NOT EXISTS inventory_active (owner INTEGER PRIMARY KEY, uid INTEGER NOT NULL UNIQUE)")
         self.db.execute(query(GARAGE, 'CREATE TABLE IF NOT EXISTS owned_cars'))
         self.db.execute(query(GARAGE, 'CREATE TABLE IF NOT EXISTS permanent_keys'))
 
