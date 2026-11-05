@@ -68,6 +68,7 @@ stock RW_CommandAdminHelp(playerid)
 
     RW_Accent(playerid, "--- {F5B04C}Admin commands{FFFFFF} ---");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/kick <id> [reason]{FFFFFF} - kick a player.");
+    SendClientMessage(playerid, COLOR_GREY, "/setskin <playerid> <skinid> - change and save player skin.");
     SendClientMessage(playerid, COLOR_GREY, "/giveitem <id> <1=backpack,2=key> [vehicleid]");
     SendClientMessage(playerid, COLOR_DARK_GREY, "/givecar <id|name> <model> /flycar /speed <km/h> /usk <km/h/s>");
     return 1;
@@ -199,6 +200,36 @@ stock RW_CommandKick(playerid, const params[])
     return 1;
 }
 
+stock RW_CommandSetSkin(playerid, const params[])
+{
+    if (!gLogged[playerid] || gAdminLevel[playerid] < 1) return RW_Error(playerid, "Administrators only.");
+    new targetText[16], skinText[16], rest[144], extra[144];
+    RW_ParseCommand(params, targetText, sizeof targetText, rest, sizeof rest);
+    RW_ParseCommand(rest, skinText, sizeof skinText, extra, sizeof extra);
+    if (!RW_IsNumeric(targetText) || !RW_IsNumeric(skinText) || extra[0] || strlen(targetText) > 4 || strlen(skinText) > 3)
+        return RW_Info(playerid, "/setskin <playerid> <skinid>");
+    new target = strval(targetText), skin = strval(skinText);
+    if (target < 0 || target >= MAX_PLAYERS || !IsPlayerConnected(target) || !gLogged[target]) return RW_Error(playerid, "Player must be online and logged in.");
+    if (skin < 0 || skin > 311 || skin == 74) return RW_Error(playerid, "Skin ID must be 0-311, excluding 74.");
+    new pstate = GetPlayerState(target);
+    if (pstate != PLAYER_STATE_ONFOOT && pstate != PLAYER_STATE_DRIVER && pstate != PLAYER_STATE_PASSENGER)
+        return RW_Error(playerid, "Wait until the player has spawned and finished entering/exiting a vehicle.");
+    new query[144]; format(query, sizeof query, "UPDATE accounts SET skin=%d WHERE id=%d", skin, gAccountId[target]);
+    if (!gDBWritable || !RW_DB_Exec(query)) return RW_Error(playerid, "Could not save skin. Nothing changed.");
+    gSkinId[target] = skin;
+    SetPlayerSkin(target, skin);
+    RW_InvAttach(target);
+    if (gUIMode[target] == UI_INVENTORY && gInvCreated[target]) {
+        PlayerTextDrawSetPreviewModel(target, gInvTD[target][130], skin);
+        PlayerTextDrawShow(target, gInvTD[target][130]);
+    }
+    new message[128]; format(message, sizeof message, "Your skin has been changed to %d by an administrator.", skin);
+    RW_Ok(target, message);
+    format(message, sizeof message, "Player %d skin set to %d and saved.", target, skin);
+    printf("[admin] account=%d sets skin=%d for account=%d", gAccountId[playerid], skin, gAccountId[target]);
+    return RW_Ok(playerid, message);
+}
+
 stock RW_CommandProcess(playerid, cmdtext[])
 {
     new cmd[32];
@@ -217,6 +248,7 @@ stock RW_CommandProcess(playerid, cmdtext[])
     }
 
     if (!strcmp(cmd, "inv", true) || !strcmp(cmd, "inventory", true)) return RW_InvOpen(playerid);
+    if (!strcmp(cmd, "setskin", true)) return RW_CommandSetSkin(playerid, params);
     if (!strcmp(cmd, "givecar", true)) return RW_GarageGive(playerid, params);
     if (!strcmp(cmd, "flycar", true) || !strcmp(cmd, "speed", true) || !strcmp(cmd, "usk", true)) return RW_MotionCommand(playerid, cmd, params);
     if (!strcmp(cmd, "garage", true)) return RW_GarageOpen(playerid);
