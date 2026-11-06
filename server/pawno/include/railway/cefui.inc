@@ -22,8 +22,10 @@
 #define CEF_RES             "railway"
 #define CEF_UI_MENU         (100)
 #define CEF_UI_NOTIFY       (101)
+#define CEF_UI_PHONE        (102)
 #define CEF_UI_MENU_URL     "http://cef/railway/index.html"
 #define CEF_UI_TOAST_URL    "http://cef/railway/notify.html"
+#define CEF_UI_PHONE_URL    "http://cef/railway/phone.html"
 
 #define CEF_TOAST_PLAIN     (0)
 #define CEF_TOAST_OK        (1)
@@ -32,6 +34,18 @@
 forward RW_CefPulse();
 forward RW_CefClick(playerid, browserid, id);
 forward RW_CefClosed(playerid, browserid);
+/*  phone: the page calls the server, the server answers with phone:* events */
+forward RW_CefPhoneApp(playerid, browserid, app);
+forward RW_CefPhoneDial(playerid, browserid, number);
+forward RW_CefPhonePick(playerid, browserid);
+forward RW_CefPhoneHang(playerid, browserid);
+forward RW_CefPhoneSms(playerid, browserid, const number[], const text[]);
+forward RW_CefPhoneContact(playerid, browserid, const name[], number);
+forward RW_CefPhoneTopUp(playerid, browserid, amount);
+forward RW_CefPhoneTariff(playerid, browserid, tariff);
+forward RW_CefPhoneSet(playerid, browserid, const wallpaper[], const ringtone[], dnd);
+forward RW_CefPhone911(playerid, browserid, reason);
+forward RW_CefPhoneClosed(playerid, browserid);
 
 /*  ------------------------------- lifecycle ------------------------------- */
 // A missing plugin aborts this call, which leaves CEF switched off.
@@ -43,6 +57,17 @@ stock RW_CefInit()
     CEF_AddResource(CEF_RES);
     CEF_RegisterEvent("ui:click", "RW_CefClick", Argument_Integer);
     CEF_RegisterEvent("ui:closed", "RW_CefClosed");
+    CEF_RegisterEvent("phone:app", "RW_CefPhoneApp", Argument_Integer);
+    CEF_RegisterEvent("phone:call", "RW_CefPhoneDial", Argument_Integer);
+    CEF_RegisterEvent("phone:pick", "RW_CefPhonePick");
+    CEF_RegisterEvent("phone:hang", "RW_CefPhoneHang");
+    CEF_RegisterEvent("phone:sendsms", "RW_CefPhoneSms", Argument_String, Argument_String);
+    CEF_RegisterEvent("phone:addcontact", "RW_CefPhoneContact", Argument_String, Argument_Integer);
+    CEF_RegisterEvent("phone:topup", "RW_CefPhoneTopUp", Argument_Integer);
+    CEF_RegisterEvent("phone:tariff", "RW_CefPhoneTariff", Argument_Integer);
+    CEF_RegisterEvent("phone:set", "RW_CefPhoneSet", Argument_String, Argument_String, Argument_Integer);
+    CEF_RegisterEvent("phone:911", "RW_CefPhone911", Argument_Integer);
+    CEF_RegisterEvent("phone:close", "RW_CefPhoneClosed");
     SetTimer("RW_CefPulse", 1000, true);
     print("[cef] browser interface ready (resource railway).");
     return 1;
@@ -58,6 +83,9 @@ stock RW_CefStart(playerid)
     CEF_SetBrowserVisible(playerid, CEF_UI_MENU, false);
     CEF_CreateBrowser(playerid, CEF_UI_NOTIFY, CEF_UI_TOAST_URL, false, true);
     CEF_SetBrowserLayer(playerid, CEF_UI_NOTIFY, 200);
+    CEF_CreateBrowser(playerid, CEF_UI_PHONE, CEF_UI_PHONE_URL, false, true);
+    CEF_SetBrowserLayer(playerid, CEF_UI_PHONE, 150);
+    CEF_SetBrowserVisible(playerid, CEF_UI_PHONE, false);
     return 1;
 }
 stock RW_CefReset(playerid)
@@ -65,6 +93,7 @@ stock RW_CefReset(playerid)
     if (gCefReady[playerid]) {
         CEF_DestroyBrowser(playerid, CEF_UI_MENU);
         CEF_DestroyBrowser(playerid, CEF_UI_NOTIFY);
+        CEF_DestroyBrowser(playerid, CEF_UI_PHONE);
     }
     gCefReady[playerid] = false; gCefMode[playerid] = CEF_MODE_NONE;
     return 1;
@@ -146,6 +175,105 @@ public RW_CefClosed(playerid, browserid)
     return 1;
 }
 
+/*  ---------------------------------- phone -------------------------------- */
+stock RW_CefPhoneOpen(playerid)
+{
+    if (!RW_CefOn(playerid)) return 0;
+    gPhoneShown[playerid] = true;
+    CEF_SetBrowserVisible(playerid, CEF_UI_PHONE, true);
+    CEF_FocusBrowser(playerid, CEF_UI_PHONE, true);
+    RW_CefPhoneState(playerid);
+    RW_CefPhoneApps(playerid);
+    RW_CefPhoneContacts(playerid);
+    RW_CefPhoneHistory(playerid);
+    return 1;
+}
+stock RW_CefPhoneClose(playerid)
+{
+    if (!RW_CefOn(playerid)) return 0;
+    if (!gPhoneShown[playerid]) return 0;
+    gPhoneShown[playerid] = false;
+    CEF_FocusBrowser(playerid, CEF_UI_PHONE, false);
+    CEF_SetBrowserVisible(playerid, CEF_UI_PHONE, false);
+    CEF_EmitEvent(playerid, CEF_UI_PHONE, "phone:close");
+    return 1;
+}
+// number, balance, tariff, dnd, wallpaper, ringtone
+stock RW_CefPhoneState(playerid)
+{
+    if (!RW_CefOn(playerid) || !gPhoneShown[playerid]) return 0;
+    CEF_EmitEvent(playerid, CEF_UI_PHONE, "phone:state", CEF_INT(gPhoneNum[playerid]), CEF_INT(gPhoneBalance[playerid]),
+                  CEF_INT(gPhoneTariff[playerid]), CEF_INT(gPhoneDnd[playerid] ? 1 : 0),
+                  CEF_STR(gPhoneWall[playerid]), CEF_STR(gPhoneRing_[playerid]));
+    return 1;
+}
+stock RW_CefPhoneApps(playerid)
+{
+    if (!RW_CefOn(playerid) || !gPhoneShown[playerid]) return 0;
+    for (new i; i < PHONE_APPS; i++) {
+        new name[24], icon[16];
+        RW_PhoneAppName(i, name, sizeof name);
+        RW_PhoneAppIcon(i, icon, sizeof icon);
+        CEF_EmitEvent(playerid, CEF_UI_PHONE, "phone:apps", CEF_INT(i), CEF_STR(name), CEF_STR(icon), CEF_INT(gPhoneApp[i]));
+    }
+    CEF_EmitEvent(playerid, CEF_UI_PHONE, "phone:appsend");
+    return 1;
+}
+stock RW_CefPhoneContacts(playerid)
+{
+    if (!RW_CefOn(playerid) || !gPhoneShown[playerid] || gAccountId[playerid] <= 0) return 0;
+    new query[220];
+    format(query, sizeof query, "SELECT name,sim_number FROM phone_contacts WHERE player_id=%d ORDER BY name", gAccountId[playerid]);
+    new DBResult:r = db_query(gDB, query);
+    if (r != DBResult:0) {
+        new rows = db_num_rows(r);
+        for (new i; i < rows; i++) {
+            new name[MAX_PLAYER_NAME];
+            db_get_field_assoc(r, "name", name, sizeof name);
+            CEF_EmitEvent(playerid, CEF_UI_PHONE, "phone:contact", CEF_INT(db_get_field_assoc_int(r, "sim_number")), CEF_STR(name));
+            db_next_row(r);
+        }
+        db_free_result(r);
+    }
+    CEF_EmitEvent(playerid, CEF_UI_PHONE, "phone:contactend");
+    return 1;
+}
+// last messages of this number, both directions
+stock RW_CefPhoneHistory(playerid)
+{
+    if (!RW_CefOn(playerid) || !gPhoneShown[playerid] || gPhoneNum[playerid] <= 0) return 0;
+    new query[256];
+    format(query, sizeof query, "SELECT from_num,to_num,body FROM phone_sms WHERE from_num=%d OR to_num=%d ORDER BY id DESC LIMIT 12", gPhoneNum[playerid], gPhoneNum[playerid]);
+    new DBResult:r = db_query(gDB, query);
+    if (r != DBResult:0) {
+        new rows = db_num_rows(r);
+        for (new i; i < rows; i++) {
+            new from = db_get_field_assoc_int(r, "from_num");
+            new to = db_get_field_assoc_int(r, "to_num");
+            new body[PHONE_SMS_MAX + 8];
+            db_get_field_assoc(r, "body", body, sizeof body);
+            new other = (from == gPhoneNum[playerid]) ? (to) : (from);
+            CEF_EmitEvent(playerid, CEF_UI_PHONE, "phone:smsin", CEF_INT(from == gPhoneNum[playerid] ? 1 : 0), CEF_INT(other), CEF_STR(body));
+            db_next_row(r);
+        }
+        db_free_result(r);
+    }
+    return 1;
+}
+// state: 0 idle, 1 dialling, 2 incoming, 3 talking
+stock RW_CefPhoneCallState(playerid, callstate, number, const name[])
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_EmitEvent(playerid, CEF_UI_PHONE, "phone:callstate", CEF_INT(callstate), CEF_INT(number), CEF_STR(name));
+    return 1;
+}
+stock RW_CefPhoneSmsIn(playerid, direction, number, const text[])
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_EmitEvent(playerid, CEF_UI_PHONE, "phone:smsin", CEF_INT(direction), CEF_INT(number), CEF_STR(text));
+    return 1;
+}
+
 /*  --------------------------------- routing ------------------------------- */
 public RW_CefClick(playerid, browserid, id)
 {
@@ -153,5 +281,81 @@ public RW_CefClick(playerid, browserid, id)
     if (!RW_CefOn(playerid)) return 0;
     if (gCefMode[playerid] == CEF_MODE_VEHICLE) return RW_CefVehicleClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_PASSENGERS) return RW_CefPassengerClick(playerid, id);
+    return 1;
+}
+
+/*  ------------------------------ phone events ----------------------------- */
+public RW_CefPhoneApp(playerid, browserid, app)
+{
+    #pragma unused browserid
+    if (!RW_CefOn(playerid)) return 0;
+    if (app < 0 || app >= PHONE_APPS) return 1;
+    #if RAILWAY_CEF
+        RW_CefToast(playerid, "This app is not written yet. Phone, messages, contacts, operator, settings and 911 work.");
+    #endif
+    return 1;
+}
+public RW_CefPhoneDial(playerid, browserid, number)
+{
+    #pragma unused browserid
+    if (!RW_CefOn(playerid)) return 0;
+    return RW_PhoneCall(playerid, number);
+}
+public RW_CefPhonePick(playerid, browserid)
+{
+    #pragma unused browserid
+    if (!RW_CefOn(playerid)) return 0;
+    return RW_PhoneAccept(playerid);
+}
+public RW_CefPhoneHang(playerid, browserid)
+{
+    #pragma unused browserid
+    if (!RW_CefOn(playerid)) return 0;
+    return RW_PhoneEnd(playerid);
+}
+public RW_CefPhoneSms(playerid, browserid, const number[], const text[])
+{
+    #pragma unused browserid
+    if (!RW_CefOn(playerid)) return 0;
+    if (!RW_IsNumeric(number)) return RW_Error(playerid, "Number must be six digits.");
+    return RW_PhoneSms(playerid, strval(number), text);
+}
+public RW_CefPhoneContact(playerid, browserid, const name[], number)
+{
+    #pragma unused browserid
+    if (!RW_CefOn(playerid)) return 0;
+    return RW_PhoneContactAdd(playerid, name, number);
+}
+public RW_CefPhoneTopUp(playerid, browserid, amount)
+{
+    #pragma unused browserid
+    if (!RW_CefOn(playerid)) return 0;
+    return RW_PhoneTopUp(playerid, amount);
+}
+public RW_CefPhoneTariff(playerid, browserid, tariff)
+{
+    #pragma unused browserid
+    if (!RW_CefOn(playerid)) return 0;
+    return RW_PhoneTariffSet(playerid, tariff);
+}
+public RW_CefPhoneSet(playerid, browserid, const wallpaper[], const ringtone[], dnd)
+{
+    #pragma unused browserid
+    if (!RW_CefOn(playerid)) return 0;
+    return RW_PhoneSettings(playerid, wallpaper, ringtone, dnd ? true : false);
+}
+public RW_CefPhone911(playerid, browserid, reason)
+{
+    #pragma unused browserid
+    if (!RW_CefOn(playerid)) return 0;
+    return RW_Phone911(playerid, reason);
+}
+public RW_CefPhoneClosed(playerid, browserid)
+{
+    #pragma unused browserid
+    if (!RW_CefOn(playerid)) return 0;
+    gPhoneShown[playerid] = false;
+    CEF_FocusBrowser(playerid, CEF_UI_PHONE, false);
+    CEF_SetBrowserVisible(playerid, CEF_UI_PHONE, false);
     return 1;
 }

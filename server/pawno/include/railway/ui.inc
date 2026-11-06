@@ -15,6 +15,8 @@
 #define UI_GARAGE 8
 #define UI_KEYMENU 9
 #define UI_DOWNED 10
+#define UI_PHONE 11
+#define UI_PHONE_CONT 12
 new PlayerText:gUIPreview[MAX_PLAYERS];
 new PlayerText:gUI[MAX_PLAYERS][UI_COUNT];
 new bool:gUICreated[MAX_PLAYERS], bool:gUIInput[MAX_PLAYERS];

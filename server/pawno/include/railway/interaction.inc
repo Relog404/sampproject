@@ -23,15 +23,59 @@ stock RW_KeyName(key, dest[], size)
         default: format(dest, size, "?");
     }
 }
+// Y has a context: a car under the crosshair, then a player nearby, then
+// yourself (the phone). Same key as /vmenu.
 stock RW_ControlOpen(playerid, bool:settings)
 {
     if (!gLogged[playerid]) return 1;
     if (settings) { gControlMode[playerid] = 1; return RW_UI_Settings(playerid); }
     new v = RW_ControlTarget(playerid);
-    if (v <= 0 || v >= MAX_VEHICLES || v == INVALID_VEHICLE_ID || gVehSlotOf[v] < 0) return RW_ControlNotify(playerid, "Aim at a managed car within 6 metres.");
+    if (v <= 0 || v >= MAX_VEHICLES || v == INVALID_VEHICLE_ID || gVehSlotOf[v] < 0) {
+        new target = RW_PlayerTarget(playerid);
+        if (target >= 0) return RW_PlayerMenu(playerid, target);
+        return RW_SelfMenu(playerid);
+    }
     gControlVehicle[playerid] = v;
     gControlMode[playerid] = 2;
     return RW_UI_Vehicle(playerid);
+}
+stock RW_SelfMenu(playerid)
+{
+    if (RW_PhoneHasItem(playerid) <= 0) return RW_Error(playerid, "You have no phone. Buy one at a 24/7 shop.");
+    if (gPhoneNum[playerid] <= 0) return RW_Error(playerid, "No SIM card: buy one and insert it with /sim.");
+    return RW_PhoneOpen(playerid);
+}
+stock RW_PlayerTarget(playerid)
+{
+    new Float:x, Float:y, Float:z, best = -1;
+    new Float:bestDist = 3.5;
+    GetPlayerPos(playerid, x, y, z);
+    for (new i; i < MAX_PLAYERS; i++) {
+        if (i == playerid || !IsPlayerConnected(i) || !gLogged[i]) continue;
+        if (GetPlayerState(i) == PLAYER_STATE_SPECTATING) continue;
+        new Float:dist = GetPlayerDistanceFromPoint(i, x, y, z);
+        if (dist > bestDist) continue;
+        bestDist = dist; best = i;
+    }
+    return best;
+}
+// Y on a player: call him if his number is in your contacts, otherwise swap
+// numbers first.
+stock RW_PlayerMenu(playerid, target)
+{
+    if (target < 0 || !IsPlayerConnected(target)) return RW_Error(playerid, "Stand closer to the player.");
+    if (gPhoneNum[playerid] <= 0) return RW_Error(playerid, "You need a phone with a SIM card.");
+    if (RW_PhoneHasItem(target) <= 0 || gPhoneNum[target] <= 0) return RW_Error(playerid, "He has no phone with him.");
+    if (RW_PhoneKnows(playerid, gPhoneNum[target])) return RW_PhoneCall(playerid, gPhoneNum[target]);
+    new nick[MAX_PLAYER_NAME], mynick[MAX_PLAYER_NAME], message[160];
+    RW_GetNick(playerid, mynick);
+    RW_GetNick(target, nick);
+    RW_PhoneContactAdd(playerid, nick, gPhoneNum[target]);
+    RW_PhoneContactAdd(target, mynick, gPhoneNum[playerid]);
+    format(message, sizeof message, "Numbers swapped with %s. Y on him again to call.", nick);
+    RW_Ok(playerid, message);
+    format(message, sizeof message, "%s saved your number %d.", mynick, gPhoneNum[playerid]);
+    return RW_Ok(target, message);
 }
 stock RW_UI_Settings(playerid)
 {
@@ -139,6 +183,10 @@ stock RW_UI_Click(playerid, row)
             RW_ControlExecute(playerid, gControlVehicle[playerid], 4, gUITarget[playerid][row]); RW_UI_Passengers(playerid);
         } else if (row == 6) RW_UI_Vehicle(playerid);
         else if (row == 7) { if (gUIHasNext[playerid]) gUIPage[playerid]++; else gUIPage[playerid] = 0; RW_UI_Passengers(playerid); }
+    } else if (mode == UI_PHONE || mode == UI_PHONE_CONT) {
+        if (GetTickCount()-gControlTick[playerid] < 250) return 1;
+        gControlTick[playerid] = GetTickCount();
+        return RW_PhoneClick(playerid, row, mode);
     } else if (mode == UI_MAP) {
         new bool:confirm = gMapPending[playerid] && gMapHasPoint[playerid] && row == 0;
         gMapPending[playerid] = false;

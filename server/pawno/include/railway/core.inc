@@ -47,6 +47,9 @@
 #define CEF_MODE_NONE               (0)
 #define CEF_MODE_VEHICLE            (1)
 #define CEF_MODE_PASSENGERS         (2)
+#define PHONE_TARIFFS               (3)
+#define ITEM_SIM                    8
+#define ITEM_PHONE                  9
 #define CAL_9MM                     1
 #define CAL_44                      2
 #define CAL_12GA                    3
@@ -245,6 +248,33 @@ stock RW_FormatMoney(amount, dest[], size = sizeof dest)
     return 1;
 }
 
+// Cash is mirrored in gMoney so it survives relogs; the HUD follows the native.
+stock RW_SyncMoney(playerid)
+{
+    ResetPlayerMoney(playerid);
+    GivePlayerMoney(playerid, gMoney[playerid]);
+    return 1;
+}
+stock RW_SetMoney(playerid, amount)
+{
+    if (amount < 0) amount = 0;
+    gMoney[playerid] = amount;
+    return RW_SyncMoney(playerid);
+}
+stock bool:RW_TakeMoney(playerid, amount)
+{
+    if (amount < 0 || gMoney[playerid] < amount) return false;
+    gMoney[playerid] -= amount;
+    RW_SyncMoney(playerid);
+    return true;
+}
+stock RW_AddMoney(playerid, amount)
+{
+    if (amount <= 0) return 0;
+    gMoney[playerid] += amount;
+    RW_SyncMoney(playerid);
+    return 1;
+}
 stock RW_TrimLeft(const source[], dest[], size = sizeof dest)
 {
     new start = 0;

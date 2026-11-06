@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Railway phone</title>
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/phone.css">
+</head>
+<body>
+<div class="stage">
+  <div class="device" id="device">
+    <div class="screen">
+      <div class="wall dusk" id="wall"></div>
+      <div class="notch"></div>
+
+      <div class="status">
+        <span class="carrier" id="clock">Railway</span>
+        <span class="right">
+          <span class="dnd-dot" id="dndDot" hidden>&#127769;</span>
+          <span class="bars"><i></i><i></i><i></i><i></i></span>
+          <span class="battery"></span>
+        </span>
+      </div>
+
+      <div class="screens">
+        <section class="screen-page" id="pageHome">
+          <div class="grid" id="grid"></div>
+        </section>
+        <section class="screen-page off-right hidden" id="pageApp"></section>
+      </div>
+
+      <div class="dock" id="dock"></div>
+      <div class="home-bar"><i id="homeBtn" title="Home"></i></div>
+
+      <div class="call" id="call">
+        <div class="label" id="callLabel">Calling</div>
+        <div class="who" id="callWho">-</div>
+        <div class="timer" id="callTimer"></div>
+        <div class="actions" id="callActions"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/bridge.js"></script>
+<script src="js/phone.js"></script>
+</body>
+</html>

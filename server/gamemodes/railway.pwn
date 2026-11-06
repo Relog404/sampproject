@@ -23,6 +23,7 @@
 #include <railway/ui>
 #include <railway/accounts>
 #include <railway/inventory>
+#include <railway/phone>
 #include <railway/ground>
 #include <railway/weapons>
 #include <railway/medical>
@@ -90,8 +91,10 @@ public OnGameModeInit()
 
     if (!RW_GarageSchema()) print("[garage] Persistent garage unavailable.");
     if (!RW_InvInit()) print("[inventory] Inventory unavailable; existing data preserved.");
+    if (!RW_PhoneSchema()) print("[phone] Phone tables unavailable; calls and SMS disabled.");
     RW_GarageInit();
     RW_MotionInit();
+    SetTimer("RW_PhonePulse", 1000, true);
     RW_CefInit();
     SetTimer("RW_CabinPulse", 100, true);
     RW_UI_Init();
@@ -136,6 +139,7 @@ public OnPlayerConnect(playerid)
     RW_WpReset(playerid);
     RW_MedReset(playerid);
     RW_CefReset(playerid);
+    RW_PhoneReset(playerid);
     gLogged[playerid] = false;
     gAccountId[playerid] = -1;
     gAdminLevel[playerid] = 0;
@@ -182,7 +186,9 @@ public OnPlayerDisconnect(playerid, reason)
     RW_WpFlush(playerid);
     RW_CabinReset(playerid);
     RW_ArmourReset(playerid);
+    RW_PhoneSave(playerid);
     RW_CefReset(playerid);
+    RW_PhoneReset(playerid);
     RW_ClearRegisterPassword(playerid);
     RW_SaveAccount(playerid);
     RW_Veh_OnPlayerDisconnect(playerid);
@@ -348,6 +354,12 @@ public OnPlayerUpdate(playerid)
 }
 
 /* ------------------------------------------------------------------ команды */
+
+public OnPlayerText(playerid, text[])
+{
+    if (gPhoneState[playerid] == PHONE_TALK) return RW_PhoneSay(playerid, text);
+    return 1;
+}
 
 public OnPlayerCommandText(playerid, cmdtext[])
 {

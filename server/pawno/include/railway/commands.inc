@@ -48,7 +48,8 @@ stock RW_CommandHelp(playerid)
 {
     RW_Accent(playerid, "--- {F5B04C}Unity Station{FFFFFF} ---");
     SendClientMessage(playerid, COLOR_GREY, "/inv - inventory. Click an item for its description and actions.");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}Y{FFFFFF} - car menu /vmenu; {F5B04C}N{FFFFFF} - engine /engine; {F5B04C}H{FFFFFF} - doors. /settings");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}Y{FFFFFF} - car under the crosshair, player nearby (call), else the phone /vmenu; {F5B04C}N{FFFFFF} - engine; {F5B04C}H{FFFFFF} - doors. /settings");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/phone{FFFFFF} - phone; /call, /sms, /contacts, /addcontact, /911, /topup, /tariff, /sim.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/spcar <id>{FFFFFF} - temporary car (400-611). /garage - station garage.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} - unlock/lock the aimed car; its key must be in /inv.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/key{FFFFFF} - insert/remove key; N - engine.");
@@ -327,6 +328,17 @@ stock RW_CommandProcess(playerid, cmdtext[])
         return RW_ControlNotify(playerid, "Marker removed.");
     }
     if (!strcmp(cmd, "engine", true)) return RW_EngineCommand(playerid);
+    if (!strcmp(cmd, "phone", true)) return RW_PhoneOpen(playerid);
+    if (!strcmp(cmd, "call", true)) return RW_PhoneCallCommand(playerid, params);
+    if (!strcmp(cmd, "sms", true)) return RW_PhoneSmsCommand(playerid, params);
+    if (!strcmp(cmd, "pickup", true)) return RW_PhoneAccept(playerid);
+    if (!strcmp(cmd, "hangup", true)) return RW_PhoneEnd(playerid);
+    if (!strcmp(cmd, "contacts", true)) return RW_PhoneContactsCommand(playerid);
+    if (!strcmp(cmd, "addcontact", true)) return RW_PhoneContactCommand(playerid, params);
+    if (!strcmp(cmd, "sim", true)) return RW_PhoneInsertSim(playerid);
+    if (!strcmp(cmd, "topup", true)) return RW_PhoneTopUpCommand(playerid, params);
+    if (!strcmp(cmd, "tariff", true)) return RW_PhoneTariffCommand(playerid, params);
+    if (!strcmp(cmd, "911", true)) return RW_Phone911Command(playerid, params);
     if (!strcmp(cmd, "vmenu", true)) return RW_ControlOpen(playerid, false);
     if (!strcmp(cmd, "settings", true)) {
         return RW_ControlOpen(playerid, true);
