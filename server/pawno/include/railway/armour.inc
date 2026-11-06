@@ -3,17 +3,10 @@
  *  Body armour is a separate inventory item (type 7). While it is worn the
  *  vest is drawn on the player and absorbs part of every hit.
  *
- *  HOW TO SHOW YOUR OWN TEXTURE
- *  SA-MP 0.3.7 cannot send files to a client, so the texture itself must
- *  already be in the player's GTA (a mod loader folder, or a TXD replaced
- *  inside gta3.img). The server only decides WHICH model is drawn:
- *    1) your texture replaces the model's own TXD - set the model id in
- *       RW_ArmourModel and leave RW_ArmourTxd / RW_ArmourTexture empty;
- *       the client then draws your texture by itself, nothing else to do;
- *    2) your texture lives in its own TXD - fill in the model id, the TXD
- *       name (without ".txd") and the texture name inside it; the vest is
- *       then built as a server object and that material is set on it.
- *  Both ways need no extra files from the players once their game is set up.
+ *  The item "data" is a SKIN ID - see railway/skins.inc. The shape of the
+ *  vest and the texture it is drawn with are described there; the texture
+ *  files themselves stay on the player's computer in arm/. This file keeps
+ *  only the fighting properties of every skin.
  *  ========================================================================= */
 
 #if defined _railway_armour_included
@@ -25,81 +18,43 @@
 
 #define ARMOUR_ATTACH (8)   /* attached-object slot; slot 9 is the backpack */
 #define ARMOUR_BONE   (1)   /* spine                                       */
-#define ARMOUR_VARIANTS (3)
 
-/*  --- VARIANT TABLE -------------------------------------------------------
- *  variant 1 = light, 2 = standard, 3 = heavy. Item "data" holds the variant.
- *  MODEL:   the object model worn on the player.
- *  TXD:     TXD file name without ".txd", "" = keep the model's own skin.
- *  TEXTURE: texture name inside that TXD, "" = keep the model's own skin.
- *  HP:      armour points it absorbs before it is destroyed.
- *  ABSORB:  percent of the damage taken by the armour.
+/*  --- FIGHTING PROPERTIES, ONE LINE PER SKIN ID ----------------------------
+ *  HP:     armour points it absorbs before it is destroyed.
+ *  ABSORB: percent of the damage taken by the armour.
+ *  GRAMS:  its weight in the inventory.
+ *  The shape and the texture of each id live in railway/skins.inc.
  *  ------------------------------------------------------------------------ */
-stock RW_ArmourModel(variant)
-{
-    switch (variant) {
-        case 1: return 1242;      /* GTA SA body armour                     */
-        case 2: return 1242;
-        case 3: return 1242;
-    }
-    return 1242;
-}
-stock RW_ArmourTxd(variant, dest[], size = sizeof dest)
-{
-    switch (variant) {
-        case 1: format(dest, size, "");
-        case 2: format(dest, size, "");   /* example: "war1" for war1.txd      */
-        case 3: format(dest, size, "");
-    }
-    return 1;
-}
-stock RW_ArmourTexture(variant, dest[], size = sizeof dest)
-{
-    switch (variant) {
-        case 1: format(dest, size, "");
-        case 2: format(dest, size, "");   /* example: "armour"                 */
-        case 3: format(dest, size, "");
-    }
-    return 1;
-}
+stock RW_ArmourModel(variant) { return RW_SkinModel(variant); }
+stock RW_ArmourName(variant, dest[], size = sizeof dest) { return RW_SkinLabel(variant, dest, size); }
+stock bool:RW_ArmourVariant(variant) { return RW_SkinValid(variant); }
 stock RW_ArmourHpOf(variant)
 {
     switch (variant) {
+        case 0: return 100;
         case 1: return 50;
-        case 2: return 100;
-        case 3: return 150;
+        case 2: return 150;
     }
     return 100;
 }
 stock RW_ArmourAbsorb(variant)
 {
     switch (variant) {
+        case 0: return 65;
         case 1: return 50;
-        case 2: return 65;
-        case 3: return 80;
+        case 2: return 80;
     }
     return 65;
 }
 stock RW_ArmourGrams(variant)
 {
     switch (variant) {
+        case 0: return 5000;
         case 1: return 3000;
-        case 2: return 5000;
-        case 3: return 7000;
+        case 2: return 7000;
     }
     return 5000;
 }
-stock RW_ArmourName(variant, dest[], size = sizeof dest)
-{
-    switch (variant) {
-        case 1: format(dest, size, "LIGHT ARMOUR");
-        case 2: format(dest, size, "BODY ARMOUR");
-        case 3: format(dest, size, "HEAVY ARMOUR");
-        default: format(dest, size, "ARMOUR");
-    }
-    return 1;
-}
-stock bool:RW_ArmourVariant(variant) { return variant >= 1 && variant <= ARMOUR_VARIANTS; }
 stock bool:RW_ArmourWorn(playerid) { return gInvLoaded[playerid] && gInvWorn[playerid] > 0; }
 
 stock RW_ArmourSchema()
@@ -138,15 +93,14 @@ stock RW_ArmourAttach(playerid, bool:force = false)
     if ((!worn || force) && IsPlayerAttachedObjectSlotUsed(playerid, ARMOUR_ATTACH)) RemovePlayerAttachedObject(playerid, ARMOUR_ATTACH);
     if ((!worn || force) && !gArmourFitting[playerid]) RW_ArmourObjectClear(playerid);
     if (!worn) return 1;
-    new Float:x, Float:y, Float:z, Float:rx, Float:ry, Float:rz, txd[32], texture[32];
+    new Float:x, Float:y, Float:z, Float:rx, Float:ry, Float:rz;
     RW_ArmourFit(playerid, x, y, z, rx, ry, rz);
-    RW_ArmourTxd(gArmourData[playerid], txd, sizeof txd);
-    RW_ArmourTexture(gArmourData[playerid], texture, sizeof texture);
-    if (txd[0] && texture[0] && !gArmourFitting[playerid]) {
-        new model = RW_ArmourModel(gArmourData[playerid]);
-        new object = CreateObject(model, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 300.0);
+    // A texture from the client's arm/ folder needs a real object: materials
+    // cannot be set on an attached object.
+    if (RW_SkinTextured(gArmourData[playerid]) && !gArmourFitting[playerid]) {
+        new object = CreateObject(RW_ArmourModel(gArmourData[playerid]), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 300.0);
         if (object == INVALID_OBJECT_ID) return 0;
-        SetObjectMaterial(object, 0, model, txd, texture, 0);
+        RW_SkinApply(object, gArmourData[playerid]);
         AttachObjectToPlayer(object, playerid, x, y, z, rx, ry, rz);
         gArmourObject[playerid] = object;
         return 1;
@@ -307,3 +261,4 @@ stock RW_ArmourFitSave(playerid, response, index, model, bone, Float:x, Float:y,
     RW_ArmourAttach(playerid, true);
     return RW_Ok(playerid, "Armour fit saved for this skin.");
 }
+

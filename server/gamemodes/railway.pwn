@@ -28,6 +28,7 @@
 #include <railway/garage>
 #include <railway/motion>
 #include <railway/cabin>
+#include <railway/skins>
 #include <railway/armour>
 #include <railway/commands>
 

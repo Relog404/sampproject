@@ -160,6 +160,7 @@ stock RW_InvInit()
             print("[inventory] Cannot restore ground objects; data preserved, inventory disabled.");
             return 0;
         }
+        RW_SkinApply(gGround[i][igObject], RW_ItemSkin(gGround[i][igType], gGround[i][igData]));
         db_next_row(r);
     }
     db_free_result(r);
@@ -332,8 +333,9 @@ stock RW_InvDrop(playerid)
     new Float:x, Float:y, Float:z, Float:a;
     GetPlayerPos(playerid, x, y, z); GetPlayerFacingAngle(playerid, a);
     x += 0.6*floatsin(-a, degrees); y += 0.6*floatcos(-a, degrees); z -= 0.9;
-    new object = CreateObject(RW_InvModel(gInv[playerid][source][iiType]), x, y, z, 0.0, 0.0, a, 70.0);
+    new object = CreateObject(RW_InvModel(gInv[playerid][source][iiType], gInv[playerid][source][iiData]), x, y, z, 0.0, 0.0, a, 70.0);
     if (object == INVALID_OBJECT_ID) return RW_Error(playerid, "Could not create the world item.");
+    RW_SkinApply(object, RW_ItemSkin(gInv[playerid][source][iiType], gInv[playerid][source][iiData]));
     new query[320]; format(query, sizeof query, "UPDATE inventory_items SET owner=NULL,slot=-1,x=%f,y=%f,z=%f WHERE uid=%d AND owner=%d AND slot=%d", x, y, z, gInv[playerid][source][iiUid], gAccountId[playerid], source);
     if (!RW_InvWrite(query)) { DestroyObject(object); return RW_Error(playerid, "Could not save the item."); }
     gGround[ground][igUid] = gInv[playerid][source][iiUid]; gGround[ground][igType] = gInv[playerid][source][iiType]; gGround[ground][igData] = gInv[playerid][source][iiData]; gGround[ground][igAmount] = gInv[playerid][source][iiAmount];
@@ -734,7 +736,7 @@ stock RW_InvGiveCommand(playerid, const params[])
         return RW_Info(playerid, "/giveitem <playerid> <bag|key|gun|ammo|bandage|syringe> [argument] [count]");
     if (!RW_IsNumeric(a)) return RW_Error(playerid, "Player id must be a number, for example /giveitem 0 key 7");
     new target = strval(a), type = RW_InvItemWord(b), data, amount = 1;
-    if (type < 0) return RW_Error(playerid, "Items: bag, key, gun <weapon id>, ammo <9mm|.44|12ga|5.56|7.62|.308> [rounds], bandage [n], syringe [n], armour [1-3].");
+    if (type < 0) return RW_Error(playerid, "Items: bag, key, gun <weapon id>, ammo <9mm|.44|12ga|5.56|7.62|.308> [rounds], bandage [n], syringe [n], armour [0-2].");
     if (target < 0 || target >= MAX_PLAYERS || !IsPlayerConnected(target) || !gLogged[target]) return RW_Error(playerid, "Player must be connected and logged in. /givecar <name> <model> works offline.");
     if (!gInvLoaded[target]) return RW_Error(playerid, "Player inventory is not loaded yet. Ask them to reconnect.");
     if (type == ITEM_CAR_KEY) {
@@ -761,8 +763,8 @@ stock RW_InvGiveCommand(playerid, const params[])
         }
     } else if (type == ITEM_ARMOUR) {
         if (extra[0]) return RW_Error(playerid, "Armour takes one variant: 1 light, 2 standard, 3 heavy.");
-        data = c[0] ? strval(c) : 2;
-        if (!c[0] || !RW_IsNumeric(c) || !RW_ArmourVariant(data)) return RW_Error(playerid, "Armour variants: 1 light, 2 standard, 3 heavy.");
+        data = c[0] ? strval(c) : 0;
+        if (!c[0] || !RW_IsNumeric(c) || !RW_ArmourVariant(data)) return RW_Error(playerid, "Armour skins: 0 standard, 1 light, 2 heavy.");
     } else if (c[0] || extra[0]) return RW_Error(playerid, "A backpack takes no arguments. Use /giveitem <playerid> bag.");
     new uid;
     if (type == ITEM_AMMO) uid = RW_InvGrant(target, type, data, amount);

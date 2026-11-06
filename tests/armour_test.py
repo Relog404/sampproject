@@ -128,28 +128,23 @@ class ArmourSourceTest(unittest.TestCase):
             for value in values:
                 self.assertIn('return %s;' % value, body)
 
-    def test_texture_configuration_hooks(self):
-        """The model, TXD and texture of every variant live in one switch."""
-        for fn in ('RW_ArmourModel', 'RW_ArmourTxd', 'RW_ArmourTexture'):
-            body = section(ARM, 'stock %s(variant' % fn, '\nstock ')
-            self.assertEqual(body.count('case '), 3, fn)
-        # empty by default: the model keeps whatever skin the client has for it
-        txd = section(ARM, 'stock RW_ArmourTxd(variant', '\nstock ')
-        self.assertIn('format(dest, size, "");', txd)
-        self.assertIn('example: "war1"', txd)
+    def test_art_comes_from_the_skin_registry(self):
+        """The shape and the texture live in skins.inc, not here."""
+        self.assertIn('stock RW_ArmourModel(variant) { return RW_SkinModel(variant); }', ARM)
+        self.assertIn('stock RW_ArmourName(variant, dest[], size = sizeof dest) { return RW_SkinLabel(variant, dest, size); }', ARM)
+        self.assertIn('stock bool:RW_ArmourVariant(variant) { return RW_SkinValid(variant); }', ARM)
+        self.assertNotIn('RW_ArmourTxd', ARM)
+        self.assertNotIn('RW_ArmourTexture', ARM)
 
     def test_named_texture_uses_a_server_object(self):
         attach = section(ARM, 'stock RW_ArmourAttach(playerid', '\nstock ')
-        self.assertIn('SetObjectMaterial(object, 0, model, txd, texture, 0);', attach)
+        self.assertIn('if (RW_SkinTextured(gArmourData[playerid]) && !gArmourFitting[playerid])', attach)
+        self.assertIn('RW_SkinApply(object, gArmourData[playerid]);', attach)
         self.assertIn('AttachObjectToPlayer(object, playerid, x, y, z, rx, ry, rz);', attach)
-        self.assertIn('CreateObject(model, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 300.0)', attach)
+        self.assertIn('CreateObject(RW_ArmourModel(gArmourData[playerid]), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 300.0)', attach)
+        # no material without a real object
+        self.assertNotIn('SetObjectMaterial', ARM)
         self.assertIn('SetPlayerAttachedObject(playerid, ARMOUR_ATTACH', attach)
-
-    def test_object_is_destroyed_when_the_vest_comes_off(self):
-        self.assertIn('DestroyObject(gArmourObject[playerid]);', section(ARM, 'stock RW_ArmourObjectClear', '\nstock '))
-        reset = section(ARM, 'stock RW_ArmourReset', '\nstock ')
-        self.assertIn('RW_ArmourObjectClear(playerid);', reset)
-        self.assertIn('RemovePlayerAttachedObject(playerid, ARMOUR_ATTACH)', reset)
 
     def test_damage_is_absorbed_and_healed_back(self):
         damage = section(ARM, 'stock RW_ArmourDamage', '\nstock ')
@@ -181,14 +176,18 @@ class ArmourSourceTest(unittest.TestCase):
     def test_admin_commands(self):
         self.assertIn('if (!strcmp(cmd, "armfit", true)) return RW_ArmourFitCommand(playerid);', CMDS)
         self.assertIn('/armfit', CMDS)
-        self.assertIn('armour [1-3]', INV)
-        self.assertIn('Armour variants: 1 light, 2 standard, 3 heavy.', INV)
+        self.assertIn('armour [0-2]', INV)
+        self.assertIn('Armour skins: 0 standard, 1 light, 2 heavy.', INV)
         self.assertIn('"7", true) || !strcmp(word, "armour", true)', INV)
 
     def test_fit_editor_routes_slot_eight(self):
         self.assertIn('if (index == 8) return RW_ArmourFitSave(', MAIN)
         self.assertIn('EditAttachedObject(playerid, ARMOUR_ATTACH);', ARM)
         self.assertIn('REPLACE INTO armour_fit(owner,skin,x,y,z,rx,ry,rz)', ARM)
+
+    def test_dropped_items_keep_the_texture(self):
+        self.assertIn('RW_SkinApply(gGround[i][igObject], RW_ItemSkin(gGround[i][igType], gGround[i][igData]));', INV)
+        self.assertIn('RW_SkinApply(object, RW_ItemSkin(gInv[playerid][source][iiType], gInv[playerid][source][iiData]));', INV)
 
 
 if __name__ == '__main__':
