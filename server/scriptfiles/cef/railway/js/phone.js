@@ -3,6 +3,7 @@
 (function () {
   var me = { number: 0, balance: 0, tariff: 0, dnd: false, wallpaper: 'dusk', ringtone: 'classic' };
   var apps = [];              // {id, name, icon, installed}
+  var lawyers = [];           // {name, rating, price, number}
   var contacts = {};          // number -> name
   var threads = [];           // [{number, items:[{dir, text}]}]
   var screen = 'home';        // 'home' | app id | 'thread'
@@ -95,9 +96,24 @@
   function renderApp(id) {
     if (id === 0) return screenPhone();
     if (id === 1) return screenThreads();
+    if (id === 5) return screenLawyers();
     if (id === 10) return screenSettings();
     if (id === 11) return screenOperator();
     return screenStub(id);
+  }
+  function screenLawyers() {
+    if (!lawyers.length) {
+      return head('Lawyers') + '<div class="empty">No licensed lawyers in the city.<br>' +
+        'The app lists them only while you are in a cell.</div>';
+    }
+    var rows = lawyers.map(function (l, i) {
+      return '<div class="row" data-lawyer="' + l.number + '" style="--i:' + i + '">' +
+        '<div class="grow"><div class="who">' + esc(l.name) + '</div>' +
+        '<div class="num">Rating ' + l.rating + ' / fee ' + l.price + '</div></div>' +
+        '<div class="side">' + (l.number || '-') + '</div></div>';
+    }).join('');
+    return head('Lawyers') + '<div class="list">' + rows + '</div>' +
+      '<div class="card-soft"><div class="sub">Tap a lawyer to call him, then Y on him in the cell to open a case.</div></div>';
   }
   function screenPhone() {
     var digits = '';
@@ -211,11 +227,12 @@
 
   /* -------------------------------------------------------------- events */
   document.addEventListener('click', function (event) {
-    var node = event.target.closest ? event.target.closest('[data-app],[data-back],[data-digit],[data-backspace],[data-call],[data-hang],[data-sos],[data-thread],[data-send],[data-wall],[data-ring],[data-dnd],[data-tariff],[data-topup]') : null;
+    var node = event.target.closest ? event.target.closest('[data-app],[data-back],[data-digit],[data-backspace],[data-call],[data-hang],[data-sos],[data-thread],[data-send],[data-wall],[data-ring],[data-dnd],[data-tariff],[data-topup],[data-lawyer]') : null;
     if (!node) return;
     var data = node.dataset;
     if (data.back) return back();
-    if (data.app) { showApp(parseInt(data.app, 10)); return; }
+    if (data.app) { var aid = parseInt(data.app, 10); showApp(aid); RW.emit('phone:app', aid); return; }
+    if (data.lawyer) { var ln = parseInt(data.lawyer, 10); if (ln) RW.emit('phone:call', ln); return; }
     if (data.digit) {
       typed = (typed + data.digit).slice(0, 12);
       var d = document.getElementById('display');
@@ -304,6 +321,13 @@
     apps.sort(function (a, b) { return a.id - b.id; });
     renderHome();
     el.device.classList.add('on');
+  });
+  RW.on('phone:lawyer', function (name, rating, price, number) {
+    lawyers = lawyers.filter(function (l) { return l.number !== number; });
+    lawyers.push({ name: name, rating: rating, price: price, number: number });
+  });
+  RW.on('phone:lawyerend', function () {
+    if (screen === 5) showApp(5);
   });
   RW.on('phone:contact', function (number, name) { contacts[number] = name; });
   RW.on('phone:contactend', function () {

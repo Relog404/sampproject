@@ -50,6 +50,8 @@ stock RW_CommandHelp(playerid)
     SendClientMessage(playerid, COLOR_GREY, "/inv - inventory. Click an item for its description and actions.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}Y{FFFFFF} - car under the crosshair, player nearby (call), else the phone /vmenu; {F5B04C}N{FFFFFF} - engine; {F5B04C}H{FFFFFF} - doors. /settings");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/phone{FFFFFF} - phone; /call, /sms, /contacts, /addcontact, /911, /topup, /tariff, /sim.");
+    SendClientMessage(playerid, COLOR_GREY, "Police: /duty, /mdt, /cuff, /escort, /wall, /wanted, /arrest, /release, /fine, /track; Y on a player.");
+    SendClientMessage(playerid, COLOR_GREY, "Lawyer: /lawyer, /bailrequest, /endcase, /lawprice; Y on a detained player to take the case.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/spcar <id>{FFFFFF} - temporary car (400-611). /garage - station garage.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} - unlock/lock the aimed car; its key must be in /inv.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/key{FFFFFF} - insert/remove key; N - engine.");
@@ -328,6 +330,27 @@ stock RW_CommandProcess(playerid, cmdtext[])
         return RW_ControlNotify(playerid, "Marker removed.");
     }
     if (!strcmp(cmd, "engine", true)) return RW_EngineCommand(playerid);
+    if (!strcmp(cmd, "duty", true)) return RW_PoliceDutyCommand(playerid);
+    if (!strcmp(cmd, "faction", true)) return RW_PoliceFactionCommand(playerid, params);
+    if (!strcmp(cmd, "factions", true)) return RW_PoliceFactionsCommand(playerid);
+    if (!strcmp(cmd, "mdt", true)) return RW_MdtOpen(playerid);
+    if (!strcmp(cmd, "cuff", true)) return RW_PoliceCuffCommand(playerid, params);
+    if (!strcmp(cmd, "uncuff", true)) return RW_PoliceUncuffCommand(playerid, params);
+    if (!strcmp(cmd, "escort", true)) return RW_PoliceEscortCommand(playerid, params);
+    if (!strcmp(cmd, "wall", true)) return RW_PoliceWallCommand(playerid, params);
+    if (!strcmp(cmd, "wanted", true)) return RW_PoliceWantedCommand(playerid, params);
+    if (!strcmp(cmd, "arrest", true)) return RW_PoliceArrestCommand(playerid, params);
+    if (!strcmp(cmd, "release", true)) return RW_PoliceReleaseCommand(playerid, params);
+    if (!strcmp(cmd, "bail", true)) return RW_PoliceBail(playerid);
+    if (!strcmp(cmd, "fine", true)) return RW_PoliceFineCommand(playerid, params);
+    if (!strcmp(cmd, "fines", true)) return RW_PolicePayFines(playerid);
+    if (!strcmp(cmd, "track", true)) return RW_PoliceTrackCommand(playerid, params);
+    if (!strcmp(cmd, "untrack", true)) return RW_PoliceUntrack(playerid);
+    if (!strcmp(cmd, "lawyer", true)) return RW_LawyerCommand(playerid);
+    if (!strcmp(cmd, "setlawyer", true)) return RW_LawyerLicenseCommand(playerid, params);
+    if (!strcmp(cmd, "lawprice", true)) return RW_LawyerPriceCommand(playerid, params);
+    if (!strcmp(cmd, "bailrequest", true)) return RW_PoliceBailRequest(playerid);
+    if (!strcmp(cmd, "endcase", true)) return RW_PoliceCaseEnd(playerid);
     if (!strcmp(cmd, "phone", true)) return RW_PhoneOpen(playerid);
     if (!strcmp(cmd, "call", true)) return RW_PhoneCallCommand(playerid, params);
     if (!strcmp(cmd, "sms", true)) return RW_PhoneSmsCommand(playerid, params);

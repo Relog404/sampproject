@@ -47,9 +47,26 @@
 #define CEF_MODE_NONE               (0)
 #define CEF_MODE_VEHICLE            (1)
 #define CEF_MODE_PASSENGERS         (2)
+#define CEF_MODE_POLICE             (3)
+#define CEF_MODE_MDT                (4)
 #define PHONE_TARIFFS               (3)
 #define ITEM_SIM                    8
 #define ITEM_PHONE                  9
+#define ITEM_CUFFS                  10
+#define ITEM_TASER                  11
+#define ITEM_BATON                  12
+#define ITEM_BADGE                  13
+#define FACTION_NONE                0
+#define FACTION_LSPD                1
+#define FACTION_SHERIFF             2
+/* LSPD: entrance and the cells behind the station. */
+#define POLICE_STATION_X            1544.6
+#define POLICE_STATION_Y            -1675.5
+#define POLICE_STATION_Z            13.6
+#define POLICE_STATION_RANGE        40.0
+#define POLICE_CELL_X               1568.6
+#define POLICE_CELL_Y               -1694.3
+#define POLICE_CELL_Z               5.9
 #define CAL_9MM                     1
 #define CAL_44                      2
 #define CAL_12GA                    3

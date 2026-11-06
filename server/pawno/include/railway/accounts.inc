@@ -429,6 +429,7 @@ stock RW_LoginSuccess(playerid, accid, skin, money, admin)
 
     if (!RW_InvLoad(playerid)) RW_Error(playerid, "Inventory unavailable. Contact an administrator.");
     RW_PhoneLoad(playerid);
+    RW_PoliceLoad(playerid);
     RW_UI_CloseAuth(playerid);
 
     RW_SpawnPlayer(playerid);

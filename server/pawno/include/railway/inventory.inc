@@ -11,7 +11,7 @@
 #define ITEM_BANDAGE 5
 #define ITEM_SYRINGE 6
 #define ITEM_ARMOUR  7
-#define INV_TYPE_MAX 9
+#define INV_TYPE_MAX 13
 #define INV_NEAR 50
 #define INV_WORLD 500
 #define INV_TDS 165
@@ -45,6 +45,10 @@ stock RW_InvModel(type, data = 0)
     if (type == ITEM_ARMOUR) return RW_ArmourModel(data);
     if (type == ITEM_SIM) return 1580;
     if (type == ITEM_PHONE) return 18865;
+    if (type == ITEM_CUFFS) return 19418;
+    if (type == ITEM_TASER) return 348;
+    if (type == ITEM_BATON) return 333;
+    if (type == ITEM_BADGE) return 1580;
     return 11746;
 }
 // Weight in grams. Ammunition is weighed per round, so a stack scales with it.
@@ -58,6 +62,10 @@ stock RW_InvGrams(type, data = 0, amount = 1)
     if (type == ITEM_ARMOUR) return RW_ArmourGrams(data);
     if (type == ITEM_SIM) return 10;
     if (type == ITEM_PHONE) return 300;
+    if (type == ITEM_CUFFS) return 200;
+    if (type == ITEM_TASER) return 400;
+    if (type == ITEM_BATON) return 900;
+    if (type == ITEM_BADGE) return 50;
     return 100;
 }
 stock RW_InvPack(playerid)
@@ -236,6 +244,9 @@ stock RW_InvGrant(playerid, type, data = 0, amount = 1)
     if (type==ITEM_WEAPON && (!RW_WeaponValid(data) || amount!=1)) return 0;
     if (type==ITEM_AMMO && (!RW_CaliberValid(data) || amount<1 || amount>RW_CaliberMax(data))) return 0;
     if ((type==ITEM_SIM || type==ITEM_PHONE) && (amount!=1 || data<0 || data>=PHONE_TARIFFS)) return 0;
+    if ((type==ITEM_CUFFS || type==ITEM_BADGE) && (amount!=1 || data<0 || data>=PHONE_TARIFFS)) return 0;
+    if (type==ITEM_TASER && (data<0 || data>=PHONE_TARIFFS || amount<1 || amount>2)) return 0;
+    if (type==ITEM_BATON && (data<0 || data>=PHONE_TARIFFS || amount<1 || amount>100)) return 0;
     new slot = RW_InvFree(playerid, 0, type, data, amount);
     if (slot < 0) return 0;
     if (!RW_DB_Exec("SAVEPOINT inventory_grant")) return 0;
@@ -459,6 +470,7 @@ stock RW_InvContextRender(playerid)
     else if (type == ITEM_ARMOUR) RW_ArmourName(data, title, sizeof title);
     else if (type == ITEM_SIM) { new tname[32]; RW_PhoneTariffName(data, tname, sizeof tname); format(title, sizeof title, "SIM %s", tname); }
     else if (type == ITEM_PHONE) RW_PhoneName(data, title, sizeof title);
+    else if (type == ITEM_CUFFS || type == ITEM_TASER || type == ITEM_BATON || type == ITEM_BADGE) RW_PoliceItemName(type, data, title, sizeof title);
     else format(title, sizeof title, "%s", "CAR KEY");
     PlayerTextDrawSetString(playerid, gInvTD[playerid][156], title);
     new stats[128], desc[128];
@@ -486,6 +498,10 @@ stock RW_InvContextRender(playerid)
         format(desc, sizeof desc, "%s", "Open it with /phone or Y on yourself");
         format(stats, sizeof stats, "0.3kg / calls, SMS, 911");
     }
+    else if (type == ITEM_CUFFS) { format(desc, sizeof desc, "%s", "Y on a player, then Cuff"); format(stats, sizeof stats, "0.2kg / reusable"); }
+    else if (type == ITEM_TASER) { format(desc, sizeof desc, "%s", "Stuns for 3 s: Y on a player, then Stun"); format(stats, sizeof stats, "0.4kg / %d charges left", amount); }
+    else if (type == ITEM_BATON) { format(desc, sizeof desc, "%s", "Stuns and hurts: Y on a player, then Stun"); format(stats, sizeof stats, "0.9kg / %d of 100 left", amount); }
+    else if (type == ITEM_BADGE) { format(desc, sizeof desc, "%s", "Police badge: opens the tablet and the actions"); format(stats, sizeof stats, "0.05kg / /mdt, /duty"); }
     else {
         new model, bool:permanent = RW_GarageKeyModel(data, model);
         format(desc,sizeof desc,"%s vehicle access", permanent ? ("Permanent") : ("Temporary"));
@@ -502,6 +518,9 @@ stock RW_InvContextRender(playerid)
     else if (type == ITEM_ARMOUR) format(action, sizeof action, "%s", gInvSelected[playerid] == gInvWorn[playerid] ? ("TAKE OFF") : ("WEAR"));
     else if (type == ITEM_PHONE) format(action, sizeof action, "%s", "OPEN");
     else if (type == ITEM_SIM) format(action, sizeof action, "%s", "INSERT");
+    else if (type == ITEM_CUFFS) format(action, sizeof action, "%s", "CUFF");
+    else if (type == ITEM_TASER || type == ITEM_BATON) format(action, sizeof action, "%s", "STUN");
+    else if (type == ITEM_BADGE) format(action, sizeof action, "%s", "MDT");
     PlayerTextDrawSetString(playerid, gInvTD[playerid][163], action);
     if (type == ITEM_WEAPON && !gInvFromGround[playerid]) PlayerTextDrawSetString(playerid, gInvTD[playerid][160], gWpActive[playerid] == gInvSelected[playerid] ? ("UNEQUIP") : ("EQUIP"));
     else if (type == ITEM_ARMOUR && !gInvFromGround[playerid]) PlayerTextDrawSetString(playerid, gInvTD[playerid][160], gInvSelected[playerid] == gInvWorn[playerid] ? ("TAKE OFF") : ("WEAR"));
@@ -509,7 +528,7 @@ stock RW_InvContextRender(playerid)
     if (!gInvFromGround[playerid] && gInvSelected[playerid]!=gInvEquipped[playerid]) {
         if(!RW_SkinBoundItem(type,data)) PlayerTextDrawShow(playerid,gInvTD[playerid][159]);
         if(type==ITEM_BACKPACK || type==ITEM_ARMOUR || (type==ITEM_WEAPON && gWpActive[playerid]!=gInvSelected[playerid])) PlayerTextDrawShow(playerid,gInvTD[playerid][160]);
-        if(type==ITEM_CAR_KEY || type==ITEM_AMMO || type==ITEM_BANDAGE || type==ITEM_SYRINGE || type==ITEM_PHONE || type==ITEM_SIM || (type==ITEM_WEAPON && gWpActive[playerid]==gInvSelected[playerid])) PlayerTextDrawShow(playerid,gInvTD[playerid][163]);
+        if(type==ITEM_CAR_KEY || type==ITEM_AMMO || type==ITEM_BANDAGE || type==ITEM_SYRINGE || type==ITEM_PHONE || type==ITEM_SIM || type==ITEM_CUFFS || type==ITEM_TASER || type==ITEM_BATON || type==ITEM_BADGE || (type==ITEM_WEAPON && gWpActive[playerid]==gInvSelected[playerid])) PlayerTextDrawShow(playerid,gInvTD[playerid][163]);
     }
     if ((gInvFromGround[playerid] || slot<INV_MAIN) && RW_InvPack(playerid)>=0 && type!=ITEM_BACKPACK) PlayerTextDrawShow(playerid,gInvTD[playerid][161]);
     if (gInvFromGround[playerid] || slot>=INV_MAIN || (gInvEquipped[playerid]>0 && gInvSelected[playerid]==gInvEquipped[playerid])) PlayerTextDrawShow(playerid,gInvTD[playerid][162]);
@@ -637,6 +656,10 @@ stock RW_InvClick(playerid, PlayerText:clicked)
         if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_SYRINGE) return RW_UseSyringe(playerid, slot);
         if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_PHONE) return RW_PhoneOpen(playerid);
         if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_SIM) return RW_PhoneInsertSim(playerid);
+        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_CUFFS) return RW_PoliceCuffCommand(playerid, "");
+        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_TASER) return RW_PoliceStunCommand(playerid);
+        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_BATON) return RW_PoliceStunCommand(playerid);
+        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_BADGE) return RW_MdtOpen(playerid);
         if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_CAR_KEY) {
             new token = gInv[playerid][slot][iiData];
             for (new v; v < VEHICLE_SLOTS; v++) if (gVeh[v][vsUsed] && gVehKeyUid[v] == token) {
@@ -680,6 +703,10 @@ stock RW_InvItemWord(const word[])
     if (!strcmp(word, "7", true) || !strcmp(word, "armour", true) || !strcmp(word, "armor", true) || !strcmp(word, "vest", true)) return ITEM_ARMOUR;
     if (!strcmp(word, "8", true) || !strcmp(word, "sim", true) || !strcmp(word, "simcard", true)) return ITEM_SIM;
     if (!strcmp(word, "9", true) || !strcmp(word, "phone", true) || !strcmp(word, "mobile", true)) return ITEM_PHONE;
+    if (!strcmp(word, "10", true) || !strcmp(word, "cuffs", true) || !strcmp(word, "handcuffs", true)) return ITEM_CUFFS;
+    if (!strcmp(word, "11", true) || !strcmp(word, "taser", true)) return ITEM_TASER;
+    if (!strcmp(word, "12", true) || !strcmp(word, "baton", true) || !strcmp(word, "stick", true)) return ITEM_BATON;
+    if (!strcmp(word, "13", true) || !strcmp(word, "badge", true)) return ITEM_BADGE;
     return -1;
 }
 // Calibre by name or number: 9mm, .44, 12ga, 5.56, 7.62, .308.
@@ -791,11 +818,17 @@ stock RW_InvGiveCommand(playerid, const params[])
         if (extra[0]) return RW_Error(playerid, "Armour takes one variant: 1 light, 2 standard, 3 heavy.");
         data = c[0] ? strval(c) : 0;
         if (!c[0] || !RW_IsNumeric(c) || !RW_ArmourVariant(data)) return RW_Error(playerid, "Armour skins: 0 standard, 1 light, 2 heavy.");
-    } else if (type == ITEM_PHONE || type == ITEM_SIM) {
-        if (extra[0]) return RW_Error(playerid, "Phones and SIM cards take one variant: 0, 1 or 2.");
+    } else if (type == ITEM_PHONE || type == ITEM_SIM || type == ITEM_CUFFS || type == ITEM_BADGE) {
+        if (extra[0]) return RW_Error(playerid, "This item takes one variant: 0, 1 or 2.");
         data = c[0] ? strval(c) : 0;
-        if (c[0] && !RW_IsNumeric(c)) return RW_Error(playerid, "Variant must be 0, 1 or 2 (SIM: tariff, phone: model).");
-        if (data < 0 || data >= PHONE_TARIFFS) return RW_Error(playerid, "Variant must be 0, 1 or 2 (SIM: tariff, phone: model).");
+        if (c[0] && !RW_IsNumeric(c)) return RW_Error(playerid, "Variant must be 0, 1 or 2.");
+        if (data < 0 || data >= PHONE_TARIFFS) return RW_Error(playerid, "Variant must be 0, 1 or 2.");
+    } else if (type == ITEM_TASER || type == ITEM_BATON) {
+        if (extra[0]) return RW_Error(playerid, "Tasers and batons take no arguments.");
+        data = c[0] ? strval(c) : 0;
+        if (c[0] && !RW_IsNumeric(c)) return RW_Error(playerid, "Variant must be 0, 1 or 2.");
+        if (data < 0 || data >= PHONE_TARIFFS) return RW_Error(playerid, "Variant must be 0, 1 or 2.");
+        amount = (type == ITEM_TASER) ? 2 : 100;   /* заряды и прочность */
     } else if (c[0] || extra[0]) return RW_Error(playerid, "A backpack takes no arguments. Use /giveitem <playerid> bag.");
     new uid;
     if (type == ITEM_AMMO) uid = RW_InvGrant(target, type, data, amount);
@@ -812,6 +845,7 @@ stock RW_InvGiveCommand(playerid, const params[])
     else if (type == ITEM_ARMOUR) { new aname[32]; RW_ArmourName(data, aname, sizeof aname); format(message, sizeof message, "%s granted (item %d, %d points).", aname, uid, RW_ArmourHpOf(data)); }
     else if (type == ITEM_PHONE) { new pname[32]; RW_PhoneName(data, pname, sizeof pname); format(message, sizeof message, "%s granted (item %d).", pname, uid); }
     else if (type == ITEM_SIM) { new tname[32]; RW_PhoneTariffName(data, tname, sizeof tname); format(message, sizeof message, "SIM card, tariff %s (item %d). /sim inserts it.", tname, uid); }
+    else if (type == ITEM_CUFFS || type == ITEM_TASER || type == ITEM_BATON || type == ITEM_BADGE) { new iname[32]; RW_PoliceItemName(type, data, iname, sizeof iname); format(message, sizeof message, "%s granted (item %d).", iname, uid); }
     else format(message, sizeof message, "Backpack granted (item %d). Equip it in the BACK slot to unlock 30 bag slots.", uid);
     return RW_Ok(playerid, message);
 }

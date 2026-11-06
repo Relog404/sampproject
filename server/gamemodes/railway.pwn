@@ -24,6 +24,7 @@
 #include <railway/accounts>
 #include <railway/inventory>
 #include <railway/phone>
+#include <railway/police>
 #include <railway/ground>
 #include <railway/weapons>
 #include <railway/medical>
@@ -92,9 +93,12 @@ public OnGameModeInit()
     if (!RW_GarageSchema()) print("[garage] Persistent garage unavailable.");
     if (!RW_InvInit()) print("[inventory] Inventory unavailable; existing data preserved.");
     if (!RW_PhoneSchema()) print("[phone] Phone tables unavailable; calls and SMS disabled.");
+    if (!RW_PoliceSchema()) print("[police] Police tables unavailable; arrests and fines disabled.");
+    RW_PoliceInit();
     RW_GarageInit();
     RW_MotionInit();
     SetTimer("RW_PhonePulse", 1000, true);
+    SetTimer("RW_PolicePulse", 1000, true);
     RW_CefInit();
     SetTimer("RW_CabinPulse", 100, true);
     RW_UI_Init();
@@ -140,6 +144,7 @@ public OnPlayerConnect(playerid)
     RW_MedReset(playerid);
     RW_CefReset(playerid);
     RW_PhoneReset(playerid);
+    RW_PoliceReset(playerid);
     gLogged[playerid] = false;
     gAccountId[playerid] = -1;
     gAdminLevel[playerid] = 0;
@@ -187,8 +192,10 @@ public OnPlayerDisconnect(playerid, reason)
     RW_CabinReset(playerid);
     RW_ArmourReset(playerid);
     RW_PhoneSave(playerid);
+    RW_PoliceSave(playerid);
     RW_CefReset(playerid);
     RW_PhoneReset(playerid);
+    RW_PoliceReset(playerid);
     RW_ClearRegisterPassword(playerid);
     RW_SaveAccount(playerid);
     RW_Veh_OnPlayerDisconnect(playerid);
@@ -267,6 +274,7 @@ public OnPlayerDeath(playerid, killerid, reason)
     new Float:dx, Float:dy, Float:dz;
     GetPlayerPos(playerid, dx, dy, dz);
     RW_MedDown(playerid, dx, dy, dz);
+    RW_PoliceOnDeath(playerid);
     return 1;
 }
 public OnPlayerWeaponShot(playerid, weaponid, hittype, hitid, Float:fX, Float:fY, Float:fZ)
@@ -358,6 +366,7 @@ public OnPlayerUpdate(playerid)
 public OnPlayerText(playerid, text[])
 {
     if (gPhoneState[playerid] == PHONE_TALK) return RW_PhoneSay(playerid, text);
+    if (gCaseId[playerid]) return RW_PoliceCaseSay(playerid, text);
     return 1;
 }
 

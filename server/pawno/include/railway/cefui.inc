@@ -281,17 +281,50 @@ public RW_CefClick(playerid, browserid, id)
     if (!RW_CefOn(playerid)) return 0;
     if (gCefMode[playerid] == CEF_MODE_VEHICLE) return RW_CefVehicleClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_PASSENGERS) return RW_CefPassengerClick(playerid, id);
+    if (gCefMode[playerid] == CEF_MODE_POLICE) return RW_PoliceCefClick(playerid, id);
+    if (gCefMode[playerid] == CEF_MODE_MDT) return RW_MdtCefClick(playerid, id);
     return 1;
 }
 
 /*  ------------------------------ phone events ----------------------------- */
+/* Приложение адвокатов: список лицензированных адвокатов, доступно из КПЗ. */
+stock RW_CefPhoneLawyers(playerid)
+{
+    if (!RW_CefOn(playerid) || gAccountId[playerid] <= 0) return 0;
+    new query[320];
+    format(query, sizeof query, "SELECT a.name AS who,p.price,p.rating,(SELECT sim_number FROM sim_cards s WHERE s.player_id=p.player_id) AS num FROM lawyers p LEFT JOIN accounts a ON a.id=p.player_id WHERE p.license=1 AND p.expire>%d ORDER BY p.rating DESC LIMIT 20", gettime());
+    new DBResult:r = db_query(gDB, query);
+    if (r != DBResult:0) {
+        new rows = db_num_rows(r);
+        for (new i; i < rows; i++) {
+            new name[MAX_PLAYER_NAME];
+            db_get_field_assoc(r, "who", name, sizeof name);
+            CEF_EmitEvent(playerid, CEF_UI_PHONE, "phone:lawyer", CEF_STR(name), CEF_INT(db_get_field_assoc_int(r, "rating")), CEF_INT(db_get_field_assoc_int(r, "price")), CEF_INT(db_get_field_assoc_int(r, "num")));
+            db_next_row(r);
+        }
+        db_free_result(r);
+    }
+    CEF_EmitEvent(playerid, CEF_UI_PHONE, "phone:lawyerend");
+    return 1;
+}
 public RW_CefPhoneApp(playerid, browserid, app)
 {
     #pragma unused browserid
     if (!RW_CefOn(playerid)) return 0;
     if (app < 0 || app >= PHONE_APPS) return 1;
+    /* эти приложения рисуются на клиенте сами */
+    if (app == 0 || app == 1 || app == 10 || app == 11) return 1;
+    if (app == 5) {
+        if (gJailTime[playerid] <= 0) {
+            #if RAILWAY_CEF
+                RW_CefToast(playerid, "Lawyers are listed only while you sit in a cell.");
+            #endif
+            return 1;
+        }
+        return RW_CefPhoneLawyers(playerid);
+    }
     #if RAILWAY_CEF
-        RW_CefToast(playerid, "This app is not written yet. Phone, messages, contacts, operator, settings and 911 work.");
+        RW_CefToast(playerid, "This app is not written yet. Phone, messages, contacts, lawyer, settings and 911 work.");
     #endif
     return 1;
 }
