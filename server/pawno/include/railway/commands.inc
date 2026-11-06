@@ -54,6 +54,7 @@ stock RW_CommandHelp(playerid)
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/key{FFFFFF} - insert/remove key; N - engine.");
     SendClientMessage(playerid, COLOR_GREY, "Map: ESC > Map > right click. /tpm - confirm teleport; /delmark - remove marker.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/armfit{FFFFFF} - admin with worn armour: adjust the vest for your skin.");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/skin [id txd texture]{FFFFFF} - textures from the client arm/ folder.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/board{FFFFFF} - board the aimed plane (up to 20 people); {F5B04C}/unboard{FFFFFF} - leave.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/mycar{FFFFFF} - temporary car status.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/stats{FFFFFF} - account /admins - online administrators");
@@ -303,6 +304,7 @@ stock RW_CommandProcess(playerid, cmdtext[])
     if (!strcmp(cmd, "take", true)) return RW_GroundTake(playerid);
     if (!strcmp(cmd, "board", true)) return RW_CabinCommand(playerid, params);
     if (!strcmp(cmd, "armfit", true)) return RW_ArmourFitCommand(playerid);
+    if (!strcmp(cmd, "skin", true) || !strcmp(cmd, "skins", true)) return RW_SkinCommand(playerid, params);
     if (!strcmp(cmd, "unboard", true)) return RW_CabinLeave(playerid);
     if (!strcmp(cmd, "bagfit", true)) return RW_InvFitCommand(playerid);
     if (!strcmp(cmd, "inv", true) || !strcmp(cmd, "inventory", true)) return RW_InvOpen(playerid);

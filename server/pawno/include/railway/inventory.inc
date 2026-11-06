@@ -135,6 +135,8 @@ stock RW_InvInit()
     if (!RW_DB_Exec("CREATE TABLE IF NOT EXISTS inventory_items (uid INTEGER PRIMARY KEY AUTOINCREMENT, owner INTEGER, slot INTEGER NOT NULL, type INTEGER NOT NULL, data INTEGER NOT NULL DEFAULT 0, amount INTEGER NOT NULL DEFAULT 1, x REAL NOT NULL DEFAULT 0, y REAL NOT NULL DEFAULT 0, z REAL NOT NULL DEFAULT 0, UNIQUE(owner,slot), CHECK((owner IS NULL AND slot=-1) OR (owner>0 AND slot>=0 AND slot<80)))")) return 0;
     if (!RW_InvEquipmentSchema()) return 0;
     if (!RW_ArmourSchema()) return 0;
+    if (!RW_SkinSchema()) return 0;
+    if (!RW_SkinLoadAll()) return 0;
     if (!RW_WeaponsSchema()) return 0;
     if (!RW_InvUpgradeSchema()) return 0;
     // Personal cars are session-only. Never let a recycled vehicle ID revive a key.

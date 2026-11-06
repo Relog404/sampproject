@@ -123,6 +123,9 @@ new gLoginAttempts[MAX_PLAYERS];
 new gLastSpcarTick[MAX_PLAYERS];
 
 new gAuthTimer[MAX_PLAYERS];           /* таймер камеры на экране входа      */
+#define SKIN_MAX (16)
+new gSkinTxd[SKIN_MAX][32];         /* client-side TXD names (arm/*.txd)      */
+new gSkinTexture[SKIN_MAX][32];     /* texture names inside those TXDs        */
 new gInvWorn[MAX_PLAYERS];          /* worn body armour item uid (0 = none)   */
 new gArmourData[MAX_PLAYERS];       /* variant of the worn armour             */
 new gArmourHp[MAX_PLAYERS];         /* armour points left                     */
