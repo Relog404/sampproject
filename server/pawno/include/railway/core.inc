@@ -53,6 +53,9 @@
 #define CEF_MODE_TRUNK              (6)
 #define CEF_MODE_LOCKPICK           (7)
 #define CEF_MODE_SERVICE            (8)
+#define CEF_MODE_SHOP               (9)
+#define CEF_MODE_BANK               (10)
+#define CEF_MODE_JOB                (11)
 /* вкладки планшета служб: полици€ видит 0-3 и 5, скора€ Ч вызовы */
 #define MDT_CALLS                   (4)
 /* топливо */

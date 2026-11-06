@@ -216,6 +216,18 @@ stock RW_UI_Click(playerid, row)
         if (GetTickCount()-gControlTick[playerid] < 250) return 1;
         gControlTick[playerid] = GetTickCount();
         return RW_ServiceClick(playerid, row);
+    } else if (mode == UI_SHOP) {
+        if (GetTickCount()-gControlTick[playerid] < 250) return 1;
+        gControlTick[playerid] = GetTickCount();
+        return RW_ShopClick(playerid, row);
+    } else if (mode == UI_BANK) {
+        if (GetTickCount()-gControlTick[playerid] < 250) return 1;
+        gControlTick[playerid] = GetTickCount();
+        return RW_BankClick(playerid, row);
+    } else if (mode == UI_JOB) {
+        if (GetTickCount()-gControlTick[playerid] < 250) return 1;
+        gControlTick[playerid] = GetTickCount();
+        return RW_JobClick(playerid, row);
     } else if (mode == UI_PHONE || mode == UI_PHONE_CONT) {
         if (GetTickCount()-gControlTick[playerid] < 250) return 1;
         gControlTick[playerid] = GetTickCount();

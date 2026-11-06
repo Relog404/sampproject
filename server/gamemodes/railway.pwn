@@ -34,6 +34,7 @@
 #include <railway/interaction>
 #include <railway/garage>
 #include <railway/transport>
+#include <railway/economy>
 #include <railway/motion>
 #include <railway/cabin>
 #include <railway/skins>
@@ -99,12 +100,15 @@ public OnGameModeInit()
     RW_PoliceInit();
     if (!RW_EmsSchema()) print("[ems] Emergency tables unavailable; 911 calls disabled.");
     if (!RW_TransportSchema()) print("[transport] Transport tables unavailable; trunks and tuning disabled.");
+    if (!RW_EconomySchema()) print("[economy] Economy tables unavailable; jobs, shops and bank accounts disabled.");
+    RW_EconomyInit();
     RW_GarageInit();
     RW_MotionInit();
     SetTimer("RW_PhonePulse", 1000, true);
     SetTimer("RW_PolicePulse", 1000, true);
     SetTimer("RW_EmsPulse", 1000, true);
     SetTimer("RW_TransportPulse", 1000, true);
+    SetTimer("RW_EconomyPulse", 1000, true);
     RW_CefInit();
     SetTimer("RW_CabinPulse", 100, true);
     RW_UI_Init();
@@ -153,6 +157,8 @@ public OnPlayerConnect(playerid)
     RW_PoliceReset(playerid);
     RW_EmsReset(playerid);
     RW_TransportReset(playerid);
+    RW_EconomySave(playerid);
+    RW_EconomyReset(playerid);
     gLogged[playerid] = false;
     gAccountId[playerid] = -1;
     gAdminLevel[playerid] = 0;

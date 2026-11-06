@@ -23,6 +23,9 @@
 #define UI_TRUNK 16
 #define UI_LOCKPICK 17
 #define UI_SERVICE 18
+#define UI_SHOP 19
+#define UI_BANK 20
+#define UI_JOB 21
 new PlayerText:gUIPreview[MAX_PLAYERS];
 new PlayerText:gUI[MAX_PLAYERS][UI_COUNT];
 new bool:gUICreated[MAX_PLAYERS], bool:gUIInput[MAX_PLAYERS];

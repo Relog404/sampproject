@@ -54,6 +54,7 @@ stock RW_CommandHelp(playerid)
     SendClientMessage(playerid, COLOR_GREY, "Lawyer: /lawyer, /bailrequest, /endcase, /lawprice; Y on a detained player to take the case.");
     SendClientMessage(playerid, COLOR_GREY, "Ambulance: /revive, /heal, /carry, /load, /admit, /ems, /calls, /take <id>; Y on a downed player.");
     SendClientMessage(playerid, COLOR_GREY, "Transport: /fuel, /refuel, /trunk, /tune, /repair, /tow, /impound, /unimpound; Y on a car.");
+    SendClientMessage(playerid, COLOR_GREY, "Money: /shop, /bank, /balance, /deposit, /withdraw, /transfer <id> <sum>, /job, /work, /quitjob, /payday.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/spcar <id>{FFFFFF} - temporary car (400-611). /garage - station garage.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} - unlock/lock the aimed car; its key must be in /inv.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/key{FFFFFF} - insert/remove key; N - engine.");
@@ -370,6 +371,16 @@ stock RW_CommandProcess(playerid, cmdtext[])
     if (!strcmp(cmd, "impound", true)) return RW_ImpoundList(playerid);
     if (!strcmp(cmd, "unimpound", true)) return RW_UnimpoundCommand(playerid, params);
     if (!strcmp(cmd, "tune", true)) return RW_TuneCommand(playerid);
+    if (!strcmp(cmd, "shop", true)) return RW_ShopCommand(playerid);
+    if (!strcmp(cmd, "bank", true)) return RW_BankCommand(playerid);
+    if (!strcmp(cmd, "balance", true)) return RW_BalanceCommand(playerid);
+    if (!strcmp(cmd, "deposit", true)) return RW_DepositCommand(playerid, params);
+    if (!strcmp(cmd, "withdraw", true)) return RW_WithdrawCommand(playerid, params);
+    if (!strcmp(cmd, "transfer", true)) return RW_TransferCommand(playerid, params);
+    if (!strcmp(cmd, "job", true)) return RW_JobCommand(playerid);
+    if (!strcmp(cmd, "work", true)) return RW_WorkCommand(playerid);
+    if (!strcmp(cmd, "quitjob", true)) return RW_QuitJobCommand(playerid);
+    if (!strcmp(cmd, "payday", true)) return RW_PaydayCommand(playerid);
     if (!strcmp(cmd, "phone", true)) return RW_PhoneOpen(playerid);
     if (!strcmp(cmd, "call", true)) return RW_PhoneCallCommand(playerid, params);
     if (!strcmp(cmd, "sms", true)) return RW_PhoneSmsCommand(playerid, params);

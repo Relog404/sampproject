@@ -287,6 +287,9 @@ public RW_CefClick(playerid, browserid, id)
     if (gCefMode[playerid] == CEF_MODE_TRUNK) return RW_TrunkCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_LOCKPICK) return RW_PickCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_SERVICE) return RW_ServiceCefClick(playerid, id);
+    if (gCefMode[playerid] == CEF_MODE_SHOP) return RW_ShopCefClick(playerid, id);
+    if (gCefMode[playerid] == CEF_MODE_BANK) return RW_BankCefClick(playerid, id);
+    if (gCefMode[playerid] == CEF_MODE_JOB) return RW_JobCefClick(playerid, id);
     return 1;
 }
 
