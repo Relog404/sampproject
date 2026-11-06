@@ -11,7 +11,7 @@
 #define ITEM_BANDAGE 5
 #define ITEM_SYRINGE 6
 #define ITEM_ARMOUR  7
-#define INV_TYPE_MAX 17
+#define INV_TYPE_MAX 18
 #define INV_NEAR 50
 #define INV_WORLD 500
 #define INV_TDS 165
@@ -53,6 +53,7 @@ stock RW_InvModel(type, data = 0)
     if (type == ITEM_MEDKIT) return 11738;
     if (type == ITEM_LOCKPICK) return 1580;
     if (type == ITEM_TUNING) return 1078;
+    if (type == ITEM_PHOTO) return 2273;
     return 11746;
 }
 // Weight in grams. Ammunition is weighed per round, so a stack scales with it.
@@ -75,6 +76,7 @@ stock RW_InvGrams(type, data = 0, amount = 1)
     if (type == ITEM_LOCKPICK) return 100;
     /* деталь тюнинга: data Ч номер детали, еЄ вес считает transport.inc */
     if (type == ITEM_TUNING) return RW_TunePartGrams(data);
+    if (type == ITEM_PHOTO) return 50;
     return 100;
 }
 stock RW_InvPack(playerid)
@@ -260,6 +262,7 @@ stock RW_InvGrant(playerid, type, data = 0, amount = 1)
     if (type==ITEM_MEDKIT && (data<0 || data>=PHONE_TARIFFS || amount!=1)) return 0;
     if (type==ITEM_LOCKPICK && (data<0 || data>=PHONE_TARIFFS || amount!=1)) return 0;
     if (type==ITEM_TUNING && (data<0 || data>=TUNE_PARTS || amount<1 || amount>TUNE_MAX_LEVEL)) return 0;
+    if (type==ITEM_PHOTO && (data<0 || data>=PHOTO_PLACES || amount<0 || amount>1439)) return 0;
     new slot = RW_InvFree(playerid, 0, type, data, amount);
     if (slot < 0) return 0;
     if (!RW_DB_Exec("SAVEPOINT inventory_grant")) return 0;
@@ -488,6 +491,7 @@ stock RW_InvContextRender(playerid)
     else if (type == ITEM_MEDKIT) format(title, sizeof title, "%s", "MEDKIT");
     else if (type == ITEM_LOCKPICK) format(title, sizeof title, "%s", "LOCKPICK");
     else if (type == ITEM_TUNING) { new pname[24]; RW_TuneName(data, pname, sizeof pname); format(title, sizeof title, "%s L%d", pname, amount); }
+    else if (type == ITEM_PHOTO) { new pname[24]; RW_PhotoPlaceName(data, pname, sizeof pname); format(title, sizeof title, "PHOTO %s", pname); }
     else format(title, sizeof title, "%s", "CAR KEY");
     PlayerTextDrawSetString(playerid, gInvTD[playerid][156], title);
     new stats[128], desc[128];
@@ -523,6 +527,7 @@ stock RW_InvContextRender(playerid)
     else if (type == ITEM_MEDKIT) { format(desc, sizeof desc, "%s", "Heals you or another player to 100 HP in 3 s"); format(stats, sizeof stats, "0.8kg / single use, /heal"); }
     else if (type == ITEM_LOCKPICK) { format(desc, sizeof desc, "%s", "Opens somebody else's car: a three-step mini-game"); format(stats, sizeof stats, "0.1kg / breaks on a mistake"); }
     else if (type == ITEM_TUNING) { new pname[24]; RW_TuneName(data, pname, sizeof pname); format(desc, sizeof desc, "Fits at the tuning garage, level %d", amount); format(stats, sizeof stats, "%.0fkg / uid is written to the car", float(RW_TunePartGrams(data))/1000.0); }
+    else if (type == ITEM_PHOTO) { new pname[24]; RW_PhotoPlaceName(data, pname, sizeof pname); format(desc, sizeof desc, "A shot taken near %s; /photo looks at it", pname); format(stats, sizeof stats, "50g / souvenir"); }
     else {
         new model, bool:permanent = RW_GarageKeyModel(data, model);
         format(desc,sizeof desc,"%s vehicle access", permanent ? ("Permanent") : ("Temporary"));
@@ -545,6 +550,7 @@ stock RW_InvContextRender(playerid)
     else if (type == ITEM_DEFIB || type == ITEM_MEDKIT) format(action, sizeof action, "%s", "USE");
     else if (type == ITEM_LOCKPICK) format(action, sizeof action, "%s", "PICK");
     else if (type == ITEM_TUNING) format(action, sizeof action, "%s", "FIT");
+    else if (type == ITEM_PHOTO) format(action, sizeof action, "%s", "SHOW");
     PlayerTextDrawSetString(playerid, gInvTD[playerid][163], action);
     if (type == ITEM_WEAPON && !gInvFromGround[playerid]) PlayerTextDrawSetString(playerid, gInvTD[playerid][160], gWpActive[playerid] == gInvSelected[playerid] ? ("UNEQUIP") : ("EQUIP"));
     else if (type == ITEM_ARMOUR && !gInvFromGround[playerid]) PlayerTextDrawSetString(playerid, gInvTD[playerid][160], gInvSelected[playerid] == gInvWorn[playerid] ? ("TAKE OFF") : ("WEAR"));
@@ -688,6 +694,7 @@ stock RW_InvClick(playerid, PlayerText:clicked)
         if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_MEDKIT) return RW_EmsHealCommand(playerid, "");
         if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_LOCKPICK) return RW_TransportRow(playerid, RW_TransportCar(playerid));
         if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_TUNING) return RW_TuneInstall(playerid, RW_TransportCar(playerid));
+        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_PHOTO) return RW_PhotoShow(playerid);
         if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_CAR_KEY) {
             new token = gInv[playerid][slot][iiData];
             for (new v; v < VEHICLE_SLOTS; v++) if (gVeh[v][vsUsed] && gVehKeyUid[v] == token) {
@@ -739,6 +746,7 @@ stock RW_InvItemWord(const word[])
     if (!strcmp(word, "15", true) || !strcmp(word, "medkit", true) || !strcmp(word, "kit", true)) return ITEM_MEDKIT;
     if (!strcmp(word, "16", true) || !strcmp(word, "lockpick", true) || !strcmp(word, "pick", true)) return ITEM_LOCKPICK;
     if (!strcmp(word, "17", true) || !strcmp(word, "tuning", true) || !strcmp(word, "part", true)) return ITEM_TUNING;
+    if (!strcmp(word, "18", true) || !strcmp(word, "photo", true) || !strcmp(word, "snap", true)) return ITEM_PHOTO;
     return -1;
 }
 // Calibre by name or number: 9mm, .44, 12ga, 5.56, 7.62, .308.

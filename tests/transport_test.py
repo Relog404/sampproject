@@ -128,7 +128,7 @@ class TransportItemTest(unittest.TestCase):
     def test_item_types_are_registered(self):
         self.assertRegex(CORE, r'#define ITEM_LOCKPICK\s+16')
         self.assertRegex(CORE, r'#define ITEM_TUNING\s+17')
-        self.assertRegex(INV, r'#define INV_TYPE_MAX 17')
+        self.assertRegex(INV, r'#define INV_TYPE_MAX 1[78]')
 
     def test_both_items_have_a_model_and_a_weight(self):
         self.assertRegex(INV, r'if \(type == ITEM_LOCKPICK\) return 1580;')

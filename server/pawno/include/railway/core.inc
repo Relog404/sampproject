@@ -56,6 +56,7 @@
 #define CEF_MODE_SHOP               (9)
 #define CEF_MODE_BANK               (10)
 #define CEF_MODE_JOB                (11)
+#define CEF_MODE_APP                (12)
 /* вкладки планшета служб: полиция видит 0-3 и 5, скорая — вызовы */
 #define MDT_CALLS                   (4)
 /* топливо */
@@ -82,6 +83,25 @@
 #define PICK_MS                     8000
 #define TRUNK_SLOTS                 10
 #define PHONE_TARIFFS               (3)
+/* приложения телефона и их настройки */
+#define PHONE_APP_BANK              2
+#define PHONE_APP_WEATHER           3
+#define PHONE_APP_GROUP             4
+#define PHONE_APP_LAWYER            5
+#define PHONE_APP_UBER              6
+#define PHONE_APP_NEWS              7
+#define PHONE_APP_AUTO              8
+#define PHONE_APP_CAMERA            9
+#define WEATHER_COUNT               6
+#define WEATHER_CHANGE_SECONDS      1800
+#define NEWS_PRICE                  100
+#define NEWS_MAX_LEN                96
+#define AUTO_DELIVER_FEE            200
+#define AUTO_DELIVER_DISTANCE       50.0
+#define UBER_BASE_FARE              50
+#define UBER_PER_METRE              2
+#define UBER_RANGE                  15.0
+#define PHOTO_PLACES                6
 #define ITEM_SIM                    8
 #define ITEM_PHONE                  9
 #define ITEM_CUFFS                  10
@@ -92,6 +112,7 @@
 #define ITEM_MEDKIT                 15
 #define ITEM_LOCKPICK               16
 #define ITEM_TUNING                 17
+#define ITEM_PHOTO                  18
 #define FACTION_NONE                0
 #define FACTION_LSPD                1
 #define FACTION_SHERIFF             2

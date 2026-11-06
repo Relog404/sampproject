@@ -957,6 +957,8 @@ stock RW_JobTaskDone(playerid)
 {
     new pay = RW_JobBasePay(gJob[playerid]) + gJobPay[playerid];
     pay = pay + floatround(float(pay) * 0.15 * float(gJobLevel[playerid] - 1));
+    new weatherBonus = RW_WeatherBonus(gJob[playerid]);
+    if (weatherBonus != 0) pay = pay + floatround(float(pay) * float(weatherBonus) / 100.0);
     RW_AddMoney(playerid, pay);
     gJobTasks[playerid]++;
     gJobEarned[playerid] += pay;
@@ -965,7 +967,10 @@ stock RW_JobTaskDone(playerid)
     RW_EconomySave(playerid);
     new sum[32], message[160];
     RW_FormatMoney(pay, sum, sizeof sum);
-    format(message, sizeof message, "Done: %s in cash. Cash: %d.", sum, gMoney[playerid]);
+    if (weatherBonus != 0)
+        format(message, sizeof message, "Done: %s in cash (%+d%% for the weather). Cash: %d.", sum, weatherBonus, gMoney[playerid]);
+    else
+        format(message, sizeof message, "Done: %s in cash. Cash: %d.", sum, gMoney[playerid]);
     RW_Ok(playerid, message);
     if (gJobExp[playerid] >= gJobLevel[playerid] * JOB_EXP_PER_LEVEL && gJobLevel[playerid] < JOB_MAX_LEVEL) {
         gJobLevel[playerid]++;

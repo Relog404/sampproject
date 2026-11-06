@@ -684,6 +684,7 @@ stock RW_PhoneMenu(playerid)
     RW_UI_Row(playerid, 3, "Top up: /topup <amount>");
     RW_UI_Row(playerid, 4, gPhoneDnd[playerid] ? ("Do not disturb: ON") : ("Do not disturb: OFF"));
     RW_UI_Row(playerid, 5, "Emergency: /911 <reason 0-5>");
+    RW_UI_Row(playerid, 6, "Applications");
     RW_UI_Row(playerid, 7, "Close");
     if (gPhoneState[playerid] == PHONE_RING) RW_Info(playerid, "Incoming call: /pickup or /hangup.");
     return 1;
@@ -736,6 +737,7 @@ stock RW_PhoneClick(playerid, row, mode)
             return RW_PhoneMenu(playerid);
         }
         if (row == 7) return RW_UI_Close(playerid);
+        if (row == 6) return RW_PhoneAppList(playerid);
         if (row == 3) return RW_Info(playerid, "Type /topup <amount> in chat.");
         if (row == 5) return RW_Info(playerid, "Type /911 <reason 0-5> in chat.");
         if (row == 2) return RW_Info(playerid, "Type /sms <number> <text> in chat.");
