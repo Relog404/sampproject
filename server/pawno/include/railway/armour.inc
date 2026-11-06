@@ -261,4 +261,3 @@ stock RW_ArmourFitSave(playerid, response, index, model, bone, Float:x, Float:y,
     RW_ArmourAttach(playerid, true);
     return RW_Ok(playerid, "Armour fit saved for this skin.");
 }
-
