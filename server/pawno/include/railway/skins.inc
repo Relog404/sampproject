@@ -73,6 +73,29 @@ stock RW_SkinLabel(id, dest[], size = sizeof dest)
     }
     return 1;
 }
+/*  --------------------- LIQUID OR PERSONAL --------------------------------
+ *  false - liquid: the item can be dropped, traded and sold to anybody;
+ *          it lies on the ground and can be lost.
+ *  true  - a donation / privilege texture: the item is bound to the account
+ *          that received it, it cannot be dropped or handed to another
+ *          player (only an admin can grant it with /giveitem).
+ *  Both kinds are the same item type: only the skin id differs.
+ *  ------------------------------------------------------------------------ */
+stock bool:RW_SkinBound(id)
+{
+    switch (id) {
+        case 0: return false;
+        case 1: return false;
+        case 2: return false;
+    }
+    return false;
+}
+stock bool:RW_SkinBoundItem(type, data)
+{
+    new id = RW_ItemSkin(type, data);
+    return id >= 0 && RW_SkinBound(id);
+}
+
 /*  --------------------- EFFECTIVE NAMES ----------------------------------- */
 stock RW_SkinSchema()
 {

@@ -82,6 +82,22 @@ class SkinRegistryTest(unittest.TestCase):
         self.assertIn('if (IsPlayerConnected(p) && gInvWorn[p] > 0 && gArmourData[p] == id) RW_ArmourAttach(p, true);', refresh)
         self.assertIn('if (gGround[i][igUid] > 0 && RW_ItemSkin(gGround[i][igType], gGround[i][igData]) == id) RW_SkinApply(gGround[i][igObject], id);', refresh)
 
+    def test_liquid_or_personal(self):
+        """The same item type: one switch decides whether it can be traded."""
+        bound = body('stock bool:RW_SkinBound(id)')
+        self.assertEqual(bound.count('case '), 3)
+        self.assertIn('stock bool:RW_SkinBoundItem(type, data)', SKINS)
+        self.assertIn('new id = RW_ItemSkin(type, data);', body('stock bool:RW_SkinBoundItem(type'))
+        # nothing is bound out of the box: every item stays liquid
+        for value in re.findall(r'return (true|false);', bound):
+            self.assertEqual(value, 'false')
+
+    def test_bound_items_never_leave_the_account(self):
+        drop = INV.split('stock RW_InvDrop')[1].split('\nstock ')[0]
+        self.assertIn('if (RW_SkinBoundItem(gInv[playerid][source][iiType], gInv[playerid][source][iiData])) return RW_Error(playerid, "This item is bound to your account and cannot be dropped.");', drop)
+        self.assertIn('if(!RW_SkinBoundItem(type,data)) PlayerTextDrawShow(playerid,gInvTD[playerid][159]);', INV)
+        self.assertIn('bound to this account', INV)
+
     def test_server_never_sends_files(self):
         """The art stays on the client: no URL, no download, no file IO."""
         for banned in ('http://', 'DownloadFile', 'fopen', 'fread', 'FileOpen'):

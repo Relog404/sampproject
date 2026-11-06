@@ -328,6 +328,7 @@ stock RW_InvDrop(playerid)
     if (gInvFromGround[playerid]) return 1;
     new source = RW_InvFind(playerid, gInvSelected[playerid]);
     if (source < 0 || !RW_InvCanRemove(playerid, source)) return 1;
+    if (RW_SkinBoundItem(gInv[playerid][source][iiType], gInv[playerid][source][iiData])) return RW_Error(playerid, "This item is bound to your account and cannot be dropped.");
     if (GetPlayerState(playerid) != PLAYER_STATE_ONFOOT || GetPlayerInterior(playerid) != 0 || GetPlayerVirtualWorld(playerid) != 0) return RW_Error(playerid, "Drop items on foot, outdoors, in the main world only.");
     new ground = -1;
     for (new i; i < INV_WORLD; i++) if (!gGround[i][igUid]) { ground = i; break; }
@@ -465,7 +466,8 @@ stock RW_InvContextRender(playerid)
     else if (type == ITEM_SYRINGE) { format(desc, sizeof desc, "Revives a downed player in 3s"); format(stats, sizeof stats, "0.3kg / single use"); }
     else if (type == ITEM_ARMOUR) {
         new bool:worn = gInvSelected[playerid] == gInvWorn[playerid];
-        format(desc, sizeof desc, worn ? ("Worn / absorbs %d%% of damage") : ("Wear it to absorb damage"), RW_ArmourAbsorb(data));
+        if (RW_SkinBoundItem(type, data)) format(desc, sizeof desc, "%s / bound to this account", worn ? ("Worn") : ("Personal armour"));
+        else format(desc, sizeof desc, worn ? ("Worn / absorbs %d%% of damage") : ("Wear it to absorb damage"), RW_ArmourAbsorb(data));
         format(stats, sizeof stats, "%.1fkg / %d / %d points", float(RW_ArmourGrams(data))/1000.0, worn ? (gArmourHp[playerid]) : (RW_ArmourHpOf(data)), RW_ArmourHpOf(data));
     }
     else {
@@ -487,7 +489,7 @@ stock RW_InvContextRender(playerid)
     else if (type == ITEM_ARMOUR && !gInvFromGround[playerid]) PlayerTextDrawSetString(playerid, gInvTD[playerid][160], gInvSelected[playerid] == gInvWorn[playerid] ? ("TAKE OFF") : ("WEAR"));
     else PlayerTextDrawSetString(playerid, gInvTD[playerid][160], "WEAR");
     if (!gInvFromGround[playerid] && gInvSelected[playerid]!=gInvEquipped[playerid]) {
-        PlayerTextDrawShow(playerid,gInvTD[playerid][159]);
+        if(!RW_SkinBoundItem(type,data)) PlayerTextDrawShow(playerid,gInvTD[playerid][159]);
         if(type==ITEM_BACKPACK || type==ITEM_ARMOUR || (type==ITEM_WEAPON && gWpActive[playerid]!=gInvSelected[playerid])) PlayerTextDrawShow(playerid,gInvTD[playerid][160]);
         if(type==ITEM_CAR_KEY || type==ITEM_AMMO || type==ITEM_BANDAGE || type==ITEM_SYRINGE || (type==ITEM_WEAPON && gWpActive[playerid]==gInvSelected[playerid])) PlayerTextDrawShow(playerid,gInvTD[playerid][163]);
     }
