@@ -21,6 +21,7 @@ INV = pawn('inventory')
 INTER = pawn('interaction')
 CEFUI = pawn('cefui')
 CMDS = pawn('commands')
+PHONEAPPS = pawn('phoneapps')
 ACC = pawn('accounts')
 MAIN = (ROOT / 'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
 
@@ -177,7 +178,8 @@ class JobTest(unittest.TestCase):
     def test_constants(self):
         for name, value in (('JOB_NONE', 0), ('JOB_LOADER', 1), ('JOB_COURIER', 2), ('JOB_TRUCKER', 3),
                             ('JOB_GARBAGE', 4), ('JOB_FARMER', 5), ('JOB_MUSHROOM', 6), ('JOB_QUARRY', 7),
-                            ('JOB_LUMBER', 8), ('JOB_POST', 9), ('JOB_COUNT', 10)):
+                            ('JOB_LUMBER', 8), ('JOB_POST', 9), ('JOB_BUS', 10),
+                            ('JOB_TAXI', 11), ('JOB_COUNT', 12)):
             self.assertRegex(ECON, r'#define %s\s+%d' % (name, value))
         self.assertRegex(ECON, r'#define JOB_MAX_LEVEL\s+5')
         self.assertRegex(ECON, r'#define JOB_EXP_PER_LEVEL\s+10')
@@ -254,10 +256,14 @@ class JobTest(unittest.TestCase):
         self.assertIn('RW_UI_Row(playerid, 5, \"First jobs\");', ECON)
         self.assertIn('RW_UI_Row(playerid, 6, \"Quit the job\");', ECON)
         self.assertIn('RW_UI_Row(playerid, 7, \"Close\");', ECON)
-        self.assertIn('if (gJob[playerid] != JOB_NONE) RW_CefAction(playerid, 7, \"Quit the job\", \"danger\");', ECON)
+        self.assertIn('if (gJob[playerid] != JOB_NONE) RW_CefAction(playerid, CEF_JOB_QUIT, \"Quit the job\", \"danger\");', ECON)
         action = block(ECON, 'stock RW_JobAction(playerid, row, bool:cef)')
         self.assertIn('if (row == 6) return RW_JobQuit(playerid);', action)
-        self.assertIn('if (row == 7) return RW_JobQuit(playerid);', action)
+        self.assertIn('if (row == CEF_JOB_QUIT) return RW_JobQuit(playerid);', action)
+        # Номера действий не пересекаются с номерами строк: иначе клик по профессии
+        # читался бы как «Quit the job».
+        self.assertIn('#define CEF_JOB_QUIT                20', CORE)
+        self.assertIn('#define CEF_JOB_CLOSE               21', CORE)
 
     def test_the_exchange_lists_all_nine_jobs(self):
         # CEF-меню строит строки циклом по всем профессиям.
@@ -267,7 +273,7 @@ class JobTest(unittest.TestCase):
             self.assertIn('if (job == %s) format(dest, size, ' % job, ECON)
 
     def test_every_new_job_has_its_points(self):
-        points = block(ECON, 'stock RW_JobPoint(job, stage, &Float:x, &Float:y, &Float:z)')
+        points = block(ECON, 'stock RW_JobPoint(playerid, job, stage, &Float:x, &Float:y, &Float:z)')
         for table in ('gGarbageBins', 'gGarbageDump', 'gFarmRows', 'gFarmBarn', 'gMushroomSpots',
                       'gMushroomBuyer', 'gQuarryVeins', 'gQuarryCrusher', 'gTreeSpots', 'gSawmill',
                       'gPostBoxes', 'gPostOffice'):
@@ -287,9 +293,10 @@ class JobTest(unittest.TestCase):
 
     def test_the_hiring_points_are_real_places(self):
         table = table_rows(ECON, 'gJobHire')
-        self.assertEqual(len(table), 9)
+        self.assertEqual(len(table), 11)
         for place in ('Ocean Docks', 'Unity Station', 'Willowfield', 'Blueberry Acres',
-                      'Palomino Creek', 'Hunter Quarry', 'Angel Pine', 'Idlewood'):
+                      'Palomino Creek', 'Hunter Quarry', 'Angel Pine', 'Idlewood',
+                      'El Corona', 'LS International'):
             self.assertIn(place, '\n'.join(table))
         for row in table:
             self.assertRegex(row, r'^\s*\{\s*\d+\.0,\s+-?\d+\.\d+,\s+-?\d+\.\d+,\s+\d+\.\d+\s*\}')
@@ -299,6 +306,72 @@ class JobTest(unittest.TestCase):
         self.assertIn('Unity Station', block(ECON, 'static const Float:gCourierPoints[][3]'))
         for city in ('San Fierro', 'Bayside', 'Dillimore'):
             self.assertIn(city, block(ECON, 'static const Float:gTruckerPoints[][3]'))
+
+    def test_the_bus_runs_a_ring_route(self):
+        stops = table_rows(ECON, 'gBusStops')
+        self.assertEqual(len(stops), 6)
+        stops_block = ECON.split('static const Float:gBusStops', 1)[1].split('};', 1)[0]
+        for place in ('Willowfield', 'Las Colinas', 'Ganton', 'Unity Station', 'Downtown', 'All Saints'):
+            self.assertIn(place, stops_block)
+        # Маршрут идёт по очереди: следующая остановка считается от текущей.
+        points = block(ECON, 'stock RW_JobPoint(playerid, job, stage, &Float:x, &Float:y, &Float:z)')
+        self.assertIn('if (job == JOB_BUS) {', points)
+        self.assertIn('gJobBusStop[playerid] % sizeof gBusStops', points)
+        self.assertIn('if (stage == 2) stop = (stop + 1) % sizeof gBusStops;', points)
+
+    def test_the_bus_needs_a_coach(self):
+        take = block(ECON, 'stock RW_JobTaskTake(playerid)')
+        self.assertIn('RW_InModelList(RW_JobVehicleModel(playerid), gBusModels, sizeof gBusModels)', take)
+        self.assertIn('static const gBusModels[] = { 431, 437 };', ECON)
+
+    def test_rush_hour_pays_the_bus_driver(self):
+        bonus = block(ECON, 'stock RW_JobTimeBonus(job)')
+        self.assertIn('if (job == JOB_BUS) {', bonus)
+        self.assertIn('minutes >= 420 && minutes < 570', bonus)     # 07:00-09:30
+        self.assertIn('minutes >= 1020 && minutes < 1170', bonus)   # 17:00-19:30
+        self.assertIn('return 25;', bonus)
+
+    def test_a_taxi_driver_lives_on_fares(self):
+        take = block(ECON, 'stock RW_JobTaskTake(playerid)')
+        self.assertIn('if (gJob[playerid] == JOB_TAXI)', take)
+        self.assertIn('Uber Drive app', take)
+        bonus = block(ECON, 'stock RW_TaxiJobBonus(playerid)')
+        self.assertIn('if (gJob[playerid] != JOB_TAXI) return 0;', bonus)
+        self.assertIn('gTaxiModels, sizeof gTaxiModels', bonus)
+        self.assertIn('TAXI_JOB_BONUS + (gJobLevel[playerid] - 1) * TAXI_JOB_LEVEL_BONUS', bonus)
+        # Счётчик Uber реально доплачивает таксисту.
+        finish = block(PHONEAPPS, 'stock RW_UberFinish(driver)')
+        self.assertIn('new jobBonus = RW_TaxiJobBonus(driver);', finish)
+        self.assertIn('gJobExp[driver]++;', finish)
+        self.assertIn('%d%% as a taxi driver', finish)
+
+    def test_the_trucker_meets_a_receiver(self):
+        work = block(ECON, 'stock RW_WorkCommand(playerid)')
+        self.assertIn('gTruckerNames[random(sizeof gTruckerNames)]', work)
+        self.assertIn('the ramp is busy, wait %d seconds and press /work again.', work)
+        self.assertIn('urgent order, the cargo is taken at once.', work)
+        self.assertIn('signed the papers for the cargo.', work)
+        self.assertIn('static const gTruckerNames[][]', ECON)
+        # Ожидание считает сервер по своему времени.
+        self.assertIn('gJobMeetEnd[playerid] = gettime() + TRUCKER_WAIT_SECONDS;', work)
+        self.assertIn('#define TRUCKER_WAIT_SECONDS', ECON)
+        done = block(ECON, 'stock RW_JobTaskDone(playerid)')
+        self.assertIn('if (gJobMeet[playerid] == 3) bonus = bonus + TRUCKER_URGENT_BONUS;', done)
+
+    def test_y_hands_the_task_over(self):
+        hand = block(ECON, 'public RW_JobHandOver(playerid)')
+        self.assertIn('if (gJob[playerid] == JOB_NONE || gJobStage[playerid] != 2) return 0;', hand)
+        self.assertIn('IsPlayerInRangeOfPoint(playerid, JOB_TASK_RANGE', hand)
+        self.assertIn('RW_WorkCommand(playerid);', hand)
+        self.assertIn('forward RW_JobHandOver(playerid);', CORE)
+        self_menu = block(INTER, 'stock RW_SelfMenu(playerid)')
+        self.assertIn('if (RW_JobHandOver(playerid)) return 1;', self_menu)
+
+    def test_the_bus_stop_moves_after_the_run(self):
+        work = block(ECON, 'stock RW_WorkCommand(playerid)')
+        self.assertIn('if (gJob[playerid] == JOB_BUS && gJobStage[playerid] == 2)', work)
+        self.assertIn('gJobBusStop[playerid] = (gJobBusStop[playerid] + 1) % sizeof gBusStops;', work)
+
 
 
 class EconomyWiringTest(unittest.TestCase):

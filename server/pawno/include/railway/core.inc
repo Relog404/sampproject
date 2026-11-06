@@ -29,6 +29,9 @@
 #define COLOR_ERROR                 0xFF6B6BFF
 #define COLOR_INFO                  0x8FD3FFFF
 
+/* Вызывается из interaction.inc, описан в economy.inc: сдать задание по Y. */
+forward RW_JobHandOver(playerid);
+
 /* ------------------------------------------------------------------ вокзал */
 #define STATION_NAME                "Unity Station"
 /* Настоящий Unity Station в Los Santos: El Corona/Unity, восточнее путей. */
@@ -39,6 +42,10 @@
 #define CAMERA_ORBIT_RADIUS         (8.5)
 #define CAMERA_ORBIT_HEIGHT         (6.2)
 #define CAMERA_ORBIT_SPEED          (0.9)   /* градусов за тик таймера */
+
+/* Номера действий в браузерном меню: не должны пересекаться со строками. */
+#define CEF_JOB_QUIT                20
+#define CEF_JOB_CLOSE               21
 
 /* ------------------------------------------------------------------ настройки */
 #define SPCAR_MIN_ADMIN_LEVEL       (0)      /* 0 — /spcar доступна всем игрокам */

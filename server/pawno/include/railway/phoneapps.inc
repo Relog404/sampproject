@@ -461,6 +461,15 @@ stock RW_UberFinish(driver)
     GetPlayerPos(driver, x, y, z);
     new metres = floatround(VectorSize(x - gUberX[passenger], y - gUberY[passenger], z - gUberZ[passenger]));
     new fare = UBER_BASE_FARE + metres * UBER_PER_METRE / 10;
+    /* Таксист с работой получает надбавку к счётчику и опыт в карточку. */
+    new jobBonus = RW_TaxiJobBonus(driver);
+    if (jobBonus > 0) {
+        fare = fare + floatround(float(fare) * float(jobBonus) / 100.0);
+        gJobTasks[driver]++;
+        gJobExp[driver]++;
+        gJobEarned[driver] += fare;
+        RW_EconomySave(driver);
+    }
     RemovePlayerMapIcon(driver, UBER_ICON);
     gUberPass[driver] = 0;
     gUberDriver[passenger] = 0;
@@ -474,7 +483,10 @@ stock RW_UberFinish(driver)
     new dnick[MAX_PLAYER_NAME], pnick[MAX_PLAYER_NAME], message[160];
     RW_GetNick(driver, dnick);
     RW_GetNick(passenger, pnick);
-    format(message, sizeof message, "Ride with %s: %d m, fare %d. Thanks for riding Uber Drive.", pnick, metres, fare);
+    if (jobBonus > 0)
+        format(message, sizeof message, "Ride with %s: %d m, fare %d (+%d%% as a taxi driver). Thanks for riding Uber Drive.", pnick, metres, fare, jobBonus);
+    else
+        format(message, sizeof message, "Ride with %s: %d m, fare %d. Thanks for riding Uber Drive.", pnick, metres, fare);
     RW_Ok(driver, message);
     format(message, sizeof message, "You paid %s for %d m. Cash: %d.", dnick, metres, gMoney[passenger]);
     return RW_Ok(passenger, message);

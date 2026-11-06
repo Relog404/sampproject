@@ -131,10 +131,11 @@ class JobMapTest(unittest.TestCase):
 
     def test_every_job_hires_in_its_own_place(self):
         rows = table(ECON, 'gJobHire')
-        self.assertEqual(len(rows), 9)
+        self.assertEqual(len(rows), 11)
         block = ECON.split('static const Float:gJobHire', 1)[1].split('};', 1)[0]
         for place in ('Ocean Docks', 'Unity Station', 'Willowfield', 'Blueberry Acres',
-                      'Palomino Creek', 'Hunter Quarry', 'Angel Pine', 'Idlewood'):
+                      'Palomino Creek', 'Hunter Quarry', 'Angel Pine', 'Idlewood',
+                      'El Corona', 'LS International'):
             self.assertIn(place, block)
         for job, x, y, z in rows:
             self.assertTrue(-3000.0 < x < 3000.0 and -3000.0 < y < 3000.0, (x, y))
@@ -160,6 +161,17 @@ class JobMapTest(unittest.TestCase):
         # San Fierro, Bayside и Dillimore - далеко от Лос-Сантоса.
         for x, y, z in rows:
             self.assertGreater(((x - 1742.9) ** 2 + (y + 1862.6) ** 2) ** 0.5, 500.0)
+
+    def test_the_bus_route_runs_through_los_santos(self):
+        rows = table(ECON, 'gBusStops')
+        self.assertEqual(len(rows), 6)
+        block = ECON.split('static const Float:gBusStops', 1)[1].split('};', 1)[0]
+        for place in ('Willowfield', 'Las Colinas', 'Ganton', 'Unity Station', 'Downtown', 'All Saints'):
+            self.assertIn(place, block)
+        for x, y, z in rows:
+            # Весь маршрут внутри Лос-Сантоса.
+            self.assertTrue(1100.0 < x < 2600.0 and -2000.0 < y < -1300.0)
+            self.assertTrue(0.0 < z < 50.0)
 
     def test_the_out_of_town_jobs_are_in_the_countryside(self):
         # Ферма, лес и карьер - за городом, а не в центре.

@@ -28,13 +28,19 @@
 #define JOB_QUARRY              7
 #define JOB_LUMBER              8
 #define JOB_POST                9
-#define JOB_COUNT               10
+#define JOB_BUS                 10
+#define JOB_TAXI                11
+#define JOB_COUNT               12
 #define JOB_MAX_LEVEL           5
 #define JOB_EXP_PER_LEVEL       10          /* заданий до следующего уровня  */
 #define JOB_TASK_SECONDS        240         /* срок на один этап задания     */
 #define JOB_TASK_RANGE          8.0
 #define JOB_HIRE_RANGE          12.0
 #define JOB_COOLDOWN_MS         2000        /* пауза между заданиями         */
+#define TRUCKER_WAIT_SECONDS    20          /* пока освободится рампа        */
+#define TRUCKER_URGENT_BONUS    25          /* срочный заказ получателя      */
+#define TAXI_JOB_BONUS          15          /* % к счётчику за работу такси  */
+#define TAXI_JOB_LEVEL_BONUS    5           /* и ещё столько за каждый уровень */
 #define SHOP_RANGE              10.0
 #define BANK_ATM_RANGE          6.0
 #define PAYDAY_SECONDS          900         /* зарплата раз в 15 минут       */
@@ -79,7 +85,9 @@ static const Float:gJobHire[][4] = {
     { 6.0,  2300.0,   100.0, 26.0 }, /* грибник: Palomino Creek               */
     { 7.0,   620.0,   860.0, 25.0 }, /* карьерщик: Hunter Quarry, Bone County */
     { 8.0, -2170.0, -2385.0, 30.0 }, /* лесоруб: Angel Pine, Whetstone        */
-    { 9.0,  1950.0, -1750.0, 13.5 }  /* почтальон: Idlewood, почта            */
+    { 9.0,  1950.0, -1750.0, 13.5 }, /* почтальон: Idlewood, почта            */
+    { 10.0, 1850.0, -1880.0, 13.5 }, /* водитель: El Corona, автобусный парк  */
+    { 11.0, 1900.0, -2280.0, 13.5 }  /* таксист: LS International, стоянка    */
 };
 
 /* Ящики у причалов Ocean Docks и склад. */
@@ -159,6 +167,25 @@ static const Float:gPostBoxes[][3] = {
     { 2490.0, -1690.0, 13.4 }       /* Las Colinas */
 };
 static const Float:gPostOffice[3] = { 1950.0, -1750.0, 13.5 };
+
+/* Автобусный маршрут: кольцо по настоящим районам Лос-Сантоса. */
+static const Float:gBusStops[][3] = {
+    { 2202.2, -1965.0, 13.6 },      /* Willowfield   */
+    { 2503.4, -1722.4, 13.4 },      /* Las Colinas   */
+    { 2244.4, -1665.4, 13.5 },      /* Ganton        */
+    { 1742.9, -1862.6, 13.6 },      /* Unity Station */
+    { 1352.4, -1759.4, 13.5 },      /* Downtown      */
+    { 1175.8, -1324.7, 15.4 }       /* All Saints    */
+};
+
+/* Получатели груза в других городах: встреча на месте разгрузки. */
+static const gTruckerNames[][] = {
+    "Mr. Whitaker", "Ms. Alvarez", "Mr. Okafor", "Ms. Kowalski", "Mr. Delgado"
+};
+
+/* Автобусы и такси: на чём работают водитель и таксист. */
+static const gBusModels[] = { 431, 437 };
+static const gTaxiModels[] = { 420, 438 };
 new gBank[MAX_PLAYERS];               /* деньги на счету                   */
 new gJob[MAX_PLAYERS];                /* JOB_NONE…JOB_POST                 */
 new gJobLevel[MAX_PLAYERS];
@@ -166,6 +193,9 @@ new gJobExp[MAX_PLAYERS];
 new gJobTasks[MAX_PLAYERS];
 new gJobEarned[MAX_PLAYERS];
 new gJobPage[MAX_PLAYERS];            /* страница списка профессий        */
+new gJobBusStop[MAX_PLAYERS];         /* следующая остановка маршрута     */
+new gJobMeet[MAX_PLAYERS];            /* 0 нет, 1 ждём рампу, 2 сдал, 3 срочный */
+new gJobMeetEnd[MAX_PLAYERS];         /* когда рампа освободится            */
 new gJobStage[MAX_PLAYERS];           /* 0 нет задания, 1 взять, 2 сдать   */
 new Float:gJobX[MAX_PLAYERS];
 new Float:gJobY[MAX_PLAYERS];
@@ -190,6 +220,8 @@ stock RW_EconomyReset(playerid)
 {
     gJobStage[playerid] = 0;
     gJobPage[playerid] = 0;
+    gJobBusStop[playerid] = 0;
+    gJobMeet[playerid] = 0;
     gJobEnd[playerid] = 0;
     gJobPay[playerid] = 0;
     gJobTick[playerid] = 0;
@@ -534,6 +566,8 @@ stock RW_JobName(job, dest[], size = sizeof dest)
     else if (job == JOB_QUARRY) format(dest, size, "Quarry worker");
     else if (job == JOB_LUMBER) format(dest, size, "Lumberjack");
     else if (job == JOB_POST) format(dest, size, "Postman");
+    else if (job == JOB_BUS) format(dest, size, "Bus driver");
+    else if (job == JOB_TAXI) format(dest, size, "Taxi driver");
     else format(dest, size, "Unemployed");
     return 1;
 }
@@ -549,6 +583,8 @@ stock RW_JobTitle(job, dest[], size = sizeof dest)
     else if (job == JOB_QUARRY) format(dest, size, "Quarry worker: Hunter Quarry");
     else if (job == JOB_LUMBER) format(dest, size, "Lumberjack: Angel Pine forest");
     else if (job == JOB_POST) format(dest, size, "Postman: boxes across the city");
+    else if (job == JOB_BUS) format(dest, size, "Bus driver: the city ring route");
+    else if (job == JOB_TAXI) format(dest, size, "Taxi driver: fares from Uber Drive");
     else format(dest, size, "Unemployed");
     return 1;
 }
@@ -556,6 +592,8 @@ stock RW_JobTitle(job, dest[], size = sizeof dest)
 stock RW_JobHint(job, dest[], size = sizeof dest)
 {
     if (job == JOB_GARBAGE) format(dest, size, "best 06:00-13:00");
+    else if (job == JOB_BUS) format(dest, size, "best at 07:00-09:30 and 17:00-19:30");
+    else if (job == JOB_TAXI) format(dest, size, "the meter pays, no tasks");
     else if (job == JOB_FARMER) format(dest, size, "best in extra sunny");
     else if (job == JOB_MUSHROOM) format(dest, size, "best in rain");
     else if (job == JOB_QUARRY) format(dest, size, "best in fog");
@@ -576,7 +614,8 @@ stock RW_JobBasePay(job)
     if (job == JOB_QUARRY) return 220;
     if (job == JOB_LUMBER) return 230;
     if (job == JOB_POST) return 140;
-    return 0;
+    if (job == JOB_BUS) return 260;
+    return 0;                                   /* таксист получает по счётчику */
 }
 // Зарплата раз в PAYDAY_SECONDS, помноженная на уровень.
 stock RW_JobSalary(job)
@@ -590,6 +629,8 @@ stock RW_JobSalary(job)
     if (job == JOB_QUARRY) return 400;
     if (job == JOB_LUMBER) return 380;
     if (job == JOB_POST) return 330;
+    if (job == JOB_BUS) return 420;
+    if (job == JOB_TAXI) return 300;
     return 0;
 }
 // Индекс биржи, у которой стоит игрок: -1, если рядом нет ни одной.
@@ -625,8 +666,8 @@ stock RW_CefJob(playerid)
         RW_JobHint(job, hint, sizeof hint);
         RW_CefRow(playerid, job - 1, title, hint, "bag");
     }
-    if (gJob[playerid] != JOB_NONE) RW_CefAction(playerid, 7, "Quit the job", "danger");
-    RW_CefAction(playerid, 8, "Close", "danger");
+    if (gJob[playerid] != JOB_NONE) RW_CefAction(playerid, CEF_JOB_QUIT, "Quit the job", "danger");
+    RW_CefAction(playerid, CEF_JOB_CLOSE, "Close", "danger");
     return RW_CefEnd(playerid);
 }
 stock RW_JobPanel(playerid)
@@ -651,9 +692,9 @@ stock RW_JobPanel(playerid)
 }
 stock RW_JobAction(playerid, row, bool:cef)
 {
-    if (row == (cef ? 8 : 7)) return RW_UI_Close(playerid);
+    if (row == (cef ? CEF_JOB_CLOSE : 7)) return RW_UI_Close(playerid);
     if (cef) {
-        if (row == 7) return RW_JobQuit(playerid);
+        if (row == CEF_JOB_QUIT) return RW_JobQuit(playerid);
         if (row < 0 || row >= JOB_COUNT - 1) return 1;
         return RW_JobHire(playerid, row + 1);
     }
@@ -693,7 +734,7 @@ stock RW_JobQuit(playerid)
     return RW_Info(playerid, "You left the job. The level and the record stay on the card.");
 }
 // Точка задания: у каждой работы свои адреса.
-stock RW_JobPoint(job, stage, &Float:x, &Float:y, &Float:z)
+stock RW_JobPoint(playerid, job, stage, &Float:x, &Float:y, &Float:z)
 {
     new index = random(sizeof gCourierPoints);
     if (job == JOB_LOADER) {
@@ -732,6 +773,13 @@ stock RW_JobPoint(job, stage, &Float:x, &Float:y, &Float:z)
         x = gSawmill[0]; y = gSawmill[1]; z = gSawmill[2];
         return 1;
     }
+    if (job == JOB_BUS) {
+        new stop = gJobBusStop[playerid] % sizeof gBusStops;
+        if (stage == 2) stop = (stop + 1) % sizeof gBusStops;
+        x = gBusStops[stop][0]; y = gBusStops[stop][1]; z = gBusStops[stop][2];
+        return 1;
+    }
+    if (job == JOB_TAXI) return 0;          /* таксист работает по вызовам   */
     if (job == JOB_POST) {
         if (stage == 1) { index = random(sizeof gPostBoxes); x = gPostBoxes[index][0]; y = gPostBoxes[index][1]; z = gPostBoxes[index][2]; return 1; }
         x = gPostOffice[0]; y = gPostOffice[1]; z = gPostOffice[2];
@@ -760,9 +808,14 @@ stock RW_JobTaskTake(playerid)
         return RW_Error(playerid, "A trucker works from the cab: take a van or a truck from the base.");
     if (gJob[playerid] == JOB_LOADER && GetPlayerState(playerid) != PLAYER_STATE_ONFOOT)
         return RW_Error(playerid, "A loader works on foot: step out of the car.");
+    if (gJob[playerid] == JOB_TAXI)
+        return RW_Error(playerid, "A taxi driver takes orders in the Uber Drive app: /uber or /taxi.");
+    if (gJob[playerid] == JOB_BUS && !RW_InModelList(RW_JobVehicleModel(playerid), gBusModels, sizeof gBusModels))
+        return RW_Error(playerid, "The route runs on a coach: take a bus from the depot in El Corona.");
+    gJobMeet[playerid] = 0;
 
     new Float:x, Float:y, Float:z;
-    RW_JobPoint(gJob[playerid], 1, x, y, z);
+    RW_JobPoint(playerid, gJob[playerid], 1, x, y, z);
     gJobStage[playerid] = 1;
     gJobX[playerid] = x; gJobY[playerid] = y; gJobZ[playerid] = z;
     gJobEnd[playerid] = gettime() + JOB_TASK_SECONDS;
@@ -779,6 +832,8 @@ stock RW_JobTaskCancel(playerid, bool:silent = false)
     if (gJobIcon[playerid]) { RemovePlayerMapIcon(playerid, ECON_TASK_ICON); gJobIcon[playerid] = false; }
     gJobStage[playerid] = 0;
     gJobPage[playerid] = 0;
+    gJobBusStop[playerid] = 0;
+    gJobMeet[playerid] = 0;
     gJobEnd[playerid] = 0;
     gJobPay[playerid] = 0;
     gJobTick[playerid] = GetTickCount();
@@ -786,14 +841,51 @@ stock RW_JobTaskCancel(playerid, bool:silent = false)
     return 1;
 }
 // Сдать задание: деньги в карман, опыт в карточку, уровень растёт.
+/* Модель машины под игроком: 0, если он не за рулём. */
+stock RW_JobVehicleModel(playerid)
+{
+    if (GetPlayerState(playerid) != PLAYER_STATE_DRIVER) return 0;
+    new vehicleid = GetPlayerVehicleID(playerid);
+    if (vehicleid <= 0 || vehicleid >= MAX_VEHICLES) return 0;
+    return GetVehicleModel(vehicleid);
+}
+/* Есть ли модель в списке допустимых. */
+stock bool:RW_InModelList(model, const list[], size)
+{
+    if (model <= 0) return false;
+    for (new i; i < size; i++) if (list[i] == model) return true;
+    return false;
+}
+/* Таксист: надбавка к счётчику Uber Drive за работу на такси. */
+stock RW_TaxiJobBonus(playerid)
+{
+    if (gJob[playerid] != JOB_TAXI) return 0;
+    if (!RW_InModelList(RW_JobVehicleModel(playerid), gTaxiModels, sizeof gTaxiModels)) return 0;
+    return TAXI_JOB_BONUS + (gJobLevel[playerid] - 1) * TAXI_JOB_LEVEL_BONUS;
+}
+/* Y на точке сдачи: сдать задание, не открывая меню. */
+public RW_JobHandOver(playerid)
+{
+    if (gJob[playerid] == JOB_NONE || gJobStage[playerid] != 2) return 0;
+    if (!IsPlayerInRangeOfPoint(playerid, JOB_TASK_RANGE, gJobX[playerid], gJobY[playerid], gJobZ[playerid])) return 0;
+    RW_WorkCommand(playerid);
+    return 1;
+}
 /* Бонус времени суток: у каждой профессии своё удачное окно. */
 stock RW_JobTimeBonus(job)
 {
     new hour, minute, second;
     gettime(hour, minute, second);
-    #pragma unused minute, second
+    #pragma unused second
     if (job == JOB_GARBAGE && hour >= 6 && hour < 13) return 15;   /* утренний вывоз   */
     if (job == JOB_POST && hour >= 9 && hour < 18) return 10;      /* рабочий день     */
+    if (job == JOB_BUS) {
+        /* Часы пик: 07:00-09:30 и 17:00-19:30. */
+        new minutes = hour * 60 + minute;
+        if (minutes >= 420 && minutes < 570) return 25;
+        if (minutes >= 1020 && minutes < 1170) return 25;
+        return 0;
+    }
     return 0;
 }
 stock RW_JobTaskDone(playerid)
@@ -803,6 +895,7 @@ stock RW_JobTaskDone(playerid)
     new weatherBonus = RW_WeatherBonus(gJob[playerid]);
     new timeBonus = RW_JobTimeBonus(gJob[playerid]);
     new bonus = weatherBonus + timeBonus;
+    if (gJobMeet[playerid] == 3) bonus = bonus + TRUCKER_URGENT_BONUS;
     if (bonus != 0) pay = pay + floatround(float(pay) * float(bonus) / 100.0);
     RW_AddMoney(playerid, pay);
     gJobTasks[playerid]++;
@@ -843,9 +936,46 @@ stock RW_WorkCommand(playerid)
     if (gJob[playerid] == JOB_LOADER && GetPlayerState(playerid) != PLAYER_STATE_ONFOOT)
         return RW_Error(playerid, "A loader works on foot: step out of the car.");
 
+    /* Дальнобойщик: на месте разгрузки сервер разыгрывает встречу с получателем. */
+    if (gJobStage[playerid] == 2 && gJob[playerid] == JOB_TRUCKER) {
+        new name[24], message[160];
+        if (gJobMeet[playerid] == 1) {
+            if (gettime() < gJobMeetEnd[playerid]) {
+                format(message, sizeof message, "The ramp is still busy: %d s to wait.", gJobMeetEnd[playerid] - gettime());
+                return RW_Info(playerid, message);
+            }
+            gJobMeet[playerid] = 2;
+            return RW_JobTaskDone(playerid);
+        }
+        if (gJobMeet[playerid] == 0) {
+            format(name, sizeof name, "%s", gTruckerNames[random(sizeof gTruckerNames)]);
+            new roll = random(100);
+            if (roll < 30) {
+                /* Рампа занята: груз примут через паузу, задание висит. */
+                gJobMeet[playerid] = 1;
+                gJobMeetEnd[playerid] = gettime() + TRUCKER_WAIT_SECONDS;
+                format(message, sizeof message, "%s: the ramp is busy, wait %d seconds and press /work again.", name, TRUCKER_WAIT_SECONDS);
+                return RW_Info(playerid, message);
+            }
+            if (roll < 50) {
+                /* Срочный заказ: получатель доплачивает. */
+                gJobMeet[playerid] = 3;
+                format(message, sizeof message, "%s: urgent order, the cargo is taken at once.", name);
+                RW_Info(playerid, message);
+                return RW_JobTaskDone(playerid);
+            }
+            gJobMeet[playerid] = 2;
+            format(message, sizeof message, "%s signed the papers for the cargo.", name);
+            RW_Info(playerid, message);
+            return RW_JobTaskDone(playerid);
+        }
+    }
+    if (gJob[playerid] == JOB_BUS && gJobStage[playerid] == 2)
+        gJobBusStop[playerid] = (gJobBusStop[playerid] + 1) % sizeof gBusStops;
+
     if (gJobStage[playerid] == 1) {
         new Float:x, Float:y, Float:z;
-        RW_JobPoint(gJob[playerid], 2, x, y, z);
+        RW_JobPoint(playerid, gJob[playerid], 2, x, y, z);
         gJobStage[playerid] = 2;
         gJobX[playerid] = x; gJobY[playerid] = y; gJobZ[playerid] = z;
         gJobPay[playerid] = floatround(RW_EconomyDistance(playerid, x, y, z) / 6.0);
