@@ -104,6 +104,7 @@ public OnGameModeInit()
     if (!RW_TransportSchema()) print("[transport] Transport tables unavailable; trunks and tuning disabled.");
     if (!RW_EconomySchema()) print("[economy] Economy tables unavailable; jobs, shops and bank accounts disabled.");
     if (!RW_PropSchema()) print("[property] Property table unavailable; houses and businesses are disabled.");
+    if (!RW_PropAucSchema()) print("[property] Auction table unavailable; seized property will not be sold.");
     if (!RW_PhoneAppsSchema()) print("[phoneapps] News table unavailable; the Weazel News app is disabled.");
     RW_WeatherSet(1);
     RW_EconomyInit();
@@ -115,6 +116,7 @@ public OnGameModeInit()
     SetTimer("RW_EmsPulse", 1000, true);
     SetTimer("RW_TransportPulse", 1000, true);
     SetTimer("RW_EconomyPulse", 1000, true);
+    SetTimer("RW_PropPulse", 1000, true);
     SetTimer("RW_WeatherPulse", 1000, true);
     SetTimer("RW_GroupPulse", 1000, true);
     SetTimer("RW_UberPulse", 1000, true);

@@ -542,6 +542,8 @@ stock RW_ShopBuy(playerid, row)
     new uid = RW_InvGrant(playerid, type, data, amount);
     if (!uid) return RW_Error(playerid, "Could not hand the goods over.");
     RW_TakeMoney(playerid, price);
+    /* Часть выручки падает в кассу бизнеса, если магазин чей-то. */
+    RW_PropSale(playerid, price);
     new name[32], sum[32], message[144];
     RW_TrunkName(type, data, name, sizeof name);
     RW_FormatMoney(price, sum, sizeof sum);

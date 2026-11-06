@@ -55,7 +55,7 @@ stock RW_CommandHelp(playerid)
     SendClientMessage(playerid, COLOR_GREY, "Ambulance: /revive, /heal, /carry, /load, /admit, /ems, /calls, /take <id>; Y on a downed player.");
     SendClientMessage(playerid, COLOR_GREY, "Transport: /fuel, /refuel, /trunk, /tune, /repair, /tow, /impound, /unimpound; Y on a car.");
     SendClientMessage(playerid, COLOR_GREY, "Money: /shop, /bank, /balance, /deposit, /withdraw, /transfer <id> <sum>, /job, /work, /quitjob, /payday.");
-    SendClientMessage(playerid, COLOR_GREY, "Property: /property at the door, /doors, /enter, /exit, /paytax.");
+    SendClientMessage(playerid, COLOR_GREY, "Property: /property, /doors, /enter, /exit, /paytax, /till put|take <sum>, /bid <sum>, /rob (12:00-01:00).");
     SendClientMessage(playerid, COLOR_GREY, "Phone apps: /apps, /weather, /group, /g <text>, /ginvite, /taxi, /uber, /news, /ad, /auto, /deliver, /snap, /photo, /lawcall, /radio.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/spcar <id>{FFFFFF} - temporary car (400-611). /garage - station garage.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} - unlock/lock the aimed car; its key must be in /inv.");
@@ -404,6 +404,9 @@ stock RW_CommandProcess(playerid, cmdtext[])
     if (!strcmp(cmd, "exit", true)) return RW_ExitCommand(playerid);
     if (!strcmp(cmd, "doors", true)) return RW_DoorsCommand(playerid);
     if (!strcmp(cmd, "paytax", true)) return RW_PayTaxCommand(playerid);
+    if (!strcmp(cmd, "till", true)) return RW_PropTillCommand(playerid, params);
+    if (!strcmp(cmd, "bid", true)) return RW_PropBidCommand(playerid, params);
+    if (!strcmp(cmd, "rob", true)) return RW_PropRobCommand(playerid);
     if (!strcmp(cmd, "lawcall", true)) return RW_AppLawyerCall(playerid);
     if (!strcmp(cmd, "payfines", true)) return RW_AppPayFines(playerid);
     if (!strcmp(cmd, "phone", true)) return RW_PhoneOpen(playerid);

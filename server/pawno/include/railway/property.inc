@@ -24,6 +24,14 @@
 #define PROP_RANGE              6.0         /* радиус двери                  */
 #define PROP_SELL_PERCENT       75          /* выкуп государством, % от цены  */
 #define PROP_TAX_LIMIT          3           /* просрочек до аукциона         */
+#define PROP_AUCTION_SECONDS    600         /* сколько идёт аукцион          */
+#define PROP_BID_STEP           1000        /* минимальный шаг ставки        */
+#define BIZ_TILL_SHARE          10          /* доля выручки в кассу бизнеса  */
+#define ROB_START_HOUR          12          /* окно ограбления: с 12:00      */
+#define ROB_END_HOUR            1           /* до 01:00                      */
+#define ROB_SHARE               30          /* сколько уносит грабитель, %   */
+#define ROB_COOLDOWN_SECONDS    900         /* пауза после ограбления        */
+#define ROB_FAIL_CHANCE         30          /* шанс поднять тревогу и уйти ни с чем */
 
 /* Вид, цена, налог за payday, интерьер. */
 static const gPropInfo[][4] = {
@@ -78,6 +86,12 @@ new gPropCash[PROP_MAX];                /* касса бизнеса                     */
 new gPropOwnerName[PROP_MAX][MAX_PLAYER_NAME+1];
 new gPropAt[MAX_PLAYERS];               /* -1 снаружи, иначе id недвижимости */
 new gPropOpen[MAX_PLAYERS];             /* id в открытом меню                */
+/* Аукцион: ставка, её автор, залог и время окончания. */
+new gPropBid[PROP_MAX];
+new gPropBidder[PROP_MAX];
+new gPropEscrow[PROP_MAX];
+new gPropAucEnd[PROP_MAX];
+new gPropRobEnd[PROP_MAX];              /* когда бизнес снова можно грабить  */
 
 /*  ---------------------------------- база -------------------------------- */
 
@@ -110,6 +124,47 @@ stock RW_PropLoad()
     }
     db_free_result(r);
     return 1;
+}
+/* Аукцион живёт в отдельной таблице: её можно добавить к уже рабочей базе. */
+stock RW_PropAucSchema()
+{
+    if (!RW_DB_Exec("CREATE TABLE IF NOT EXISTS property_auctions (id INTEGER PRIMARY KEY, bid INT, bidder INT, escrow INT, ends INT)")) return 0;
+    for (new i; i < PROP_MAX; i++) {
+        new query[180];
+        format(query, sizeof query, "INSERT OR IGNORE INTO property_auctions (id,bid,bidder,escrow,ends) VALUES (%d,0,0,0,0)", i);
+        if (!RW_DB_Exec(query)) return 0;
+    }
+    return 1;
+}
+stock RW_PropAucLoad()
+{
+    new DBResult:r = db_query(gDB, "SELECT id,bid,bidder,escrow,ends FROM property_auctions ORDER BY id");
+    if (r == DBResult:0) return 0;
+    new rows = db_num_rows(r);
+    for (new i; i < rows && i < PROP_MAX; i++) {
+        gPropBid[i] = db_get_field_assoc_int(r, "bid");
+        gPropBidder[i] = db_get_field_assoc_int(r, "bidder");
+        gPropEscrow[i] = db_get_field_assoc_int(r, "escrow");
+        gPropAucEnd[i] = db_get_field_assoc_int(r, "ends");
+        db_next_row(r);
+    }
+    db_free_result(r);
+    return 1;
+}
+stock RW_PropAucSave(id)
+{
+    new query[200];
+    format(query, sizeof query, "UPDATE property_auctions SET bid=%d,bidder=%d,escrow=%d,ends=%d WHERE id=%d",
+        gPropBid[id], gPropBidder[id], gPropEscrow[id], gPropAucEnd[id], id);
+    return RW_DB_Exec(query);
+}
+/* Зачислить деньги на счёт аккаунта: владельца может не быть в сети. */
+stock RW_PropCredit(account, amount)
+{
+    if (account <= 0 || amount <= 0) return 0;
+    new query[160];
+    format(query, sizeof query, "UPDATE bank_accounts SET balance=balance+%d WHERE player_id=%d", amount, account);
+    return RW_DB_Exec(query);
 }
 stock RW_PropSave(id)
 {
@@ -211,7 +266,21 @@ stock RW_PropRows(playerid)
     }
     if (gPropAt[playerid] >= 0) RW_AppRowProp(playerid, 4, "Go outside", "exit", "door");
     else RW_AppRowProp(playerid, 4, "Go inside", "enter", "door");
-    RW_AppRowProp(playerid, 5, "Pay the tax: /paytax", "", "wallet");
+    if (RW_PropAucOn(id)) {
+        new bid[32];
+        RW_FormatMoney(gPropBid[id], bid, sizeof bid);
+        format(row, sizeof row, "Auction: bid %s, %d s left", bid, gPropAucEnd[id] - gettime());
+        RW_AppRowProp(playerid, 5, row, "bid", "wallet");
+    } else if (RW_PropMine(playerid, id) && gPropInfo[id][0] == PROP_KIND_BIZ) {
+        new till[32];
+        RW_FormatMoney(gPropCash[id], till, sizeof till);
+        format(row, sizeof row, "Till: %s (/till put|take <sum>)", till);
+        RW_AppRowProp(playerid, 5, row, "till", "wallet");
+    } else {
+        RW_AppRowProp(playerid, 5, "Pay the tax: /paytax", "", "wallet");
+    }
+    if (gPropInfo[id][0] == PROP_KIND_BIZ) RW_AppRowProp(playerid, 6, "Rob the till: /rob, from 12:00 to 01:00", "", "danger");
+    else RW_AppRowProp(playerid, 6, "One owner, one property", "", "info");
     return 1;
 }
 /* Обёртка строки: в браузер с иконкой, в TextDraw без неё. */
@@ -378,12 +447,208 @@ public RW_PropTaxTick(playerid)
         } else {
             gPropTaxDue[i] = gPropTaxDue[i] + tax;
             gPropMissed[i]++;
-            if (gPropMissed[i] >= PROP_TAX_LIMIT) gPropDoorOpen[i] = 0;
+            if (gPropMissed[i] >= PROP_TAX_LIMIT) {
+                gPropDoorOpen[i] = 0;
+                if (gPropAucEnd[i] <= 0) RW_PropAucStart(i);
+            }
         }
         RW_PropSave(i);
     }
     return 1;
 }
+
+/*  --------------------------------- аукцион ------------------------------ */
+/*  Три просрочки — и город выставляет объект на торги. Прежнему владельцу   */
+/*  возвращается 75 % цены, победитель получает объект.                      */
+
+stock RW_PropAucStart(id)
+{
+    gPropBid[id] = gPropInfo[id][1] / 2;
+    gPropBidder[id] = 0;
+    gPropEscrow[id] = 0;
+    gPropAucEnd[id] = gettime() + PROP_AUCTION_SECONDS;
+    RW_PropAucSave(id);
+    return 1;
+}
+stock RW_PropAucOn(id)
+{
+    return (gPropAucEnd[id] > 0 && gPropOwner[id] > 0) ? 1 : 0;
+}
+stock RW_PropBid(playerid, id, amount)
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    if (id < 0 || id >= PROP_MAX) return RW_Error(playerid, "No such property.");
+    if (!RW_PropAucOn(id)) return RW_Error(playerid, "It is not up for auction.");
+    if (RW_PropMine(playerid, id)) return RW_Error(playerid, "You cannot buy back your own property: pay the tax.");
+    if (amount < gPropBid[id] + PROP_BID_STEP) return RW_Error(playerid, "Bid higher: at least the current bid plus 1 000.");
+    if (gBank[playerid] < amount) return RW_Error(playerid, "Not enough money on the account for such a bid.");
+    /* Залог: деньги снимаются сразу, прошлую ставку возвращаем её автору. */
+    if (gPropEscrow[id] > 0) RW_PropCredit(gPropBidder[id], gPropEscrow[id]);
+    RW_BankTake(playerid, amount);
+    gPropBid[id] = amount;
+    gPropBidder[id] = gAccountId[playerid];
+    gPropEscrow[id] = amount;
+    RW_PropAucSave(id);
+    new sum[32], message[160];
+    RW_FormatMoney(amount, sum, sizeof sum);
+    format(message, sizeof message, "Bid on %s: %s. If somebody bids higher, the money comes back.", gPropNames[id], sum);
+    return RW_Ok(playerid, message);
+}
+/* Закрытие торгов: вызывается таймером, считает сервер. */
+public RW_PropPulse()
+{
+    for (new id; id < PROP_MAX; id++) {
+        if (gPropAucEnd[id] <= 0 || gettime() < gPropAucEnd[id]) continue;
+        RW_PropAucClose(id);
+    }
+    return 1;
+}
+stock RW_PropAucClose(id)
+{
+    new price = gPropInfo[id][1];
+    new back = price * PROP_SELL_PERCENT / 100;
+    new old = gPropOwner[id];
+    if (old > 0) RW_PropCredit(old, back);
+    if (gPropBidder[id] > 0) {
+        /* Победитель: залог уже снят, объект переходит к нему. */
+        gPropOwner[id] = gPropBidder[id];
+        new DBResult:r = db_query(gDB, "SELECT name FROM accounts ORDER BY id");
+        if (r != DBResult:0) {
+            new rows = db_num_rows(r);
+            for (new i; i < rows && i < MAX_PLAYERS; i++) {
+                new name[MAX_PLAYER_NAME+1];
+                db_get_field_assoc(r, "name", name, sizeof name);
+                if (i + 1 == gPropBidder[id]) format(gPropOwnerName[id], MAX_PLAYER_NAME+1, "%s", name);
+                db_next_row(r);
+            }
+            db_free_result(r);
+        }
+    } else {
+        gPropOwner[id] = 0;
+        gPropOwnerName[id][0] = 0;
+    }
+    gPropBid[id] = 0;
+    gPropBidder[id] = 0;
+    gPropEscrow[id] = 0;
+    gPropAucEnd[id] = 0;
+    gPropDoorOpen[id] = 0;
+    gPropTaxDue[id] = 0;
+    gPropMissed[id] = 0;
+    RW_PropSave(id);
+    RW_PropAucSave(id);
+    return 1;
+}
+
+/*  ---------------------------------- касса ------------------------------- */
+/*  Выручка 24/7 падает в кассу владельца, забрать её можно командой.        */
+
+public RW_PropSale(playerid, price)
+{
+    new id = RW_PropNear(playerid);
+    if (id < 0 || gPropOwner[id] <= 0 || gPropInfo[id][0] != PROP_KIND_BIZ) return 0;
+    if (price <= 0) return 0;
+    gPropCash[id] = gPropCash[id] + price * BIZ_TILL_SHARE / 100;
+    RW_PropSave(id);
+    return 1;
+}
+stock RW_PropTill(playerid)
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    new id = RW_PropNear(playerid);
+    if (id < 0 || !RW_PropMine(playerid, id)) {
+        new own = RW_PropOwns(playerid);
+        if (own < 0 || gPropInfo[own][0] != PROP_KIND_BIZ) return RW_Error(playerid, "Stand at the door of your business.");
+        id = own;
+    }
+    if (gPropInfo[id][0] != PROP_KIND_BIZ) return RW_Error(playerid, "Only a business has a till.");
+    new sum[32], message[160];
+    RW_FormatMoney(gPropCash[id], sum, sizeof sum);
+    format(message, sizeof message, "%s till: %s. /till put <sum> or /till take <sum>.", gPropNames[id], sum);
+    return RW_Ok(playerid, message);
+}
+stock RW_PropTillCommand(playerid, const params[])
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    new word[24], i, j;
+    while (params[i] && params[i] != ' ' && j < sizeof word - 1) { word[j] = params[i]; j++; i++; }
+    word[j] = 0;
+    while (params[i] == ' ') i++;
+    new amount = strval(params[i]);
+    new id = RW_PropNear(playerid);
+    if (id < 0 || !RW_PropMine(playerid, id)) id = RW_PropOwns(playerid);
+    if (id < 0 || !RW_PropMine(playerid, id) || gPropInfo[id][0] != PROP_KIND_BIZ)
+        return RW_Error(playerid, "Stand at the door of your business.");
+    if (!word[0]) return RW_PropTill(playerid);
+    if (!strcmp(word, "take", true)) {
+        if (amount <= 0) return RW_Error(playerid, "Tell how much: /till take <sum>.");
+        if (amount > gPropCash[id]) return RW_Error(playerid, "The till does not have that much.");
+        gPropCash[id] = gPropCash[id] - amount;
+        RW_BankAdd(playerid, amount);
+        RW_PropSave(id);
+        new sum[32], message[160];
+        RW_FormatMoney(amount, sum, sizeof sum);
+        format(message, sizeof message, "Took %s from the till. Left: %d.", sum, gPropCash[id]);
+        return RW_Ok(playerid, message);
+    }
+    if (!strcmp(word, "put", true)) {
+        if (amount <= 0) return RW_Error(playerid, "Tell how much: /till put <sum>.");
+        if (gBank[playerid] < amount) return RW_Error(playerid, "Not enough money on the account.");
+        RW_BankTake(playerid, amount);
+        gPropCash[id] = gPropCash[id] + amount;
+        RW_PropSave(id);
+        new sum[32], message[160];
+        RW_FormatMoney(amount, sum, sizeof sum);
+        format(message, sizeof message, "Put %s into the till. Now: %d.", sum, gPropCash[id]);
+        return RW_Ok(playerid, message);
+    }
+    return RW_Error(playerid, "Use: /till put <sum> or /till take <sum>.");
+}
+
+/*  -------------------------------- ограбление ---------------------------- */
+/*  С 12:00 до 01:00: унести часть кассы бизнеса, рискуя поднять тревогу.    */
+
+stock RW_PropRobWindow()
+{
+    new hour, minute, second;
+    gettime(hour, minute, second);
+    #pragma unused minute, second
+    return (hour >= ROB_START_HOUR || hour < ROB_END_HOUR) ? 1 : 0;
+}
+stock RW_PropRob(playerid, id)
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    if (id < 0 || id >= PROP_MAX) return RW_Error(playerid, "Stand at the door of a business.");
+    if (gPropInfo[id][0] != PROP_KIND_BIZ) return RW_Error(playerid, "Only a business can be robbed.");
+    if (!RW_PropRobWindow()) return RW_Error(playerid, "Too early: the tills are taken to the bank at night. Come from 12:00 to 01:00.");
+    if (GetTickCount() - gAppTick[playerid] < 2000) return 1;
+    gAppTick[playerid] = GetTickCount();
+    if (gettime() < gPropRobEnd[id]) return RW_Error(playerid, "This place was hit recently. Try another one.");
+    gPropRobEnd[id] = gettime() + ROB_COOLDOWN_SECONDS;
+    if (RW_PoliceOnDuty(playerid) && RW_PoliceBadge(playerid) > 0)
+        return RW_Error(playerid, "An officer on duty does not rob shops.");
+    new Float:x, Float:y, Float:z, nick[MAX_PLAYER_NAME], message[180];
+    GetPlayerPos(playerid, x, y, z);
+    RW_GetNick(playerid, nick);
+    if (random(100) < ROB_FAIL_CHANCE || gPropCash[id] <= 0) {
+        /* Тревога: полиция на службе узнаёт адрес. */
+        format(message, sizeof message, "Alarm at %s (%d, %d): %s tried the till.", gPropNames[id], floatround(x), floatround(y), nick);
+        for (new i; i < MAX_PLAYERS; i++)
+            if (IsPlayerConnected(i) && gLogged[i] && RW_PoliceOnDuty(i) && RW_PoliceBadge(i) > 0) RW_Error(i, message);
+        return RW_Error(playerid, "The alarm went off and the till is out of reach. Run!");
+    }
+    new take = gPropCash[id] * ROB_SHARE / 100;
+    gPropCash[id] = gPropCash[id] - take;
+    RW_AddMoney(playerid, take);
+    RW_PropSave(id);
+    format(message, sizeof message, "Alarm at %s (%d, %d): %s is robbing the till.", gPropNames[id], floatround(x), floatround(y), nick);
+    for (new i; i < MAX_PLAYERS; i++)
+        if (IsPlayerConnected(i) && gLogged[i] && RW_PoliceOnDuty(i) && RW_PoliceBadge(i) > 0) RW_Error(i, message);
+    new sum[32];
+    RW_FormatMoney(take, sum, sizeof sum);
+    format(message, sizeof message, "Clean job: %s in cash. The police heard the alarm.", sum);
+    return RW_Ok(playerid, message);
+}
+stock RW_PropRobCommand(playerid) { return RW_PropRob(playerid, RW_PropNear(playerid)); }
 
 /*  --------------------------------- команды ------------------------------ */
 
@@ -405,6 +670,21 @@ stock RW_DoorsCommand(playerid)
     }
     return RW_PropToggleDoors(playerid, id);
 }
+stock RW_PropBidCommand(playerid, const params[])
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    new id = RW_PropNear(playerid);
+    if (id < 0 || !RW_PropAucOn(id)) return RW_Error(playerid, "Stand at the door of a property up for auction.");
+    new amount = strval(params);
+    if (amount <= 0) {
+        new sum[32], message[160];
+        RW_FormatMoney(gPropBid[id], sum, sizeof sum);
+        format(message, sizeof message, "Current bid on %s: %s. Bid: /bid <sum>. Left: %d s.",
+            gPropNames[id], sum, gPropAucEnd[id] - gettime());
+        return RW_Ok(playerid, message);
+    }
+    return RW_PropBid(playerid, id, amount);
+}
 stock RW_PayTaxCommand(playerid)
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
@@ -419,6 +699,7 @@ stock RW_PayTaxCommand(playerid)
 stock RW_PropInit()
 {
     RW_PropLoad();
+    RW_PropAucLoad();
     for (new i; i < PROP_MAX; i++) {
         new label[96];
         RW_PropLabel(i, label, sizeof label);

@@ -31,6 +31,8 @@
 
 /* Вызываются из других срезов, описаны позже: работа, такси, адвокат, налог. */
 forward RW_PropTaxTick(playerid);
+forward RW_PropPulse();
+forward RW_PropSale(playerid, price);
 forward RW_PropClick(playerid, row);
 forward RW_JobHandOver(playerid);
 forward RW_UberOrder(playerid);

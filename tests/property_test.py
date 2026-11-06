@@ -152,7 +152,9 @@ class PropertyTaxTest(unittest.TestCase):
         self.assertIn('RW_BankTake(playerid, tax);', tick)
         self.assertIn('gPropTaxDue[i] = gPropTaxDue[i] + tax;', tick)
         self.assertIn('gPropMissed[i]++;', tick)
-        self.assertIn('if (gPropMissed[i] >= PROP_TAX_LIMIT) gPropDoorOpen[i] = 0;', tick)
+        self.assertIn('if (gPropMissed[i] >= PROP_TAX_LIMIT) {', tick)
+        self.assertIn('gPropDoorOpen[i] = 0;', tick)
+        self.assertIn('if (gPropAucEnd[i] <= 0) RW_PropAucStart(i);', tick)
         self.assertIn('#define PROP_TAX_LIMIT          3', PROP)
 
     def test_the_debt_is_paid_from_the_account(self):
@@ -186,9 +188,12 @@ class PropertyWiringTest(unittest.TestCase):
         self.assertIn('RW_AppRowProp(playerid,', PROP)
 
     def test_the_commands_exist(self):
-        for command in ('property', 'enter', 'exit', 'doors', 'paytax'):
+        for command in ('property', 'enter', 'exit', 'doors', 'paytax', 'till', 'bid', 'rob'):
             self.assertIn('"%s", true' % command, CMDS)
-        self.assertIn('/property at the door', block(CMDS, 'stock RW_CommandHelp(playerid)'))
+        help_text = block(CMDS, 'stock RW_CommandHelp(playerid)')
+        self.assertIn('Property: /property', help_text)
+        for command in ('/till', '/bid', '/rob'):
+            self.assertIn(command, help_text)
 
     def test_the_doors_are_marked_in_the_world(self):
         init = block(PROP, 'stock RW_PropInit()')
@@ -204,6 +209,116 @@ class PropertyWiringTest(unittest.TestCase):
                 continue
             for char in text:
                 self.assertLess(ord(char), 128, text)
+
+class PropertyAuctionTest(unittest.TestCase):
+    """Аукцион: три просрочки — торги, владельцу 75 %."""
+
+    def setUp(self):
+        self.db = sqlite3.connect(':memory:')
+        self.db.executescript(sql(PROP, 'CREATE TABLE IF NOT EXISTS property_auctions') + ';')
+        statement = sql(PROP, 'INSERT OR IGNORE INTO property_auctions')
+        for i in range(8):
+            self.db.execute(statement.replace('%d', str(i)))
+        self.db.commit()
+
+    def test_every_property_has_an_auction_row(self):
+        rows = self.db.execute('SELECT id,bid,bidder,escrow,ends FROM property_auctions ORDER BY id').fetchall()
+        self.assertEqual(len(rows), 8)
+        for row in rows:
+            self.assertEqual(row[1:], (0, 0, 0, 0))
+
+    def test_the_auction_starts_when_the_tax_is_forgotten(self):
+        start = block(PROP, 'stock RW_PropAucStart(id)')
+        self.assertIn('gPropAucEnd[id] = gettime() + PROP_AUCTION_SECONDS;', start)
+        self.assertIn('#define PROP_AUCTION_SECONDS    600', PROP)
+
+    def test_a_bid_is_taken_from_the_account_at_once(self):
+        bid = block(PROP, 'stock RW_PropBid(playerid, id, amount)')
+        self.assertIn('if (amount < gPropBid[id] + PROP_BID_STEP)', bid)
+        self.assertIn('if (gBank[playerid] < amount) return RW_Error(playerid, "Not enough money on the account for such a bid.");', bid)
+        self.assertIn('RW_BankTake(playerid, amount);', bid)
+        self.assertIn('gPropEscrow[id] = amount;', bid)
+
+    def test_the_previous_bid_comes_back(self):
+        bid = block(PROP, 'stock RW_PropBid(playerid, id, amount)')
+        self.assertIn('if (gPropEscrow[id] > 0) RW_PropCredit(gPropBidder[id], gPropEscrow[id]);', bid)
+        credit = block(PROP, 'stock RW_PropCredit(account, amount)')
+        self.assertIn('UPDATE bank_accounts SET balance=balance+%d WHERE player_id=%d', credit)
+
+    def test_the_owner_cannot_buy_back_his_own_debt(self):
+        bid = block(PROP, 'stock RW_PropBid(playerid, id, amount)')
+        self.assertIn('if (RW_PropMine(playerid, id)) return RW_Error(playerid, "You cannot buy back your own property: pay the tax.");', bid)
+
+    def test_closing_pays_the_old_owner_seventy_five_percent(self):
+        close = block(PROP, 'stock RW_PropAucClose(id)')
+        self.assertIn('new back = price * PROP_SELL_PERCENT / 100;', close)
+        self.assertIn('if (old > 0) RW_PropCredit(old, back);', close)
+        self.assertIn('gPropOwner[id] = gPropBidder[id];', close)
+        self.assertIn('gPropMissed[id] = 0;', close)
+        self.assertIn('RW_PropAucSave(id);', close)
+
+    def test_the_timer_closes_finished_auctions(self):
+        self.assertIn('SetTimer("RW_PropPulse", 1000, true);', MAIN)
+        pulse = block(PROP, 'public RW_PropPulse()')
+        self.assertIn('if (gPropAucEnd[id] <= 0 || gettime() < gPropAucEnd[id]) continue;', pulse)
+        self.assertIn('RW_PropAucClose(id);', pulse)
+        self.assertIn('forward RW_PropPulse();', CORE)
+
+
+class BusinessTillTest(unittest.TestCase):
+    """Касса бизнеса: выручка с покупок, внос и изъятие владельцем."""
+
+    def test_a_share_of_every_sale_lands_in_the_till(self):
+        self.assertIn('RW_PropSale(playerid, price);', block(ECON, 'stock RW_ShopBuy(playerid, row)'))
+        self.assertIn('forward RW_PropSale(playerid, price);', CORE)
+        sale = block(PROP, 'public RW_PropSale(playerid, price)')
+        self.assertIn('if (id < 0 || gPropOwner[id] <= 0 || gPropInfo[id][0] != PROP_KIND_BIZ) return 0;', sale)
+        self.assertIn('gPropCash[id] = gPropCash[id] + price * BIZ_TILL_SHARE / 100;', sale)
+        self.assertIn('#define BIZ_TILL_SHARE          10', PROP)
+
+    def test_only_the_owner_touches_the_till(self):
+        till = block(PROP, 'stock RW_PropTillCommand(playerid, const params[])')
+        self.assertIn('if (id < 0 || !RW_PropMine(playerid, id) || gPropInfo[id][0] != PROP_KIND_BIZ)', till)
+        self.assertIn('gPropInfo[id][0] != PROP_KIND_BIZ', till)
+        self.assertIn('Stand at the door of your business.', till)
+
+    def test_taking_needs_money_in_the_till(self):
+        till = block(PROP, 'stock RW_PropTillCommand(playerid, const params[])')
+        self.assertIn('if (amount > gPropCash[id]) return RW_Error(playerid, "The till does not have that much.");', till)
+        self.assertIn('RW_BankAdd(playerid, amount);', till)
+        self.assertIn('if (gBank[playerid] < amount) return RW_Error(playerid, "Not enough money on the account.");', till)
+
+
+class RobberyTest(unittest.TestCase):
+    """Ограбление бизнеса: с 12:00 до 01:00."""
+
+    def test_the_window_is_twelve_to_one(self):
+        window = block(PROP, 'stock RW_PropRobWindow()')
+        self.assertIn('gettime(hour, minute, second);', window)
+        self.assertIn('hour >= ROB_START_HOUR || hour < ROB_END_HOUR', window)
+        self.assertIn('#define ROB_START_HOUR          12', PROP)
+        self.assertIn('#define ROB_END_HOUR            1', PROP)
+
+    def test_only_a_business_and_only_in_the_window(self):
+        rob = block(PROP, 'stock RW_PropRob(playerid, id)')
+        self.assertIn('if (gPropInfo[id][0] != PROP_KIND_BIZ) return RW_Error(playerid, "Only a business can be robbed.");', rob)
+        self.assertIn('if (!RW_PropRobWindow()) return RW_Error(playerid, "Too early:', rob)
+        self.assertIn('gettime() < gPropRobEnd[id]', rob)
+
+    def test_an_officer_on_duty_does_not_rob(self):
+        rob = block(PROP, 'stock RW_PropRob(playerid, id)')
+        self.assertIn('RW_PoliceOnDuty(playerid) && RW_PoliceBadge(playerid) > 0', rob)
+        self.assertIn('An officer on duty does not rob shops.', rob)
+
+    def test_the_alarm_reaches_the_police_and_the_loot_is_a_share(self):
+        rob = block(PROP, 'stock RW_PropRob(playerid, id)')
+        self.assertIn('Alarm at %s (%d, %d)', rob)
+        self.assertIn('RW_PoliceOnDuty(i) && RW_PoliceBadge(i) > 0', rob)
+        self.assertIn('new take = gPropCash[id] * ROB_SHARE / 100;', rob)
+        self.assertIn('RW_AddMoney(playerid, take);', rob)
+        self.assertIn('#define ROB_SHARE               30', PROP)
+        self.assertIn('random(100) < ROB_FAIL_CHANCE', rob)
+
 
 
 if __name__ == '__main__':
