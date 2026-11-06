@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def pawn(name):
     return (ROOT / 'server/pawno/include/railway' / (name + '.inc')).read_text(encoding='cp1251')
 INV = pawn('inventory')
+ARMOUR = pawn('armour')
 
 def sql(prefix):
     return next(s for s in re.findall(r'"([^"\r\n]+)"', INV) if s.startswith(prefix))
@@ -24,6 +25,7 @@ class InventoryStorageTests(unittest.TestCase):
         self.db.execute(sql('CREATE TABLE'))
         self.db.execute(sql('CREATE TABLE IF NOT EXISTS inventory_equipment'))
         self.db.execute("CREATE TABLE IF NOT EXISTS inventory_active (owner INTEGER PRIMARY KEY, uid INTEGER NOT NULL UNIQUE)")
+        self.db.execute(next(x for x in re.findall(r'"([^"\r\n]+)"', ARMOUR) if x.startswith('CREATE TABLE IF NOT EXISTS inventory_wear')))
         self.db.execute('CREATE TABLE permanent_keys(uid INTEGER PRIMARY KEY, car INTEGER)')
         self.db.execute('CREATE TABLE owned_cars(id INTEGER PRIMARY KEY, owner INTEGER, model INTEGER, token INTEGER UNIQUE)')
 

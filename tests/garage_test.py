@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def source(n):
     return (ROOT/'server/pawno/include/railway'/f'{n}.inc').read_text(encoding='cp1251')
 GARAGE, INV, MOTION = source('garage'), source('inventory'), source('motion')
+ARMOUR = source('armour')
 def query(code, prefix):
     return next(s for s in re.findall(r'"([^"\r\n]+)"', code) if s.startswith(prefix))
 
@@ -20,6 +21,7 @@ class PermanentGarageStorageTest(unittest.TestCase):
         self.db.execute(query(INV, 'CREATE TABLE'))
         self.db.execute(query(INV, 'CREATE TABLE IF NOT EXISTS inventory_equipment'))
         self.db.execute("CREATE TABLE IF NOT EXISTS inventory_active (owner INTEGER PRIMARY KEY, uid INTEGER NOT NULL UNIQUE)")
+        self.db.execute(query(ARMOUR, 'CREATE TABLE IF NOT EXISTS inventory_wear'))
         self.db.execute(query(GARAGE, 'CREATE TABLE IF NOT EXISTS owned_cars'))
         self.db.execute(query(GARAGE, 'CREATE TABLE IF NOT EXISTS permanent_keys'))
 

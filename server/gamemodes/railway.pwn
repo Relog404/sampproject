@@ -28,6 +28,7 @@
 #include <railway/garage>
 #include <railway/motion>
 #include <railway/cabin>
+#include <railway/armour>
 #include <railway/commands>
 
 /* ------------------------------------------------------------------ запуск */
@@ -168,6 +169,7 @@ public OnPlayerDisconnect(playerid, reason)
 {
     RW_WpFlush(playerid);
     RW_CabinReset(playerid);
+    RW_ArmourReset(playerid);
     RW_ClearRegisterPassword(playerid);
     RW_SaveAccount(playerid);
     RW_Veh_OnPlayerDisconnect(playerid);
@@ -480,5 +482,11 @@ public OnPlayerPickUpPickup(playerid, pickupid)
 
 public OnPlayerEditAttachedObject(playerid,response,index,modelid,boneid,Float:fOffsetX,Float:fOffsetY,Float:fOffsetZ,Float:fRotX,Float:fRotY,Float:fRotZ,Float:fScaleX,Float:fScaleY,Float:fScaleZ)
 {
+    if (index == 8) return RW_ArmourFitSave(playerid,response,index,modelid,boneid,fOffsetX,fOffsetY,fOffsetZ,fRotX,fRotY,fRotZ,fScaleX,fScaleY,fScaleZ);
     return RW_InvFitSave(playerid,response,index,modelid,boneid,fOffsetX,fOffsetY,fOffsetZ,fRotX,fRotY,fRotZ,fScaleX,fScaleY,fScaleZ);
+}
+public OnPlayerTakeDamage(playerid, issuerid, Float:amount, weaponid, bodypart)
+{
+    RW_ArmourDamage(playerid, amount);
+    return 1;
 }

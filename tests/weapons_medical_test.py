@@ -9,6 +9,7 @@ def pawn(n): return (ROOT/'server/pawno/include/railway'/f'{n}.inc').read_text(e
 INV=pawn('inventory')
 WEP=pawn('weapons')
 MED=pawn('medical')
+ARM=pawn('armour')
 MAIN=(ROOT/'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
 def strings(code):
     return re.findall(r'"([^"\r\n]+)"', code)
@@ -26,6 +27,7 @@ class ItemUpgradeTest(unittest.TestCase):
         self.db.execute(self.OLD)
         self.db.execute("CREATE TABLE inventory_equipment (owner INTEGER PRIMARY KEY, uid INTEGER NOT NULL UNIQUE)")
         self.db.execute("CREATE TABLE inventory_active (owner INTEGER PRIMARY KEY, uid INTEGER NOT NULL UNIQUE)")
+        self.db.execute(first(ARM,'CREATE TABLE IF NOT EXISTS inventory_wear'))
         for owner,slot,type_,data in ((1,0,1,0),(1,1,2,55),(2,5,2,77),(None,-1,1,0)):
             self.db.execute("INSERT INTO inventory_items(owner,slot,type,data) VALUES(?,?,?,?)",(owner,slot,type_,data))
     def tearDown(self):
@@ -63,6 +65,7 @@ class WeaponSqlTest(unittest.TestCase):
         self.db.execute(first(INV,'CREATE TABLE IF NOT EXISTS inventory_items'))
         self.db.execute("CREATE TABLE inventory_equipment (owner INTEGER PRIMARY KEY, uid INTEGER NOT NULL UNIQUE)")
         self.db.execute("CREATE TABLE inventory_active (owner INTEGER PRIMARY KEY, uid INTEGER NOT NULL UNIQUE)")
+        self.db.execute(first(ARM,'CREATE TABLE IF NOT EXISTS inventory_wear'))
     def tearDown(self):
         self.db.close()
     def item(self,owner=1,slot=0,type_=3,data=31,amount=7):

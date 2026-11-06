@@ -9,6 +9,7 @@ def source(n):
     return (ROOT/'server/pawno/include/railway'/f'{n}.inc').read_text(encoding='cp1251')
 INV=source('inventory')
 GROUND=source('ground')
+ARMOUR=source('armour')
 def section(start,end):
     return INV.split(start,1)[1].split(end,1)[0]
 def query(code,prefix):
@@ -23,6 +24,7 @@ class EquipmentSqlTest(unittest.TestCase):
         self.db.execute(query(INV,'CREATE TABLE IF NOT EXISTS inventory_items'))
         self.db.execute(query(INV,'CREATE TABLE IF NOT EXISTS inventory_equipment'))
         self.db.execute("CREATE TABLE IF NOT EXISTS inventory_active (owner INTEGER PRIMARY KEY, uid INTEGER NOT NULL UNIQUE)")
+        self.db.execute(query(ARMOUR,'CREATE TABLE IF NOT EXISTS inventory_wear'))
     def tearDown(self):
         self.db.close()
     def item(self,owner=1,slot=0,kind=1,data=0):

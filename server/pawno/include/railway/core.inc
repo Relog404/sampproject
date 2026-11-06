@@ -123,6 +123,12 @@ new gLoginAttempts[MAX_PLAYERS];
 new gLastSpcarTick[MAX_PLAYERS];
 
 new gAuthTimer[MAX_PLAYERS];           /* таймер камеры на экране входа      */
+new gInvWorn[MAX_PLAYERS];          /* worn body armour item uid (0 = none)   */
+new gArmourData[MAX_PLAYERS];       /* variant of the worn armour             */
+new gArmourHp[MAX_PLAYERS];         /* armour points left                     */
+new gArmourObject[MAX_PLAYERS];     /* server object used for a custom TXD    */
+new bool:gArmourFitting[MAX_PLAYERS];
+new gArmourFitSkin[MAX_PLAYERS], gArmourFitUid[MAX_PLAYERS];
 new gCabinVehicle[MAX_PLAYERS];
 new gCabinSeat[MAX_PLAYERS];
 new gPlayerVehSlot[MAX_PLAYERS];       /* слот персональной машины (-1)      */
