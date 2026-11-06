@@ -105,15 +105,18 @@ class WeatherTest(unittest.TestCase):
 
     def test_clear_sky_pays_couriers_and_truckers(self):
         bonus = block(APPS, 'stock RW_WeatherBonus(job)')
-        self.assertIn('case 0, 1: return (job == JOB_TRUCKER || job == JOB_COURIER) ? (20) : (0);', bonus)
-        self.assertIn('case 4, 9: return (job == JOB_COURIER) ? (-10) : (0);', bonus)
-        self.assertIn('case 3: return (job == JOB_TRUCKER) ? (-15) : (0);', bonus)
+        self.assertIn('case 0: {', bonus)
+        self.assertIn('if (job == JOB_TRUCKER || job == JOB_COURIER) return 20;', bonus)
+        self.assertIn('if (job == JOB_MUSHROOM) return 20;', bonus)
+        self.assertIn('if (job == JOB_QUARRY) return 20;', bonus)
+        self.assertIn('if (job == JOB_TRUCKER) return -15;', bonus)
 
     def test_the_bonus_reaches_the_pay(self):
         done = ECON.split('stock RW_JobTaskDone(playerid)', 1)[1].split('\n}', 1)[0]
         self.assertIn('new weatherBonus = RW_WeatherBonus(gJob[playerid]);', done)
-        self.assertIn('if (weatherBonus != 0) pay = pay + floatround(float(pay) * float(weatherBonus) / 100.0);', done)
-        self.assertIn('%+d%% for the weather', done)
+        self.assertIn('new bonus = weatherBonus + timeBonus;', done)
+        self.assertIn('if (bonus != 0) pay = pay + floatround(float(pay) * float(bonus) / 100.0);', done)
+        self.assertIn('%+d%% for weather and time', done)
 
     def test_the_sky_changes_on_its_own(self):
         pulse = APPS.split('public RW_WeatherPulse()', 1)[1].split('\n}', 1)[0]

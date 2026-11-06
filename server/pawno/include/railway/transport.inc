@@ -34,12 +34,12 @@
 /* колёса: по уровню выбирается компонент */
 static const gTuneWheels[] = { 1073, 1074, 1075, 1076, 1077 };
 
-/* заправки: поправьте координаты под свою карту */
+/* Реальные заправки Los Santos: Temple, Ocean Docks, Idlewood, Willowfield. */
 static const Float:gGasStations[][3] = {
     { 1004.0, -939.0, 42.2 },      /* Temple */
-    { 1595.4, -2235.9, 13.5 },     /* Ocean Docks */
-    { 1944.3, -1772.4, 13.4 },     /* Idlewood */
-    { 2202.2, -1965.0, 13.6 }      /* Verdant Bluffs */
+    { 1595.5, -2235.9, 13.5 },     /* Ocean Docks */
+    { 1944.3, -1772.5, 13.4 },     /* Idlewood */
+    { 2202.2, -1965.0, 13.6 }      /* Willowfield */
 };
 
 new Float:gFuel[VEHICLE_SLOTS];              /* литров в баке                */

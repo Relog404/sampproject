@@ -11,9 +11,10 @@
 #define GARAGE_BOOTH_Y (STATION_Y + 3.4)
 #define GARAGE_BOOTH_Z (STATION_Z)
 #define GARAGE_RADIUS (6.0)
-#define GARAGE_PAD_X (1742.0)
-#define GARAGE_PAD_Y (-1953.0)
-#define GARAGE_PAD_Z (13.65)
+/* Площадка выдачи: улица восточнее вокзала Unity Station. */
+#define GARAGE_PAD_X (1755.0)
+#define GARAGE_PAD_Y (-1855.0)
+#define GARAGE_PAD_Z (13.6)
 new gGaragePickup = -1, gGarageBooth = INVALID_OBJECT_ID;
 new Text3D:gGarageLabel = Text3D:INVALID_3DTEXT_ID;
 new PlayerText:gKeyTD[MAX_PLAYERS][13];

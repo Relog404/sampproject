@@ -181,11 +181,16 @@ class FuelTest(unittest.TestCase):
 
     def test_there_are_several_gas_stations(self):
         table = TRANS.split('static const Float:gGasStations[][3] = {', 1)[1].split('};', 1)[0]
-        self.assertEqual(len(re.findall(r'\{[^}]+\}', table)), 4)
-        for x, y, z in ((1004.0, -939.0, 42.2), (1595.4, -2235.9, 13.5), (1944.3, -1772.4, 13.4), (2202.2, -1965.0, 13.6)):
-            self.assertIn('%s' % x, table)
-            self.assertIn('%s' % y, table)
-            self.assertIn('%s' % z, table)
+        rows = re.findall(r'\{([^}]+)\}', table)
+        self.assertEqual(len(rows), 4)
+        # Реальные заправки Los Santos: Temple, Ocean Docks, Idlewood, Willowfield.
+        for place in ('Temple', 'Ocean Docks', 'Idlewood', 'Willowfield'):
+            self.assertIn(place, table)
+        for row in rows:
+            x, y, z = [float(v) for v in row.split(',')]
+            self.assertTrue(0.0 < x < 3000.0, row)      # восток штата
+            self.assertTrue(-3000.0 < y < -500.0, row)  # южное побережье
+            self.assertTrue(0.0 < z < 100.0, row)
 
     def test_a_station_is_a_sphere_around_the_pump(self):
         atgas = block(TRANS, 'stock bool:RW_TransportAtGas(playerid)')

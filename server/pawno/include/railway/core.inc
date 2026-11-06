@@ -31,9 +31,10 @@
 
 /* ------------------------------------------------------------------ вокзал */
 #define STATION_NAME                "Unity Station"
-#define STATION_X                   (1729.3188)
-#define STATION_Y                   (-1943.7242)
-#define STATION_Z                   (13.5451)
+/* Настоящий Unity Station в Los Santos: El Corona/Unity, восточнее путей. */
+#define STATION_X                   (1742.9)
+#define STATION_Y                   (-1862.6)
+#define STATION_Z                   (13.6)
 #define STATION_ANGLE               (0.0)
 #define CAMERA_ORBIT_RADIUS         (8.5)
 #define CAMERA_ORBIT_HEIGHT         (6.2)
@@ -70,11 +71,13 @@
 #define TUNE_MAX_LEVEL              5
 #define TUNE_SPEED_STEP             5.0        /* км/ч за уровень двигателя   */
 #define TUNE_INSTALL_MS             10000
-#define TUNING_X                    2645.0
-#define TUNING_Y                    -2020.0
+/* Loco Low Co, Willowfield (реальный тюнинг-гараж LS) */
+#define TUNING_X                    2645.6
+#define TUNING_Y                    -2020.3
 #define TUNING_Z                    13.5
 #define TUNING_RANGE                15.0
 /* эвакуация и взлом */
+/* Штрафстоянка LSPD за зданием участка, Pershing Square */
 #define IMPOUND_X                   1635.0
 #define IMPOUND_Y                   -1700.0
 #define IMPOUND_Z                   13.6
@@ -120,6 +123,7 @@
 #define FACTION_MECHANIC            4
 #define EMS_DEFIB_CHARGES           3
 /* All Saints General: куда скорая сдаёт пациентов. */
+/* All Saints General Hospital, Los Santos */
 #define HOSPITAL_X                  1175.8
 #define HOSPITAL_Y                  -1324.7
 #define HOSPITAL_Z                  15.4

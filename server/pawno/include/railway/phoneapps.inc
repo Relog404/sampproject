@@ -28,14 +28,14 @@
 static const gWeatherIds[] = { 0, 1, 4, 8, 9, 16 };
 static const gWeatherNames[][] = { "EXTRA SUNNY", "SUNNY", "CLOUDY", "FOGGY", "RAINY", "OVERCAST" };
 
-/* Ориентиры для подписи снимка. */
+/* Ориентиры для подписи снимка: реальные места Los Santos. */
 static const Float:gPhotoSpots[][3] = {
-    {  1729.3, -1943.7, 13.5 },     /* 0 STATION  */
-    {  1175.8, -1324.7, 15.4 },     /* 1 HOSPITAL */
-    {  1660.0, -2260.0, 13.6 },     /* 2 DOCKS    */
-    {  1635.0, -1700.0, 13.6 },     /* 3 IMPOUND  */
-    {  2645.0, -2020.0, 13.5 },     /* 4 TUNING   */
-    {  1352.0, -1759.0, 13.5 }      /* 5 CITY     */
+    {  1742.9, -1862.6, 13.6 },     /* 0 UNITY STATION */
+    {  1175.8, -1324.7, 15.4 },     /* 1 ALL SAINTS    */
+    {  1595.5, -2235.9, 13.5 },     /* 2 OCEAN DOCKS   */
+    {  1544.6, -1675.5, 16.2 },     /* 3 LSPD HQ       */
+    {  2645.6, -2020.3, 13.5 },     /* 4 LOCO LOW CO   */
+    {  1352.4, -1759.4, 13.5 }      /* 5 DOWNTOWN LS   */
 };
 
 new gWeather;
@@ -100,9 +100,26 @@ stock RW_WeatherName(dest[], size = sizeof dest)
 stock RW_WeatherBonus(job)
 {
     switch (gWeather) {
-        case 0, 1: return (job == JOB_TRUCKER || job == JOB_COURIER) ? (20) : (0);
-        case 4, 9: return (job == JOB_COURIER) ? (-10) : (0);
-        case 3: return (job == JOB_TRUCKER) ? (-15) : (0);
+        case 0: {
+            if (job == JOB_FARMER || job == JOB_LUMBER) return 20;
+            if (job == JOB_TRUCKER || job == JOB_COURIER) return 20;
+            return 0;
+        }
+        case 1: {
+            if (job == JOB_LUMBER) return 10;
+            if (job == JOB_TRUCKER || job == JOB_COURIER) return 20;
+            return 0;
+        }
+        case 4, 9: {
+            if (job == JOB_MUSHROOM) return 20;
+            if (job == JOB_COURIER) return -10;
+            return 0;
+        }
+        case 3: {
+            if (job == JOB_QUARRY) return 20;
+            if (job == JOB_TRUCKER) return -15;
+            return 0;
+        }
     }
     return 0;
 }
@@ -132,12 +149,12 @@ public RW_WeatherPulse()
 stock RW_PhotoPlaceName(id, dest[], size = sizeof dest)
 {
     switch (id) {
-        case 0: format(dest, size, "STATION");
-        case 1: format(dest, size, "HOSPITAL");
-        case 2: format(dest, size, "DOCKS");
-        case 3: format(dest, size, "IMPOUND");
-        case 4: format(dest, size, "TUNING");
-        default: format(dest, size, "CITY");
+        case 0: format(dest, size, "UNITY STATION");
+        case 1: format(dest, size, "ALL SAINTS");
+        case 2: format(dest, size, "OCEAN DOCKS");
+        case 3: format(dest, size, "LSPD HQ");
+        case 4: format(dest, size, "LOCO LOW CO");
+        default: format(dest, size, "DOWNTOWN LS");
     }
     return 1;
 }

@@ -34,6 +34,13 @@ def block(source, start, end='\nstock '):
     return source.split(start, 1)[1].split(end, 1)[0]
 
 
+def table_rows(source, name):
+    """Строки числовой таблицы static const Float:name[...] = { ... };"""
+    body = source.split('static const Float:%s' % name, 1)[1]
+    body = body.split('{', 1)[1].split('};', 1)[0]
+    return [l.strip().rstrip(',') for l in body.splitlines() if l.strip().startswith('{')]
+
+
 class EconomyTableTest(unittest.TestCase):
     """The account and the work card, executed for real."""
 
@@ -168,7 +175,9 @@ class JobTest(unittest.TestCase):
     """Three jobs, two-point tasks, level from experience."""
 
     def test_constants(self):
-        for name, value in (('JOB_NONE', 0), ('JOB_LOADER', 1), ('JOB_COURIER', 2), ('JOB_TRUCKER', 3), ('JOB_COUNT', 4)):
+        for name, value in (('JOB_NONE', 0), ('JOB_LOADER', 1), ('JOB_COURIER', 2), ('JOB_TRUCKER', 3),
+                            ('JOB_GARBAGE', 4), ('JOB_FARMER', 5), ('JOB_MUSHROOM', 6), ('JOB_QUARRY', 7),
+                            ('JOB_LUMBER', 8), ('JOB_POST', 9), ('JOB_COUNT', 10)):
             self.assertRegex(ECON, r'#define %s\s+%d' % (name, value))
         self.assertRegex(ECON, r'#define JOB_MAX_LEVEL\s+5')
         self.assertRegex(ECON, r'#define JOB_EXP_PER_LEVEL\s+10')
@@ -183,7 +192,7 @@ class JobTest(unittest.TestCase):
 
     def test_hiring_happens_at_the_exchange(self):
         hire = block(ECON, 'stock RW_JobHire(playerid, job)')
-        self.assertIn('if (RW_JobHireIndex(playerid) < 0) return RW_Error(playerid, "Come to the labour exchange: the docks, the depot or the truck base.");', hire)
+        self.assertIn('if (RW_JobHireIndex(playerid) < 0) return RW_Error(playerid, "Come to a hiring point: the docks, the station, the depots and the farms.");', hire)
         self.assertIn('RW_EconomySave(playerid);', hire)
         self.assertIn('Hired as %s, level %d. /work takes a task, /quitjob leaves.', hire)
 
@@ -239,15 +248,57 @@ class JobTest(unittest.TestCase):
         pulse = ECON.split('public RW_EconomyPulse()', 1)[1]
         self.assertIn('if (gPayday[playerid] >= PAYDAY_SECONDS)', pulse)
 
-    def test_the_menu_offers_three_jobs_and_a_way_out(self):
-        self.assertIn('RW_UI_Row(playerid, 0, "Loader: crates in the docks");', ECON)
-        self.assertIn('RW_UI_Row(playerid, 1, "Courier: parcels across the city");', ECON)
-        self.assertIn('RW_UI_Row(playerid, 2, "Trucker: runs to other cities");', ECON)
-        self.assertIn('RW_UI_Row(playerid, 3, "Quit the job");', ECON)
-        self.assertIn('if (gJob[playerid] != JOB_NONE) RW_CefAction(playerid, 7, "Quit the job", "danger");', ECON)
+    def test_the_menu_offers_every_job_and_a_way_out(self):
+        # Текстовое меню показывает профессии страницами: пять строк, перелистывание и выход.
+        self.assertIn('RW_UI_Row(playerid, 5, \"Next jobs\");', ECON)
+        self.assertIn('RW_UI_Row(playerid, 5, \"First jobs\");', ECON)
+        self.assertIn('RW_UI_Row(playerid, 6, \"Quit the job\");', ECON)
+        self.assertIn('RW_UI_Row(playerid, 7, \"Close\");', ECON)
+        self.assertIn('if (gJob[playerid] != JOB_NONE) RW_CefAction(playerid, 7, \"Quit the job\", \"danger\");', ECON)
         action = block(ECON, 'stock RW_JobAction(playerid, row, bool:cef)')
-        self.assertIn('if (row == 3 && !cef) return RW_JobQuit(playerid);', action)
-        self.assertIn('if (row == 7 && cef) return RW_JobQuit(playerid);', action)
+        self.assertIn('if (row == 6) return RW_JobQuit(playerid);', action)
+        self.assertIn('if (row == 7) return RW_JobQuit(playerid);', action)
+
+    def test_the_exchange_lists_all_nine_jobs(self):
+        # CEF-меню строит строки циклом по всем профессиям.
+        self.assertIn('for (new job = 1; job < JOB_COUNT; job++) {', ECON)
+        self.assertIn('RW_CefRow(playerid, job - 1, title, hint, \"bag\");', ECON)
+        for job in ('JOB_GARBAGE', 'JOB_FARMER', 'JOB_MUSHROOM', 'JOB_QUARRY', 'JOB_LUMBER', 'JOB_POST'):
+            self.assertIn('if (job == %s) format(dest, size, ' % job, ECON)
+
+    def test_every_new_job_has_its_points(self):
+        points = block(ECON, 'stock RW_JobPoint(job, stage, &Float:x, &Float:y, &Float:z)')
+        for table in ('gGarbageBins', 'gGarbageDump', 'gFarmRows', 'gFarmBarn', 'gMushroomSpots',
+                      'gMushroomBuyer', 'gQuarryVeins', 'gQuarryCrusher', 'gTreeSpots', 'gSawmill',
+                      'gPostBoxes', 'gPostOffice'):
+            self.assertIn(table, points)
+            self.assertIn('static const Float:%s' % table, ECON)
+
+    def test_the_time_of_day_pays_extra(self):
+        bonus = block(ECON, 'stock RW_JobTimeBonus(job)')
+        self.assertIn('gettime(hour, minute, second);', bonus)
+        self.assertIn('if (job == JOB_GARBAGE && hour >= 6 && hour < 13) return 15;', bonus)
+        self.assertIn('if (job == JOB_POST && hour >= 9 && hour < 18) return 10;', bonus)
+        done = block(ECON, 'stock RW_JobTaskDone(playerid)')
+        self.assertIn('new timeBonus = RW_JobTimeBonus(gJob[playerid]);', done)
+        self.assertIn('new bonus = weatherBonus + timeBonus;', done)
+        self.assertIn('if (bonus != 0) pay = pay + floatround(float(pay) * float(bonus) / 100.0);', done)
+        self.assertIn('%+d%% for weather and time', done)
+
+    def test_the_hiring_points_are_real_places(self):
+        table = table_rows(ECON, 'gJobHire')
+        self.assertEqual(len(table), 9)
+        for place in ('Ocean Docks', 'Unity Station', 'Willowfield', 'Blueberry Acres',
+                      'Palomino Creek', 'Hunter Quarry', 'Angel Pine', 'Idlewood'):
+            self.assertIn(place, '\n'.join(table))
+        for row in table:
+            self.assertRegex(row, r'^\s*\{\s*\d+\.0,\s+-?\d+\.\d+,\s+-?\d+\.\d+,\s+\d+\.\d+\s*\}')
+
+    def test_the_job_spots_are_real_places(self):
+        # Точки заданий совпадают с реальными районами и городами San Andreas.
+        self.assertIn('Unity Station', block(ECON, 'static const Float:gCourierPoints[][3]'))
+        for city in ('San Fierro', 'Bayside', 'Dillimore'):
+            self.assertIn(city, block(ECON, 'static const Float:gTruckerPoints[][3]'))
 
 
 class EconomyWiringTest(unittest.TestCase):
