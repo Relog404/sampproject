@@ -332,7 +332,8 @@ public RW_CefPhoneApp(playerid, browserid, app)
         return RW_CefPhoneLawyers(playerid);
     }
     if (app == PHONE_APP_BANK || app == PHONE_APP_WEATHER || app == PHONE_APP_GROUP || app == PHONE_APP_UBER
-        || app == PHONE_APP_NEWS || app == PHONE_APP_AUTO || app == PHONE_APP_CAMERA) return RW_PhoneAppOpen(playerid, app);
+        || app == PHONE_APP_NEWS || app == PHONE_APP_AUTO || app == PHONE_APP_CAMERA
+        || app == PHONE_APP_RADIO) return RW_PhoneAppOpen(playerid, app);
     #if RAILWAY_CEF
         RW_CefToast(playerid, "Phone, messages, contacts, lawyer, settings and 911 live here.");
     #endif

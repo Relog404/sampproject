@@ -317,7 +317,12 @@ class PhoneBrowserTest(unittest.TestCase):
     def test_apps_cover_the_requested_list(self):
         names = re.findall(r'case \d+: format\(dest, size, "([^"]+)"\);', block(PHONE, 'stock RW_PhoneAppName(id, dest[], size = sizeof dest)'))
         self.assertEqual(names, ['Phone', 'Messages', 'Bank', 'Weather', 'Group', 'Lawyers',
-                                 'Uber Drive', 'Weazel News', 'Auto Plus', 'Camera', 'Settings', 'Operator'])
+                                 'Uber Drive', 'Weazel News', 'Auto Plus', 'Camera', 'Settings',
+                                 'Operator', 'Radio'])
+        # Приложение знает свой номер: радио — тринадцатое.
+        self.assertIn('#define PHONE_APPS          13', PHONE)
+        self.assertIn('#define PHONE_APP_RADIO            12', CORE)
+        self.assertIn('case 12: format(dest, size, "radio");', block(PHONE, 'stock RW_PhoneAppIcon(id, dest[], size = sizeof dest)'))
 
 
 if __name__ == '__main__':

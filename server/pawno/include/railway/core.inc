@@ -29,8 +29,11 @@
 #define COLOR_ERROR                 0xFF6B6BFF
 #define COLOR_INFO                  0x8FD3FFFF
 
-/* Вызывается из interaction.inc, описан в economy.inc: сдать задание по Y. */
+/* Вызываются из interaction.inc, описаны позже: работа, такси, адвокат. */
 forward RW_JobHandOver(playerid);
+forward RW_UberOrder(playerid);
+forward RW_TaxiRankCall(playerid);
+forward RW_LawyerCallFor(playerid, target);
 
 /* ------------------------------------------------------------------ вокзал */
 #define STATION_NAME                "Unity Station"
@@ -94,6 +97,8 @@ forward RW_JobHandOver(playerid);
 #define TRUNK_SLOTS                 10
 #define PHONE_TARIFFS               (3)
 /* приложения телефона и их настройки */
+#define RADIO_ROWS              5           /* станций на экране радио      */
+#define TAXI_RANK_RANGE         8.0         /* радиус стоянки такси         */
 #define PHONE_APP_BANK              2
 #define PHONE_APP_WEATHER           3
 #define PHONE_APP_GROUP             4
@@ -102,6 +107,7 @@ forward RW_JobHandOver(playerid);
 #define PHONE_APP_NEWS              7
 #define PHONE_APP_AUTO              8
 #define PHONE_APP_CAMERA            9
+#define PHONE_APP_RADIO            12
 #define WEATHER_COUNT               6
 #define WEATHER_CHANGE_SECONDS      1800
 #define NEWS_PRICE                  100

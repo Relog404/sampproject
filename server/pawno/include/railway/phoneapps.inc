@@ -53,6 +53,8 @@ new Float:gUberX[MAX_PLAYERS];
 new Float:gUberY[MAX_PLAYERS];
 new Float:gUberZ[MAX_PLAYERS];
 new gUberTick[MAX_PLAYERS];
+new gRadio[MAX_PLAYERS];                 /* индекс станции, -1 — выключено */
+new gRadioName[MAX_PLAYERS][32];        /* название текущей станции       */
 
 forward RW_WeatherPulse();
 forward RW_GroupPulse();
@@ -60,13 +62,127 @@ forward RW_UberPulse();
 
 /*  ----------------------------------- база -------------------------------- */
 
+/* Стоянки такси: настоящие места, где ловят машину (Y на стоянке — заказ). */
+static const Float:gTaxiRanks[][3] = {
+    { 1742.9, -1862.6, 13.6 },      /* Unity Station    */
+    { 1900.0, -2280.0, 13.5 },      /* LS International */
+    { 1544.6, -1675.5, 16.2 }       /* Pershing Square  */
+};
 stock RW_PhoneAppsSchema()
 {
     if (!RW_DB_Exec("CREATE TABLE IF NOT EXISTS news_ads (id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INT, body TEXT, stamp INT)")) return 0;
+    /* Радио: станции лежат в базе, чтобы админ мог вписать свои потоки. */
+    if (!RW_DB_Exec("CREATE TABLE IF NOT EXISTS radio_stations (id INTEGER PRIMARY KEY, name TEXT, genre TEXT, url TEXT)")) return 0;
+    if (!RW_DB_Exec("INSERT OR IGNORE INTO radio_stations (id,name,genre,url) VALUES (1,'SomaFM Groove Salad','Ambient','https://ice1.somafm.com/groovesalad-128-mp3')")) return 0;
+    if (!RW_DB_Exec("INSERT OR IGNORE INTO radio_stations (id,name,genre,url) VALUES (2,'SomaFM Drone Zone','Drone','https://ice1.somafm.com/dronezone-128-mp3')")) return 0;
+    if (!RW_DB_Exec("INSERT OR IGNORE INTO radio_stations (id,name,genre,url) VALUES (3,'SomaFM Underground 80s','Synthpop','https://ice1.somafm.com/u80s-128-mp3')")) return 0;
+    if (!RW_DB_Exec("INSERT OR IGNORE INTO radio_stations (id,name,genre,url) VALUES (4,'Radio Paradise','Rock','https://stream.radioparadise.com/mp3-192')")) return 0;
+    if (!RW_DB_Exec("INSERT OR IGNORE INTO radio_stations (id,name,genre,url) VALUES (5,'Local LS FM','Talk','')")) return 0;
     return 1;
+}
+
+/*  ----------------------------------- радио ------------------------------- */
+/*  Станции лежат в базе: поток включает сервер, клиент только выбирает.      */
+
+stock RW_RadioOff(playerid)
+{
+    if (gRadio[playerid] < 0) return RW_Info(playerid, "The radio is already off.");
+    StopAudioStreamForPlayer(playerid);
+    gRadio[playerid] = -1;
+    gRadioName[playerid][0] = 0;
+    return RW_Info(playerid, "Radio off.");
+}
+/* Выключить без сообщений: на выходе игрока и при сбросе. */
+stock RW_RadioStop(playerid)
+{
+    if (gRadio[playerid] >= 0) StopAudioStreamForPlayer(playerid);
+    gRadio[playerid] = -1;
+    gRadioName[playerid][0] = 0;
+    return 1;
+}
+/* Выбор строки: 0 — выключить, дальше станции по порядку. */
+stock RW_RadioTune(playerid, row)
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    if (row == 0) return RW_RadioOff(playerid);
+    new index = row - 1;
+    if (index < 0 || index >= RADIO_ROWS) return 1;
+    new query[160];
+    format(query, sizeof query, "SELECT name,url FROM radio_stations ORDER BY id LIMIT 1 OFFSET %d", index);
+    new DBResult:r = db_query(gDB, query);
+    if (r == DBResult:0) return RW_Error(playerid, "The station list is unavailable.");
+    new name[32], url[192];
+    db_get_field_assoc(r, "name", name, sizeof name);
+    db_get_field_assoc(r, "url", url, sizeof url);
+    db_free_result(r);
+    if (!url[0]) return RW_Error(playerid, "This station is silent: the administrator has not set its stream.");
+    PlayAudioStreamForPlayer(playerid, url);
+    gRadio[playerid] = index;
+    format(gRadioName[playerid], 32, "%s", name);
+    new message[128];
+    format(message, sizeof message, "Radio: %s. Press the same line again to turn it off.", name);
+    return RW_Ok(playerid, message);
+}
+stock RW_RadioRows(playerid)
+{
+    new row[96];
+    if (gRadio[playerid] >= 0) {
+        format(row, sizeof row, "Playing: %s - press to turn off", gRadioName[playerid]);
+        RW_AppRow(playerid, 0, row, "off", "radio");
+    } else {
+        RW_AppRow(playerid, 0, "Radio is off", "", "radio");
+    }
+    new query[160], count;
+    format(query, sizeof query, "SELECT name,genre,url FROM radio_stations ORDER BY id LIMIT %d", RADIO_ROWS);
+    new DBResult:r = db_query(gDB, query);
+    if (r == DBResult:0) { RW_AppRow(playerid, 1, "The station list is unavailable", "", "radio"); return 1; }
+    new rows = db_num_rows(r);
+    for (new i; i < rows && count < RADIO_ROWS; i++) {
+        new name[32], genre[24], url[192], label[80];
+        db_get_field_assoc(r, "name", name, sizeof name);
+        db_get_field_assoc(r, "genre", genre, sizeof genre);
+        db_get_field_assoc(r, "url", url, sizeof url);
+        if (gRadio[playerid] == i) format(label, sizeof label, "> %s - %s", name, genre);
+        else format(label, sizeof label, "%s - %s", name, genre);
+        RW_AppRow(playerid, 1 + count, label, url[0] ? ("play") : ("silent"), "radio");
+        count++;
+        db_next_row(r);
+    }
+    db_free_result(r);
+    if (!count) RW_AppRow(playerid, 1, "No stations: ask the administrator to add them", "", "radio");
+    return 1;
+}
+stock RW_RadioCommand(playerid) { return RW_PhoneAppOpen(playerid, PHONE_APP_RADIO); }
+
+/* Y на стоянке такси: заказ машины, как по строке в приложении. */
+public RW_TaxiRankCall(playerid)
+{
+    if (!gLogged[playerid]) return 0;
+    for (new i; i < sizeof gTaxiRanks; i++)
+        if (IsPlayerInRangeOfPoint(playerid, TAXI_RANK_RANGE, gTaxiRanks[i][0], gTaxiRanks[i][1], gTaxiRanks[i][2])) {
+            RW_UberOrder(playerid);
+            return 1;
+        }
+    return 0;
+}
+/* Y на задержанном: вызвать адвоката за него. */
+public RW_LawyerCallFor(playerid, target)
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    if (RW_PhoneHasItem(playerid) <= 0 || gPhoneNum[playerid] <= 0) return RW_Error(playerid, "You need a phone with a SIM card.");
+    if (target < 0 || !IsPlayerConnected(target) || gJailTime[target] <= 0) return RW_Error(playerid, "He is not in a cell.");
+    RW_AppLawyerCall(target);
+    new nick[MAX_PLAYER_NAME], tnick[MAX_PLAYER_NAME], message[160];
+    RW_GetNick(playerid, nick);
+    RW_GetNick(target, tnick);
+    format(message, sizeof message, "%s called a lawyer for you.", nick);
+    RW_Info(target, message);
+    format(message, sizeof message, "Called a lawyer for %s.", tnick);
+    return RW_Ok(playerid, message);
 }
 stock RW_PhoneAppsReset(playerid)
 {
+    RW_RadioStop(playerid);
     gPhoneAppOpen[playerid] = -1;
     gPhoneAppPage[playerid] = 0;
     gAppTick[playerid] = 0;
@@ -618,7 +734,7 @@ stock RW_AppTitle(playerid, title[], tsize, subtitle[], ssize)
     new app = gPhoneAppOpen[playerid];
     if (app < 0) {
         format(title, tsize, "%s", "Applications");
-        format(subtitle, ssize, "%s", "Page 1 of 2");
+        format(subtitle, ssize, "Page %d of %d", gPhoneAppPage[playerid] + 1, (PHONE_APPS + 5) / 6);
         return 1;
     }
     new name[32];
@@ -640,6 +756,7 @@ stock RW_AppTitle(playerid, title[], tsize, subtitle[], ssize)
         case PHONE_APP_NEWS: format(subtitle, ssize, "An advert costs 100");
         case PHONE_APP_AUTO: format(subtitle, ssize, "Delivery 200 per car");
         case PHONE_APP_CAMERA: format(subtitle, ssize, "One shot costs one SMS");
+        case PHONE_APP_RADIO: format(subtitle, ssize, "%s", gRadio[playerid] >= 0 ? (gRadioName[playerid]) : ("Off air"));
         default: format(subtitle, ssize, "%s", "App");
     }
     return 1;
@@ -797,6 +914,7 @@ stock RW_AppRows(playerid)
             RW_AppRow(playerid, 1, "Look at a photo: /photo", "", "camera");
             RW_AppRow(playerid, 2, "One shot costs one SMS", "", "wallet");
         }
+        case PHONE_APP_RADIO: RW_RadioRows(playerid);
         default: RW_AppRow(playerid, 0, "This app is empty", "", "app");
     }
     return 1;
@@ -858,8 +976,7 @@ stock RW_PhoneAppAction(playerid, row, bool:cef)
     new app = gPhoneAppOpen[playerid];
     if (app < 0) {
         if (row == 6) {
-            if (gPhoneAppPage[playerid] > 0) gPhoneAppPage[playerid] = 0;
-            else gPhoneAppPage[playerid] = 1;
+            gPhoneAppPage[playerid] = (gPhoneAppPage[playerid] + 1) % ((PHONE_APPS + 5) / 6);
             return RW_PhoneAppRender(playerid);
         }
         new id = gAppIds[playerid][row] - 1;
@@ -876,6 +993,7 @@ stock RW_PhoneAppAction(playerid, row, bool:cef)
             return 1;
         }
         case PHONE_APP_WEATHER: return RW_WeatherCommand(playerid);
+        case PHONE_APP_RADIO: return RW_RadioTune(playerid, row);
         case PHONE_APP_GROUP: {
             if (row == 0) return RW_GroupInfo(playerid);
             if (row == 1) { if (RW_GroupHas(playerid)) return RW_GroupLeave(playerid); return RW_GroupCreate(playerid); }

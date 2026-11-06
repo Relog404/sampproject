@@ -323,7 +323,7 @@ class PhoneAppWiringTest(unittest.TestCase):
             self.assertIn('if (!strcmp(cmd, "%s", true)) return %s(playerid, params);' % (cmd, stock), CMDS)
         self.assertIn('if (!strcmp(cmd, "uber", true)) return RW_PhoneAppOpen(playerid, PHONE_APP_UBER);', CMDS)
         self.assertIn('if (!strcmp(cmd, "auto", true)) return RW_PhoneAppOpen(playerid, PHONE_APP_AUTO);', CMDS)
-        self.assertIn('Phone apps: /apps, /weather, /group, /g <text>, /ginvite, /taxi, /uber, /news, /ad, /auto, /deliver, /snap, /photo, /lawcall.', CMDS)
+        self.assertIn('Phone apps: /apps, /weather, /group, /g <text>, /ginvite, /taxi, /uber, /news, /ad, /auto, /deliver, /snap, /photo, /lawcall, /radio.', CMDS)
 
     def test_no_cyrillic_reaches_the_player(self):
         """Comments are Russian, every string the player can read is English."""
@@ -331,6 +331,99 @@ class PhoneAppWiringTest(unittest.TestCase):
         for line in code.splitlines():
             line = line.split('//', 1)[0]
             self.assertNotRegex(line, r'[А-Яа-я]')
+
+class RadioTest(unittest.TestCase):
+    """Радио: станции лежат в базе, поток включает сервер."""
+
+    def setUp(self):
+        self.db = sqlite3.connect(':memory:')
+        self.db.executescript(sql(APPS, 'CREATE TABLE IF NOT EXISTS radio_stations') + ';')
+        for statement in re.findall(r'"(INSERT OR IGNORE INTO radio_stations[^"]+)"', APPS):
+            self.db.execute(statement)
+        self.db.commit()
+
+    def test_the_stations_are_in_the_database(self):
+        rows = self.db.execute('SELECT id,name,genre,url FROM radio_stations ORDER BY id').fetchall()
+        self.assertEqual(len(rows), 5)
+        for name, genre in (('SomaFM Groove Salad', 'Ambient'), ('SomaFM Drone Zone', 'Drone'),
+                            ('SomaFM Underground 80s', 'Synthpop'), ('Radio Paradise', 'Rock'),
+                            ('Local LS FM', 'Talk')):
+            self.assertIn((name, genre), [(r[1], r[2]) for r in rows])
+
+    def test_a_station_without_a_stream_says_so(self):
+        # Пятая станция — заглушка: потока нет, включать нечего.
+        url = self.db.execute('SELECT url FROM radio_stations WHERE id=5').fetchone()[0]
+        self.assertEqual(url, '')
+        tune = block(APPS, 'stock RW_RadioTune(playerid, row)')
+        self.assertIn('if (!url[0]) return RW_Error(playerid, "This station is silent:', tune)
+
+    def test_the_stream_is_started_by_the_server(self):
+        tune = block(APPS, 'stock RW_RadioTune(playerid, row)')
+        self.assertIn('PlayAudioStreamForPlayer(playerid, url);', tune)
+        self.assertIn('gRadio[playerid] = index;', tune)
+        off = block(APPS, 'stock RW_RadioOff(playerid)')
+        self.assertIn('StopAudioStreamForPlayer(playerid);', off)
+        self.assertIn('gRadio[playerid] = -1;', off)
+
+    def test_the_app_shows_the_current_station(self):
+        rows = block(APPS, 'stock RW_RadioRows(playerid)')
+        self.assertIn('Playing: %s - press to turn off', rows)
+        self.assertIn('"Radio is off"', rows)
+        self.assertIn('SELECT name,genre,url FROM radio_stations ORDER BY id LIMIT %d', rows)
+        self.assertIn('url[0] ? ("play") : ("silent")', rows)
+        self.assertIn('case PHONE_APP_RADIO: RW_RadioRows(playerid);', APPS)
+        self.assertIn('case PHONE_APP_RADIO: return RW_RadioTune(playerid, row);', APPS)
+        self.assertIn('case PHONE_APP_RADIO: format(subtitle, ssize, "%s", gRadio[playerid] >= 0', APPS)
+
+    def test_leaving_the_game_stops_the_stream(self):
+        reset = block(APPS, 'stock RW_PhoneAppsReset(playerid)')
+        self.assertIn('RW_RadioStop(playerid);', reset)
+        stop = block(APPS, 'stock RW_RadioStop(playerid)')
+        self.assertIn('if (gRadio[playerid] >= 0) StopAudioStreamForPlayer(playerid);', stop)
+
+    def test_the_command_opens_the_app(self):
+        self.assertIn('if (!strcmp(cmd, "radio", true)) return RW_RadioCommand(playerid);', CMDS)
+        self.assertIn('stock RW_RadioCommand(playerid) { return RW_PhoneAppOpen(playerid, PHONE_APP_RADIO); }', APPS)
+        self.assertIn('/radio', block(CMDS, 'stock RW_CommandHelp(playerid)'))
+
+    def test_thirteen_apps_fit_on_three_pages(self):
+        action = block(APPS, 'stock RW_PhoneAppAction(playerid, row, bool:cef)')
+        self.assertIn('gPhoneAppPage[playerid] = (gPhoneAppPage[playerid] + 1) % ((PHONE_APPS + 5) / 6);', action)
+        self.assertIn('"Page %d of %d", gPhoneAppPage[playerid] + 1, (PHONE_APPS + 5) / 6', APPS)
+
+
+class PhoneYActionTest(unittest.TestCase):
+    """Y-действия телефона: такси на стоянке и адвокат для задержанного."""
+
+    def test_y_at_a_taxi_rank_orders_a_car(self):
+        rank = block(APPS, 'public RW_TaxiRankCall(playerid)')
+        self.assertIn('IsPlayerInRangeOfPoint(playerid, TAXI_RANK_RANGE', rank)
+        self.assertIn('RW_UberOrder(playerid);', rank)
+        self.assertIn('static const Float:gTaxiRanks[][3]', APPS)
+        table = APPS.split('static const Float:gTaxiRanks', 1)[1].split('};', 1)[0]
+        for place in ('Unity Station', 'LS International', 'Pershing Square'):
+            self.assertIn(place, table)
+        # Действие висит на Y на себя, после сдачи задания.
+        self_menu = block(INTER, 'stock RW_SelfMenu(playerid)')
+        self.assertIn('if (RW_TaxiRankCall(playerid)) return 1;', self_menu)
+        self.assertIn('forward RW_TaxiRankCall(playerid);', CORE)
+
+    def test_y_on_a_detained_player_calls_a_lawyer(self):
+        call = block(APPS, 'public RW_LawyerCallFor(playerid, target)')
+        self.assertIn('if (target < 0 || !IsPlayerConnected(target) || gJailTime[target] <= 0)', call)
+        self.assertIn('RW_AppLawyerCall(target);', call)
+        self.assertIn('called a lawyer for you.', call)
+        menu = block(INTER, 'stock RW_PlayerMenu(playerid, target)')
+        self.assertIn('if (gJailTime[target] > 0) return RW_LawyerCallFor(playerid, target);', menu)
+        self.assertIn('forward RW_LawyerCallFor(playerid, target);', CORE)
+        self.assertIn('forward RW_UberOrder(playerid);', CORE)
+
+    def test_the_lawyer_action_comes_after_the_duty_actions(self):
+        # Полицейский и адвокат при деле: их действия важнее звонка.
+        menu = block(INTER, 'stock RW_PlayerMenu(playerid, target)')
+        self.assertLess(menu.index('RW_PoliceMenuOpen(playerid, target)'), menu.index('RW_LawyerCallFor(playerid, target)'))
+        self.assertLess(menu.index('RW_PoliceCaseStart(playerid, target)'), menu.index('RW_LawyerCallFor(playerid, target)'))
+
 
 
 if __name__ == '__main__':

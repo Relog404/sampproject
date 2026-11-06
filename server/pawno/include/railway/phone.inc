@@ -19,7 +19,7 @@
 
 #define PHONE_NUM_MIN       100000
 #define PHONE_NUM_MAX       999999
-#define PHONE_APPS          12
+#define PHONE_APPS          13
 #define PHONE_CONTACTS      24
 #define PHONE_CONTACTS_PAGE 6
 #define PHONE_RING_MS       20000
@@ -81,6 +81,7 @@ stock RW_PhoneAppName(id, dest[], size = sizeof dest)
         case 9: format(dest, size, "Camera");
         case 10: format(dest, size, "Settings");
         case 11: format(dest, size, "Operator");
+        case 12: format(dest, size, "Radio");
         default: format(dest, size, "App");
     }
     return 1;
@@ -100,6 +101,7 @@ stock RW_PhoneAppIcon(id, dest[], size = sizeof dest)
         case 9: format(dest, size, "camera");
         case 10: format(dest, size, "gear");
         case 11: format(dest, size, "signal");
+        case 12: format(dest, size, "radio");
         default: format(dest, size, "app");
     }
     return 1;

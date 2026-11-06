@@ -46,6 +46,8 @@ stock RW_SelfMenu(playerid)
     if (RW_EmsOnDuty(playerid) && RW_EmsItem(playerid, ITEM_MEDKIT) >= 0) return RW_MdtOpen(playerid);
     /* На работе Y на точке сдачи сдаёт задание, а не достаёт телефон. */
     if (RW_JobHandOver(playerid)) return 1;
+    /* На стоянке такси Y вызывает машину. */
+    if (RW_TaxiRankCall(playerid)) return 1;
     if (RW_PhoneHasItem(playerid) <= 0) return RW_Error(playerid, "You have no phone. Buy one at a 24/7 shop.");
     if (gPhoneNum[playerid] <= 0) return RW_Error(playerid, "No SIM card: buy one and insert it with /sim.");
     return RW_PhoneOpen(playerid);
@@ -72,6 +74,8 @@ stock RW_PlayerMenu(playerid, target)
     /* Полицейский на службе — действия; адвокат у задержанного — дело. */
     if (RW_PoliceOnDuty(playerid) && RW_PoliceBadge(playerid) > 0) return RW_PoliceMenuOpen(playerid, target);
     if (RW_IsLawyer(playerid) && gJailTime[target] > 0) return RW_PoliceCaseStart(playerid, target);
+    /* Y на задержанном: вызвать ему адвоката. */
+    if (gJailTime[target] > 0) return RW_LawyerCallFor(playerid, target);
     /* Упавшего игрока лечат; медик на службе лечит и просто прохожих. */
     if (gDowned[target] || (RW_EmsOnDuty(playerid) && RW_EmsItem(playerid, ITEM_MEDKIT) >= 0)) return RW_EmsMenuOpen(playerid, target);
     if (gPhoneNum[playerid] <= 0) return RW_Error(playerid, "You need a phone with a SIM card.");
