@@ -293,6 +293,7 @@ stock RW_UI_Row(playerid, row, const text[])
 }
 stock RW_UI_Close(playerid, bool:keepSelection = false)
 {
+    RW_CefClose(playerid);
     RW_GroundHide(playerid);
     RW_InvHide(playerid);
     RW_GarageHide(playerid);
@@ -375,8 +376,11 @@ stock RW_UI_SpeedoUpdate(playerid, speed, gear, rpm, flags)
     return 1;
 }
 // Notices use the same Russian/Latin conversion as every other label.
-stock RW_UI_Notify(playerid, const text[])
+// kind: 0 plain, 1 ok, 2 error. With the browser UI the toast is drawn by
+// CEF; the TextDraw one stays for players without the plugin.
+stock RW_UI_Notify(playerid, const text[], kind = 0)
 {
+    if (RW_CefToast(playerid, text, kind)) return 1;
     RW_UI_Create(playerid);
     RW_UI_Text(playerid, 20, text);
     gToastStart[playerid] = GetTickCount(); gToastActive[playerid] = true;

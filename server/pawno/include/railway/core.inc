@@ -44,6 +44,9 @@
 #define SPCAR_COOLDOWN_MS           (1200)
 #define VEHICLE_SLOTS               (100)
 #define CABIN_MAX                   (20)
+#define CEF_MODE_NONE               (0)
+#define CEF_MODE_VEHICLE            (1)
+#define CEF_MODE_PASSENGERS         (2)
 #define CAL_9MM                     1
 #define CAL_44                      2
 #define CAL_12GA                    3
@@ -132,6 +135,9 @@ new gArmourHp[MAX_PLAYERS];         /* armour points left                     */
 new gArmourObject[MAX_PLAYERS];     /* server object used for a custom TXD    */
 new bool:gArmourFitting[MAX_PLAYERS];
 new gArmourFitSkin[MAX_PLAYERS], gArmourFitUid[MAX_PLAYERS];
+new bool:gCefEnabled;                /* the CEF plugin answered the probe    */
+new bool:gCefReady[MAX_PLAYERS];     /* browsers created for this player     */
+new gCefMode[MAX_PLAYERS];           /* which CEF screen is open             */
 new gCabinVehicle[MAX_PLAYERS];
 new gCabinSeat[MAX_PLAYERS];
 new gPlayerVehSlot[MAX_PLAYERS];       /* слот персональной машины (-1)      */
@@ -149,7 +155,7 @@ stock RW_Info(playerid, const text[])
     new buf[256];
     format(buf, sizeof buf, "%s %s", RW_TAG, text);
     SendClientMessage(playerid, COLOR_GREY, buf);
-    RW_UI_Notify(playerid, text);
+    RW_UI_Notify(playerid, text, 0);
     return 1;
 }
 
@@ -158,7 +164,7 @@ stock RW_Ok(playerid, const text[])
     new buf[256];
     format(buf, sizeof buf, "%s {7BD88F}/{FFFFFF} %s", RW_TAG, text);
     SendClientMessage(playerid, COLOR_WHITE, buf);
-    RW_UI_Notify(playerid, text);
+    RW_UI_Notify(playerid, text, 1);
     return 1;
 }
 
@@ -167,7 +173,7 @@ stock RW_Error(playerid, const text[])
     new buf[256];
     format(buf, sizeof buf, "%s {FF6B6B}/{FFFFFF} %s", RW_TAG, text);
     SendClientMessage(playerid, COLOR_WHITE, buf);
-    RW_UI_Notify(playerid, text);
+    RW_UI_Notify(playerid, text, 2);
     return 1;
 }
 

@@ -48,6 +48,7 @@ stock RW_UI_Settings(playerid)
 }
 stock RW_UI_Vehicle(playerid)
 {
+    if (RW_CefOn(playerid)) return RW_CefVehicle(playerid);
     new v = gControlVehicle[playerid];
     if (v <= 0 || v >= MAX_VEHICLES || gVehSlotOf[v] < 0) return RW_UI_Close(playerid);
     new slot = gVehSlotOf[v], name[48];
@@ -69,6 +70,7 @@ stock RW_UI_Vehicle(playerid)
 }
 stock RW_UI_Passengers(playerid)
 {
+    if (RW_CefOn(playerid)) return RW_CefPassengers(playerid);
     new v = gControlVehicle[playerid], count;
     RW_UI_Panel(playerid, UI_PASSENGERS, "Passengers", "Select a passenger to eject");
     for (new j; j < 6; j++) gUITarget[playerid][j] = INVALID_PLAYER_ID;
@@ -242,4 +244,79 @@ stock RW_UI_Language(playerid, bool:latin)
     RW_UI_Close(playerid);
     if (!gLogged[playerid]) return RW_UI_OpenAuth(playerid);
     return RW_ControlNotify(playerid, latin ? ("TextDraw panels enabled. /uiru - native dialogs.") : ("Native dialogs enabled. /uitd - TextDraw panels. All text is English."));
+}
+
+/*  ============================================================================
+ *  Browser card of the car (omp-cef). Same actions as the TextDraw panel.
+ *  ========================================================================= */
+stock RW_CefVehicle(playerid)
+{
+    new v = gControlVehicle[playerid];
+    if (v <= 0 || v >= MAX_VEHICLES || gVehSlotOf[v] < 0) return RW_UI_Close(playerid);
+    new slot = gVehSlotOf[v], name[48];
+    RW_VehicleName(GetVehicleModel(v), name, sizeof name);
+    if (!RW_CefOpen(playerid, CEF_MODE_VEHICLE, name, RW_IsVehicleOwner(playerid, v) ? ("Your car") : ("Another player's car"))) return RW_UI_Vehicle(playerid);
+    RW_CefRow(playerid, 0, gVeh[slot][vsDoors] ? ("Unlock doors") : ("Lock doors"), gVeh[slot][vsDoors] ? ("open") : ("locked"), "door", "", gVeh[slot][vsDoors] ? ("state-on") : ("state-off"));
+    RW_CefRow(playerid, 1, gVeh[slot][vsEngine] ? ("Stop engine") : ("Start engine"), gVeh[slot][vsEngine] ? ("running") : ("off"), "engine", "", gVeh[slot][vsEngine] ? ("state-on") : ("state-off"));
+    RW_CefRow(playerid, 2, gVeh[slot][vsKey] ? ("Remove key") : ("Insert key"), gVeh[slot][vsKey] ? ("inside") : ("no key"), "key", "", gVeh[slot][vsKey] ? ("state-on") : ("state-off"));
+    RW_CefRow(playerid, 3, gVeh[slot][vsLights] ? ("Lights off") : ("Lights on"), gVeh[slot][vsLights] ? ("on") : ("off"), "light", "", gVeh[slot][vsLights] ? ("state-on") : ("state-off"));
+    if (RW_IsVehicleOwner(playerid, v)) RW_CefRow(playerid, 4, "Passengers", "eject", "users");
+    if (RW_CabinIsPlane(GetVehicleModel(v))) {
+        new label[64];
+        format(label, sizeof label, "%s (%d / %d)", RW_CabinInside(playerid) ? ("Leave cabin") : ("Board cabin"), RW_CabinCount(v), CABIN_MAX);
+        RW_CefRow(playerid, 5, label, "", "plane");
+    }
+    RW_CefAction(playerid, 7, "Refresh", "");
+    RW_CefAction(playerid, 8, "Close", "danger");
+    return RW_CefEnd(playerid);
+}
+stock RW_CefVehicleClick(playerid, id)
+{
+    new v = gControlVehicle[playerid];
+    if (v <= 0 || v >= MAX_VEHICLES || gVehSlotOf[v] < 0) return RW_UI_Close(playerid);
+    if (id == 8 || id == -1) return RW_UI_Close(playerid);
+    if (id < 4) { RW_ControlExecute(playerid, v, id); return RW_CefVehicle(playerid); }
+    if (id == 4) {
+        if (!RW_IsVehicleOwner(playerid, v)) return RW_Error(playerid, "You do not own this car.");
+        gUIPage[playerid] = 0; return RW_CefPassengers(playerid);
+    }
+    if (id == 5) {
+        if (!RW_CabinIsPlane(GetVehicleModel(v))) return 1;
+        if (RW_CabinInside(playerid) || GetPlayerVehicleID(playerid) == v) RW_CabinLeave(playerid);
+        else RW_CabinBoard(playerid, v);
+        return RW_CefVehicle(playerid);
+    }
+    return RW_CefVehicle(playerid);
+}
+stock RW_CefPassengers(playerid)
+{
+    new v = gControlVehicle[playerid], count;
+    if (!RW_CefOpen(playerid, CEF_MODE_PASSENGERS, "Passengers", "Select a passenger to eject")) return RW_UI_Passengers(playerid);
+    for (new j; j < 6; j++) gUITarget[playerid][j] = INVALID_PLAYER_ID;
+    for (new i; i < MAX_PLAYERS; i++) {
+        if (!IsPlayerConnected(i) || !IsPlayerInVehicle(i, v) || GetPlayerVehicleSeat(i) <= 0) continue;
+        new index = count++ - gUIPage[playerid]*6;
+        if (index < 0 || index >= 6) continue;
+        gUITarget[playerid][index] = i;
+        new nick[MAX_PLAYER_NAME], buf[64];
+        GetPlayerName(i, nick, sizeof nick);
+        format(buf, sizeof buf, "%s [%d]", nick, i);
+        RW_CefRow(playerid, index, buf, "eject", "eject");
+    }
+    if (gUIPage[playerid] > 0 && count <= gUIPage[playerid]*6) { gUIPage[playerid] = 0; return RW_CefPassengers(playerid); }
+    gUIHasNext[playerid] = count > (gUIPage[playerid]+1)*6;
+    if (!count) RW_CefRow(playerid, 9, "No passengers", "", "users");
+    RW_CefAction(playerid, 6, "Back to car", "");
+    if (gUIHasNext[playerid]) RW_CefAction(playerid, 7, "Next page", "");
+    return RW_CefEnd(playerid);
+}
+stock RW_CefPassengerClick(playerid, id)
+{
+    if (id == 6 || id == -1) return RW_CefVehicle(playerid);
+    if (id == 7) { if (gUIHasNext[playerid]) gUIPage[playerid]++; else gUIPage[playerid] = 0; return RW_CefPassengers(playerid); }
+    if (id < 6 && gUITarget[playerid][id] != INVALID_PLAYER_ID) {
+        RW_ControlExecute(playerid, gControlVehicle[playerid], 4, gUITarget[playerid][id]);
+        return RW_CefPassengers(playerid);
+    }
+    return 1;
 }

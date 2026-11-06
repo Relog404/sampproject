@@ -30,6 +30,7 @@
 #include <railway/cabin>
 #include <railway/skins>
 #include <railway/armour>
+#include <railway/cefui>
 #include <railway/commands>
 
 /* ------------------------------------------------------------------ запуск */
@@ -83,6 +84,7 @@ public OnGameModeInit()
     if (!RW_InvInit()) print("[inventory] Inventory unavailable; existing data preserved.");
     RW_GarageInit();
     RW_MotionInit();
+    RW_CefInit();
     SetTimer("RW_CabinPulse", 100, true);
     RW_UI_Init();
     RW_Speedo_Init();
@@ -125,6 +127,7 @@ public OnPlayerConnect(playerid)
     RW_InvReset(playerid);
     RW_WpReset(playerid);
     RW_MedReset(playerid);
+    RW_CefReset(playerid);
     gLogged[playerid] = false;
     gAccountId[playerid] = -1;
     gAdminLevel[playerid] = 0;
@@ -171,6 +174,7 @@ public OnPlayerDisconnect(playerid, reason)
     RW_WpFlush(playerid);
     RW_CabinReset(playerid);
     RW_ArmourReset(playerid);
+    RW_CefReset(playerid);
     RW_ClearRegisterPassword(playerid);
     RW_SaveAccount(playerid);
     RW_Veh_OnPlayerDisconnect(playerid);

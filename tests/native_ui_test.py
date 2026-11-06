@@ -18,20 +18,33 @@ class NativeInterfaceTest(unittest.TestCase):
         self.ui = pawn('ui')
         self.control = pawn('interaction')
 
-    def test_no_browser_calls_or_include_in_active_gamemode(self):
-        code = self.main + ''.join(p.read_text(encoding='cp1251') for p in (ROOT/'server/pawno/include/railway').glob('*.inc'))
-        self.assertNotRegex(code, r'\bCEF_\w+\s*\(')
-        self.assertNotIn('#include <cef>', code)
-        self.assertNotRegex(code, r'public OnCef\w+')
-        self.assertFalse((ROOT/'server/scriptfiles/cef').exists())
+    def test_browser_layer_is_optional_and_lives_in_one_file(self):
+        """CEF is an add-on: only railway/cefui.inc talks to the plugin, and
+        every call is guarded so a player without the plugin keeps this UI."""
+        files = {p.name: p.read_text(encoding='cp1251') for p in (ROOT/'server/pawno/include/railway').glob('*.inc')}
+        code = self.main + ''.join(files.values())
+        self.assertIn('#include <cef>', files['cefui.inc'])
+        for name, text in files.items():
+            if name == 'cefui.inc':
+                continue
+            body = '\n'.join(l for l in text.splitlines() if not l.lstrip().startswith('#define'))
+            self.assertNotRegex(body, r'\bCEF_[A-Z_]+\s*\(', name)   # no plugin call outside the bridge
+        # each CEF entry point checks the player state first
+        bridge = files['cefui.inc']
+        for stock in ('RW_CefToast', 'RW_CefOpen', 'RW_CefRow', 'RW_CefAction', 'RW_CefEnd', 'RW_CefClose'):
+            block = bridge.split('stock %s(' % stock)[1].split('\nstock ')[0]
+            self.assertIn('RW_CefOn(playerid)', block, stock)
 
-    def test_deployment_needs_no_plugin_or_client_installer(self):
+    def test_deployment_still_works_without_the_plugin(self):
         config = (ROOT/'server/server.cfg').read_text(encoding='cp1251')
-        self.assertRegex(config, r'(?m)^plugins\s*$')
-        self.assertNotRegex(config, r'(?m)^cef_')
+        self.assertRegex(config, r'(?m)^plugins cef$')
         setup = (ROOT/'setup.ps1').read_text()
         self.assertNotIn('Invoke-WebRequest', setup)
         self.assertNotIn('DownloadFile', setup)
+        # missing plugin -> probe aborts, CEF stays off, native UI keeps working
+        bridge = (ROOT/'server/pawno/include/railway/cefui.inc').read_text(encoding='cp1251')
+        self.assertIn('gCefEnabled = RW_CefProbe();', bridge)
+        self.assertIn('plugin unavailable; native interface kept.', bridge)
 
     def test_connect_opens_native_auth_immediately(self):
         connect = body(self.main, 'public OnPlayerConnect', 'public OnPlayerDisconnect')
