@@ -53,6 +53,7 @@ stock RW_CommandHelp(playerid)
     SendClientMessage(playerid, COLOR_GREY, "Police: /duty, /mdt, /cuff, /escort, /wall, /wanted, /arrest, /release, /fine, /track; Y on a player.");
     SendClientMessage(playerid, COLOR_GREY, "Lawyer: /lawyer, /bailrequest, /endcase, /lawprice; Y on a detained player to take the case.");
     SendClientMessage(playerid, COLOR_GREY, "Ambulance: /revive, /heal, /carry, /load, /admit, /ems, /calls, /take <id>; Y on a downed player.");
+    SendClientMessage(playerid, COLOR_GREY, "Transport: /fuel, /refuel, /trunk, /tune, /repair, /tow, /impound, /unimpound; Y on a car.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/spcar <id>{FFFFFF} - temporary car (400-611). /garage - station garage.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} - unlock/lock the aimed car; its key must be in /inv.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/key{FFFFFF} - insert/remove key; N - engine.");
@@ -361,6 +362,14 @@ stock RW_CommandProcess(playerid, cmdtext[])
     if (!strcmp(cmd, "ems", true)) return RW_EmsListCommand(playerid);
     if (!strcmp(cmd, "calls", true)) return RW_EmsCallsCommand(playerid);
     if (!strcmp(cmd, "take", true)) return RW_EmsTakeCommand(playerid, params);
+    if (!strcmp(cmd, "fuel", true)) return RW_FuelCommand(playerid);
+    if (!strcmp(cmd, "refuel", true)) return RW_RefuelCommand(playerid);
+    if (!strcmp(cmd, "trunk", true)) return RW_TrunkCommand(playerid);
+    if (!strcmp(cmd, "repair", true)) return RW_RepairCommand(playerid);
+    if (!strcmp(cmd, "tow", true)) return RW_TowCommand(playerid);
+    if (!strcmp(cmd, "impound", true)) return RW_ImpoundList(playerid);
+    if (!strcmp(cmd, "unimpound", true)) return RW_UnimpoundCommand(playerid, params);
+    if (!strcmp(cmd, "tune", true)) return RW_TuneCommand(playerid);
     if (!strcmp(cmd, "phone", true)) return RW_PhoneOpen(playerid);
     if (!strcmp(cmd, "call", true)) return RW_PhoneCallCommand(playerid, params);
     if (!strcmp(cmd, "sms", true)) return RW_PhoneSmsCommand(playerid, params);

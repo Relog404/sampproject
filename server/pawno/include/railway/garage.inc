@@ -187,6 +187,8 @@ stock RW_GarageSpawn(playerid, id)
     SetVehicleVelocity(vehicle, 0.0, 0.0, 0.0); SetVehicleHealth(vehicle, 1000.0);
     SetVehicleVirtualWorld(vehicle, 0); LinkVehicleToInterior(vehicle, 0);
     RW_Veh_Sync(vehicle); RW_Veh_SyncAll(vehicle);
+    RW_FuelSet(vehicle, FUEL_MAX);
+    RW_TuneLoad(vehicle);
     RW_UI_Close(playerid);
     return RW_Ok(playerid, "Car ready outside. Use your key to unlock it.");
 }

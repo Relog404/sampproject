@@ -113,6 +113,8 @@ stock RW_UI_Vehicle(playerid)
     RW_UI_Row(playerid, 2, gVeh[slot][vsKey] ? ("Remove key") : ("Insert key"));
     RW_UI_Row(playerid, 3, gVeh[slot][vsLights] ? ("Lights off") : ("Lights on"));
     RW_UI_Row(playerid, 4, "Passengers / eject");
+    new transLabel[64];
+    if (RW_TransportRowLabel(playerid, v, transLabel, sizeof transLabel)) RW_UI_Row(playerid, 6, transLabel);
     if (RW_CabinIsPlane(GetVehicleModel(v))) {
         new label[64];
         format(label, sizeof label, "%s (%d / %d)", RW_CabinInside(playerid) ? ("Leave cabin") : ("Board cabin"), RW_CabinCount(v), CABIN_MAX);
@@ -185,7 +187,8 @@ stock RW_UI_Click(playerid, row)
             if (RW_CabinInside(playerid) || GetPlayerVehicleID(playerid) == cv) RW_CabinLeave(playerid);
             else RW_CabinBoard(playerid, cv);
             RW_UI_Vehicle(playerid);
-        } else if (row == 7) RW_UI_Vehicle(playerid);
+        } else if (row == 6) return RW_TransportRow(playerid, gControlVehicle[playerid]);
+        else if (row == 7) RW_UI_Vehicle(playerid);
     } else if (mode == UI_PASSENGERS) {
         if (row < 6 && gUITarget[playerid][row] != INVALID_PLAYER_ID) {
             RW_ControlExecute(playerid, gControlVehicle[playerid], 4, gUITarget[playerid][row]); RW_UI_Passengers(playerid);
@@ -203,6 +206,16 @@ stock RW_UI_Click(playerid, row)
         if (GetTickCount()-gControlTick[playerid] < 250) return 1;
         gControlTick[playerid] = GetTickCount();
         return RW_EmsClick(playerid, row);
+    } else if (mode == UI_TRUNK) {
+        if (GetTickCount()-gControlTick[playerid] < 250) return 1;
+        gControlTick[playerid] = GetTickCount();
+        return RW_TrunkClick(playerid, row);
+    } else if (mode == UI_LOCKPICK) {
+        return RW_PickClick(playerid, row, false);
+    } else if (mode == UI_SERVICE) {
+        if (GetTickCount()-gControlTick[playerid] < 250) return 1;
+        gControlTick[playerid] = GetTickCount();
+        return RW_ServiceClick(playerid, row);
     } else if (mode == UI_PHONE || mode == UI_PHONE_CONT) {
         if (GetTickCount()-gControlTick[playerid] < 250) return 1;
         gControlTick[playerid] = GetTickCount();
@@ -334,6 +347,8 @@ stock RW_CefVehicle(playerid)
     RW_CefRow(playerid, 2, gVeh[slot][vsKey] ? ("Remove key") : ("Insert key"), gVeh[slot][vsKey] ? ("inside") : ("no key"), "key", "", gVeh[slot][vsKey] ? ("state-on") : ("state-off"));
     RW_CefRow(playerid, 3, gVeh[slot][vsLights] ? ("Lights off") : ("Lights on"), gVeh[slot][vsLights] ? ("on") : ("off"), "light", "", gVeh[slot][vsLights] ? ("state-on") : ("state-off"));
     if (RW_IsVehicleOwner(playerid, v)) RW_CefRow(playerid, 4, "Passengers", "eject", "users");
+    new transLabel[64];
+    if (RW_TransportRowLabel(playerid, v, transLabel, sizeof transLabel)) RW_CefRow(playerid, 6, transLabel, "", "bag");
     if (RW_CabinIsPlane(GetVehicleModel(v))) {
         new label[64];
         format(label, sizeof label, "%s (%d / %d)", RW_CabinInside(playerid) ? ("Leave cabin") : ("Board cabin"), RW_CabinCount(v), CABIN_MAX);
@@ -359,6 +374,7 @@ stock RW_CefVehicleClick(playerid, id)
         else RW_CabinBoard(playerid, v);
         return RW_CefVehicle(playerid);
     }
+    if (id == 6) return RW_TransportRow(playerid, v);
     return RW_CefVehicle(playerid);
 }
 stock RW_CefPassengers(playerid)

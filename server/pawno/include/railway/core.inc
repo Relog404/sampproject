@@ -50,8 +50,34 @@
 #define CEF_MODE_POLICE             (3)
 #define CEF_MODE_MDT                (4)
 #define CEF_MODE_EMS                (5)
+#define CEF_MODE_TRUNK              (6)
+#define CEF_MODE_LOCKPICK           (7)
+#define CEF_MODE_SERVICE            (8)
 /* вкладки планшета служб: полиция видит 0-3 и 5, скорая — вызовы */
 #define MDT_CALLS                   (4)
+/* топливо */
+#define FUEL_MAX                    100.0
+#define FUEL_IDLE                   0.008      /* литров в секунду на холостых */
+#define FUEL_SPEED                  0.0006     /* литров в секунду за км/ч     */
+#define FUEL_PRICE                  3
+#define FUEL_STATION_RANGE          12.0
+/* тюнинг */
+#define TUNE_PARTS                  5
+#define TUNE_MAX_LEVEL              5
+#define TUNE_SPEED_STEP             5.0        /* км/ч за уровень двигателя   */
+#define TUNE_INSTALL_MS             10000
+#define TUNING_X                    2645.0
+#define TUNING_Y                    -2020.0
+#define TUNING_Z                    13.5
+#define TUNING_RANGE                15.0
+/* эвакуация и взлом */
+#define IMPOUND_X                   1635.0
+#define IMPOUND_Y                   -1700.0
+#define IMPOUND_Z                   13.6
+#define IMPOUND_FEE                 500
+#define PICK_STEPS                  3
+#define PICK_MS                     8000
+#define TRUNK_SLOTS                 10
 #define PHONE_TARIFFS               (3)
 #define ITEM_SIM                    8
 #define ITEM_PHONE                  9
@@ -61,10 +87,13 @@
 #define ITEM_BADGE                  13
 #define ITEM_DEFIB                  14
 #define ITEM_MEDKIT                 15
+#define ITEM_LOCKPICK               16
+#define ITEM_TUNING                 17
 #define FACTION_NONE                0
 #define FACTION_LSPD                1
 #define FACTION_SHERIFF             2
 #define FACTION_EMS                 3
+#define FACTION_MECHANIC            4
 #define EMS_DEFIB_CHARGES           3
 /* All Saints General: куда скорая сдаёт пациентов. */
 #define HOSPITAL_X                  1175.8

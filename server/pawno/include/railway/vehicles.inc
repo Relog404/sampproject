@@ -381,6 +381,8 @@ stock RW_Veh_Spawn(playerid, model)
 
     RW_Veh_Sync(vehicleid);
     RW_Veh_SyncAll(vehicleid);
+    RW_FuelSet(vehicleid, FUEL_MAX);
+    RW_TuneLoad(vehicleid);
 
     new string[192];
     new vname[48];

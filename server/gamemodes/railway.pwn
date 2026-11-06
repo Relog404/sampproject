@@ -33,6 +33,7 @@
 #include <railway/speedo>
 #include <railway/interaction>
 #include <railway/garage>
+#include <railway/transport>
 #include <railway/motion>
 #include <railway/cabin>
 #include <railway/skins>
@@ -97,11 +98,13 @@ public OnGameModeInit()
     if (!RW_PoliceSchema()) print("[police] Police tables unavailable; arrests and fines disabled.");
     RW_PoliceInit();
     if (!RW_EmsSchema()) print("[ems] Emergency tables unavailable; 911 calls disabled.");
+    if (!RW_TransportSchema()) print("[transport] Transport tables unavailable; trunks and tuning disabled.");
     RW_GarageInit();
     RW_MotionInit();
     SetTimer("RW_PhonePulse", 1000, true);
     SetTimer("RW_PolicePulse", 1000, true);
     SetTimer("RW_EmsPulse", 1000, true);
+    SetTimer("RW_TransportPulse", 1000, true);
     RW_CefInit();
     SetTimer("RW_CabinPulse", 100, true);
     RW_UI_Init();
@@ -149,6 +152,7 @@ public OnPlayerConnect(playerid)
     RW_PhoneReset(playerid);
     RW_PoliceReset(playerid);
     RW_EmsReset(playerid);
+    RW_TransportReset(playerid);
     gLogged[playerid] = false;
     gAccountId[playerid] = -1;
     gAdminLevel[playerid] = 0;

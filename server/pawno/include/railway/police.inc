@@ -107,6 +107,7 @@ stock RW_FactionName(id, dest[], size = sizeof dest)
         case 1: format(dest, size, "LSPD");
         case 2: format(dest, size, "Sheriff");
         case 3: format(dest, size, "Ambulance");
+        case 4: format(dest, size, "Mechanic");
         default: format(dest, size, "Civilian");
     }
     return 1;
@@ -1340,7 +1341,7 @@ stock RW_PoliceDutyCommand(playerid)
     new fname[24], message[128];
     RW_FactionName(gFaction[playerid], fname, sizeof fname);
     if (gDuty[playerid]) {
-        SetPlayerColor(playerid, (gFaction[playerid] == FACTION_EMS) ? 0x7BD88FFF : 0x4A8FE7FF);
+        SetPlayerColor(playerid, (gFaction[playerid] == FACTION_EMS) ? 0x7BD88FFF : ((gFaction[playerid] == FACTION_MECHANIC) ? 0xC9A227FF : 0x4A8FE7FF));
         format(message, sizeof message, "%s: on duty. Y on a player for actions, Y on yourself for the tablet.", fname);
         return RW_Ok(playerid, message);
     }
@@ -1360,7 +1361,7 @@ stock RW_PoliceFactionCommand(playerid, const params[])
     if (target < 0) return 1;
     if (!b[0] || !RW_IsNumeric(b)) return RW_Error(playerid, "Use: /faction <playerid> <0-2> [rank]. 0 - dismiss.");
     new faction = strval(b), rank = c[0] && RW_IsNumeric(c) ? strval(c) : 1;
-    if (faction < 0 || faction > 3) return RW_Error(playerid, "Faction: 0 civilian, 1 LSPD, 2 Sheriff, 3 ambulance.");
+    if (faction < 0 || faction > 4) return RW_Error(playerid, "Faction: 0 civilian, 1 LSPD, 2 Sheriff, 3 ambulance, 4 mechanic.");
     if (rank < 1 || rank > 10) return RW_Error(playerid, "Rank must be 1 to 10.");
     gFaction[target] = faction;
     gRank[target] = rank;

@@ -11,7 +11,7 @@
 #define ITEM_BANDAGE 5
 #define ITEM_SYRINGE 6
 #define ITEM_ARMOUR  7
-#define INV_TYPE_MAX 15
+#define INV_TYPE_MAX 17
 #define INV_NEAR 50
 #define INV_WORLD 500
 #define INV_TDS 165
@@ -51,6 +51,8 @@ stock RW_InvModel(type, data = 0)
     if (type == ITEM_BADGE) return 1580;
     if (type == ITEM_DEFIB) return 1580;
     if (type == ITEM_MEDKIT) return 11738;
+    if (type == ITEM_LOCKPICK) return 1580;
+    if (type == ITEM_TUNING) return 1078;
     return 11746;
 }
 // Weight in grams. Ammunition is weighed per round, so a stack scales with it.
@@ -70,6 +72,9 @@ stock RW_InvGrams(type, data = 0, amount = 1)
     if (type == ITEM_BADGE) return 50;
     if (type == ITEM_DEFIB) return 1500;
     if (type == ITEM_MEDKIT) return 800;
+    if (type == ITEM_LOCKPICK) return 100;
+    /* деталь тюнинга: data Ч номер детали, еЄ вес считает transport.inc */
+    if (type == ITEM_TUNING) return RW_TunePartGrams(data);
     return 100;
 }
 stock RW_InvPack(playerid)
@@ -253,6 +258,8 @@ stock RW_InvGrant(playerid, type, data = 0, amount = 1)
     if (type==ITEM_BATON && (data<0 || data>=PHONE_TARIFFS || amount<1 || amount>100)) return 0;
     if (type==ITEM_DEFIB && (data<0 || data>=PHONE_TARIFFS || amount<1 || amount>EMS_DEFIB_CHARGES)) return 0;
     if (type==ITEM_MEDKIT && (data<0 || data>=PHONE_TARIFFS || amount!=1)) return 0;
+    if (type==ITEM_LOCKPICK && (data<0 || data>=PHONE_TARIFFS || amount!=1)) return 0;
+    if (type==ITEM_TUNING && (data<0 || data>=TUNE_PARTS || amount<1 || amount>TUNE_MAX_LEVEL)) return 0;
     new slot = RW_InvFree(playerid, 0, type, data, amount);
     if (slot < 0) return 0;
     if (!RW_DB_Exec("SAVEPOINT inventory_grant")) return 0;
@@ -479,6 +486,8 @@ stock RW_InvContextRender(playerid)
     else if (type == ITEM_CUFFS || type == ITEM_TASER || type == ITEM_BATON || type == ITEM_BADGE) RW_PoliceItemName(type, data, title, sizeof title);
     else if (type == ITEM_DEFIB) format(title, sizeof title, "%s", "DEFIBRILLATOR");
     else if (type == ITEM_MEDKIT) format(title, sizeof title, "%s", "MEDKIT");
+    else if (type == ITEM_LOCKPICK) format(title, sizeof title, "%s", "LOCKPICK");
+    else if (type == ITEM_TUNING) { new pname[24]; RW_TuneName(data, pname, sizeof pname); format(title, sizeof title, "%s L%d", pname, amount); }
     else format(title, sizeof title, "%s", "CAR KEY");
     PlayerTextDrawSetString(playerid, gInvTD[playerid][156], title);
     new stats[128], desc[128];
@@ -512,6 +521,8 @@ stock RW_InvContextRender(playerid)
     else if (type == ITEM_BADGE) { format(desc, sizeof desc, "%s", "Police badge: opens the tablet and the actions"); format(stats, sizeof stats, "0.05kg / /mdt, /duty"); }
     else if (type == ITEM_DEFIB) { format(desc, sizeof desc, "%s", "Revives a downed player in 10 s to 60 HP"); format(stats, sizeof stats, "1.5kg / %d of %d charges", amount, EMS_DEFIB_CHARGES); }
     else if (type == ITEM_MEDKIT) { format(desc, sizeof desc, "%s", "Heals you or another player to 100 HP in 3 s"); format(stats, sizeof stats, "0.8kg / single use, /heal"); }
+    else if (type == ITEM_LOCKPICK) { format(desc, sizeof desc, "%s", "Opens somebody else's car: a three-step mini-game"); format(stats, sizeof stats, "0.1kg / breaks on a mistake"); }
+    else if (type == ITEM_TUNING) { new pname[24]; RW_TuneName(data, pname, sizeof pname); format(desc, sizeof desc, "Fits at the tuning garage, level %d", amount); format(stats, sizeof stats, "%.0fkg / uid is written to the car", float(RW_TunePartGrams(data))/1000.0); }
     else {
         new model, bool:permanent = RW_GarageKeyModel(data, model);
         format(desc,sizeof desc,"%s vehicle access", permanent ? ("Permanent") : ("Temporary"));
@@ -532,6 +543,8 @@ stock RW_InvContextRender(playerid)
     else if (type == ITEM_TASER || type == ITEM_BATON) format(action, sizeof action, "%s", "STUN");
     else if (type == ITEM_BADGE) format(action, sizeof action, "%s", "MDT");
     else if (type == ITEM_DEFIB || type == ITEM_MEDKIT) format(action, sizeof action, "%s", "USE");
+    else if (type == ITEM_LOCKPICK) format(action, sizeof action, "%s", "PICK");
+    else if (type == ITEM_TUNING) format(action, sizeof action, "%s", "FIT");
     PlayerTextDrawSetString(playerid, gInvTD[playerid][163], action);
     if (type == ITEM_WEAPON && !gInvFromGround[playerid]) PlayerTextDrawSetString(playerid, gInvTD[playerid][160], gWpActive[playerid] == gInvSelected[playerid] ? ("UNEQUIP") : ("EQUIP"));
     else if (type == ITEM_ARMOUR && !gInvFromGround[playerid]) PlayerTextDrawSetString(playerid, gInvTD[playerid][160], gInvSelected[playerid] == gInvWorn[playerid] ? ("TAKE OFF") : ("WEAR"));
@@ -539,7 +552,7 @@ stock RW_InvContextRender(playerid)
     if (!gInvFromGround[playerid] && gInvSelected[playerid]!=gInvEquipped[playerid]) {
         if(!RW_SkinBoundItem(type,data)) PlayerTextDrawShow(playerid,gInvTD[playerid][159]);
         if(type==ITEM_BACKPACK || type==ITEM_ARMOUR || (type==ITEM_WEAPON && gWpActive[playerid]!=gInvSelected[playerid])) PlayerTextDrawShow(playerid,gInvTD[playerid][160]);
-        if(type==ITEM_CAR_KEY || type==ITEM_AMMO || type==ITEM_BANDAGE || type==ITEM_SYRINGE || type==ITEM_PHONE || type==ITEM_SIM || type==ITEM_CUFFS || type==ITEM_TASER || type==ITEM_BATON || type==ITEM_BADGE || type==ITEM_DEFIB || type==ITEM_MEDKIT || (type==ITEM_WEAPON && gWpActive[playerid]==gInvSelected[playerid])) PlayerTextDrawShow(playerid,gInvTD[playerid][163]);
+        if(type==ITEM_CAR_KEY || type==ITEM_AMMO || type==ITEM_BANDAGE || type==ITEM_SYRINGE || type==ITEM_PHONE || type==ITEM_SIM || type==ITEM_CUFFS || type==ITEM_TASER || type==ITEM_BATON || type==ITEM_BADGE || type==ITEM_DEFIB || type==ITEM_MEDKIT || type==ITEM_LOCKPICK || type==ITEM_TUNING || (type==ITEM_WEAPON && gWpActive[playerid]==gInvSelected[playerid])) PlayerTextDrawShow(playerid,gInvTD[playerid][163]);
     }
     if ((gInvFromGround[playerid] || slot<INV_MAIN) && RW_InvPack(playerid)>=0 && type!=ITEM_BACKPACK) PlayerTextDrawShow(playerid,gInvTD[playerid][161]);
     if (gInvFromGround[playerid] || slot>=INV_MAIN || (gInvEquipped[playerid]>0 && gInvSelected[playerid]==gInvEquipped[playerid])) PlayerTextDrawShow(playerid,gInvTD[playerid][162]);
@@ -673,6 +686,8 @@ stock RW_InvClick(playerid, PlayerText:clicked)
         if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_BADGE) return RW_MdtOpen(playerid);
         if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_DEFIB) return RW_EmsReviveCommand(playerid, "");
         if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_MEDKIT) return RW_EmsHealCommand(playerid, "");
+        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_LOCKPICK) return RW_TransportRow(playerid, RW_TransportCar(playerid));
+        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_TUNING) return RW_TuneInstall(playerid, RW_TransportCar(playerid));
         if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_CAR_KEY) {
             new token = gInv[playerid][slot][iiData];
             for (new v; v < VEHICLE_SLOTS; v++) if (gVeh[v][vsUsed] && gVehKeyUid[v] == token) {
@@ -722,6 +737,8 @@ stock RW_InvItemWord(const word[])
     if (!strcmp(word, "13", true) || !strcmp(word, "badge", true)) return ITEM_BADGE;
     if (!strcmp(word, "14", true) || !strcmp(word, "defib", true) || !strcmp(word, "defibrillator", true)) return ITEM_DEFIB;
     if (!strcmp(word, "15", true) || !strcmp(word, "medkit", true) || !strcmp(word, "kit", true)) return ITEM_MEDKIT;
+    if (!strcmp(word, "16", true) || !strcmp(word, "lockpick", true) || !strcmp(word, "pick", true)) return ITEM_LOCKPICK;
+    if (!strcmp(word, "17", true) || !strcmp(word, "tuning", true) || !strcmp(word, "part", true)) return ITEM_TUNING;
     return -1;
 }
 // Calibre by name or number: 9mm, .44, 12ga, 5.56, 7.62, .308.
@@ -833,6 +850,18 @@ stock RW_InvGiveCommand(playerid, const params[])
         if (extra[0]) return RW_Error(playerid, "Armour takes one variant: 1 light, 2 standard, 3 heavy.");
         data = c[0] ? strval(c) : 0;
         if (!c[0] || !RW_IsNumeric(c) || !RW_ArmourVariant(data)) return RW_Error(playerid, "Armour skins: 0 standard, 1 light, 2 heavy.");
+    } else if (type == ITEM_LOCKPICK) {
+        if (extra[0]) return RW_Error(playerid, "A lockpick takes one variant: 0, 1 or 2.");
+        data = c[0] ? strval(c) : 0;
+        if (c[0] && !RW_IsNumeric(c)) return RW_Error(playerid, "Variant must be 0, 1 or 2.");
+        if (data < 0 || data >= PHONE_TARIFFS) return RW_Error(playerid, "Variant must be 0, 1 or 2.");
+    } else if (type == ITEM_TUNING) {
+        data = c[0] ? strval(c) : 0;
+        if (c[0] && !RW_IsNumeric(c)) return RW_Error(playerid, "Part: 0 engine, 1 gearbox, 2 brakes, 3 suspension, 4 wheels.");
+        if (data < 0 || data >= TUNE_PARTS) return RW_Error(playerid, "Part: 0 engine, 1 gearbox, 2 brakes, 3 suspension, 4 wheels.");
+        amount = extra[0] ? strval(extra) : 1;
+        if (extra[0] && !RW_IsNumeric(extra)) return RW_Error(playerid, "Level must be 1 to 5.");
+        if (amount < 1 || amount > TUNE_MAX_LEVEL) return RW_Error(playerid, "Level must be 1 to 5.");
     } else if (type == ITEM_PHONE || type == ITEM_SIM || type == ITEM_CUFFS || type == ITEM_BADGE) {
         if (extra[0]) return RW_Error(playerid, "This item takes one variant: 0, 1 or 2.");
         data = c[0] ? strval(c) : 0;
