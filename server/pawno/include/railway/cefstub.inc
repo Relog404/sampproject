@@ -39,3 +39,23 @@ stock RW_CefClose(playerid)
     #pragma unused playerid
     return 0;
 }
+stock RW_CefHudRadar(playerid, angle, const blips[], const zone[])
+{
+    #pragma unused playerid, angle, blips, zone
+    return 0;
+}
+stock RW_CefHudHint(playerid, const hints[])
+{
+    #pragma unused playerid, hints
+    return 0;
+}
+stock RW_CefHudBonus(playerid, const key[], amount, day)
+{
+    #pragma unused playerid, key, amount, day
+    return 0;
+}
+stock RW_CefHudShow(playerid, on)
+{
+    #pragma unused playerid, on
+    return 0;
+}

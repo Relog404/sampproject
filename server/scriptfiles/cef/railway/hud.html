@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Railway HUD</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body class="hud-body">
+<div class="hud" id="hud">
+
+  <!-- Радар: прозрачный круг, точки приходят с сервера -->
+  <div class="radar" id="radar">
+    <div class="radar-ring"></div>
+    <div class="radar-cross v"></div>
+    <div class="radar-cross h"></div>
+    <div class="radar-n" id="radarN">N</div>
+    <div class="radar-me"></div>
+    <div class="radar-blips" id="blips"></div>
+    <div class="radar-zone" id="zone"></div>
+  </div>
+
+  <!-- Подсказки клавиш -->
+  <div class="hints" id="hints"></div>
+
+  <!-- Карточка бонуса: её можно закрыть крестиком -->
+  <div class="bonus" id="bonus">
+    <button class="bonus-close" id="bonusClose" type="button" title="Скрыть">×</button>
+    <div class="bonus-title" id="bonusTitle"></div>
+    <div class="bonus-text" id="bonusText"></div>
+    <button class="bonus-go" id="bonusGo" type="button"></button>
+  </div>
+
+</div>
+<script src="js/bridge.js"></script>
+<script src="js/hud.js"></script>
+</body>
+</html>

@@ -56,6 +56,7 @@ stock RW_CommandHelp(playerid)
     SendClientMessage(playerid, COLOR_GREY, "Transport: /fuel, /refuel, /trunk, /tune, /repair, /tow, /impound, /unimpound; Y on a car.");
     SendClientMessage(playerid, COLOR_GREY, "Money: /shop, /bank, /balance, /deposit, /withdraw, /transfer <id> <sum>, /job, /work, /quitjob, /payday.");
     SendClientMessage(playerid, COLOR_GREY, "Property: /property, /doors, /enter, /exit, /paytax, /till put|take <sum>, /bid <sum>, /rob (12:00-01:00).");
+    SendClientMessage(playerid, COLOR_GREY, "Interface: /hud - head-up display, /bonus - free cash, F2 or /donate - donate menu, /talk - a person nearby.");
     SendClientMessage(playerid, COLOR_GREY, "Phone apps: /apps, /weather, /group, /g <text>, /ginvite, /taxi, /uber, /news, /ad, /auto, /deliver, /snap, /photo, /lawcall, /radio.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/spcar <id>{FFFFFF} - temporary car (400-611). /garage - station garage.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} - unlock/lock the aimed car; its key must be in /inv.");
@@ -407,6 +408,12 @@ stock RW_CommandProcess(playerid, cmdtext[])
     if (!strcmp(cmd, "till", true)) return RW_PropTillCommand(playerid, params);
     if (!strcmp(cmd, "bid", true)) return RW_PropBidCommand(playerid, params);
     if (!strcmp(cmd, "rob", true)) return RW_PropRobCommand(playerid);
+    if (!strcmp(cmd, "hud", true)) return RW_HudCommand(playerid);
+    if (!strcmp(cmd, "bonus", true)) return RW_BonusCommand(playerid);
+    if (!strcmp(cmd, "donate", true)) return RW_DonateCommand(playerid);
+    if (!strcmp(cmd, "points", true)) return RW_PointsCommand(playerid);
+    if (!strcmp(cmd, "givedonate", true)) return RW_GiveDonateCommand(playerid, params);
+    if (!strcmp(cmd, "talk", true)) return RW_CityTalk(playerid);
     if (!strcmp(cmd, "lawcall", true)) return RW_AppLawyerCall(playerid);
     if (!strcmp(cmd, "payfines", true)) return RW_AppPayFines(playerid);
     if (!strcmp(cmd, "phone", true)) return RW_PhoneOpen(playerid);

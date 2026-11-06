@@ -243,7 +243,7 @@ class JobTest(unittest.TestCase):
 
     def test_the_salary_arrives_on_the_account(self):
         payday = block(ECON, 'stock RW_EconomyPayday(playerid)')
-        self.assertIn('new salary = RW_JobSalary(gJob[playerid]) * gJobLevel[playerid];', payday)
+        self.assertIn('new salary = RW_DonateBonus(playerid, RW_JobSalary(gJob[playerid]) * gJobLevel[playerid]);', payday)
         self.assertIn('new interest = gBank[playerid] * BANK_INTEREST_PERCENT / 100;', payday)
         self.assertIn('if (interest > BANK_INTEREST_MAX) interest = BANK_INTEREST_MAX;', payday)
         self.assertIn('gBank[playerid] += salary + interest;', payday)

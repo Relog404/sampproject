@@ -33,6 +33,15 @@
 forward RW_PropTaxTick(playerid);
 forward RW_PropPulse();
 forward RW_PropSale(playerid, price);
+forward RW_HudPulse();
+forward RW_HudBonusClick(playerid, browserid, arg);
+forward RW_HudBonusHideEvent(playerid, browserid, arg);
+forward RW_HudDonateEvent(playerid, browserid, arg);
+forward RW_DonateOpen(playerid);
+forward RW_DonateClick(playerid, row);
+forward RW_DonateCefClick(playerid, id);
+forward RW_DonateBonus(playerid, amount);
+forward RW_CityOpen(playerid);
 forward RW_PropClick(playerid, row);
 forward RW_JobHandOver(playerid);
 forward RW_UberOrder(playerid);
@@ -73,6 +82,7 @@ forward RW_LawyerCallFor(playerid, target);
 #define CEF_MODE_JOB                (11)
 #define CEF_MODE_APP                (12)
 #define CEF_MODE_PROPERTY           (13)
+#define CEF_MODE_DONATE             (14)
 /* вкладки планшета служб: полици€ видит 0-3 и 5, скора€ Ч вызовы */
 #define MDT_CALLS                   (4)
 /* топливо */

@@ -23,9 +23,11 @@
 #define CEF_UI_MENU         (100)
 #define CEF_UI_NOTIFY       (101)
 #define CEF_UI_PHONE        (102)
+#define CEF_UI_HUD          (103)
 #define CEF_UI_MENU_URL     "http://cef/railway/index.html"
 #define CEF_UI_TOAST_URL    "http://cef/railway/notify.html"
 #define CEF_UI_PHONE_URL    "http://cef/railway/phone.html"
+#define CEF_UI_HUD_URL      "http://cef/railway/hud.html"
 
 #define CEF_TOAST_PLAIN     (0)
 #define CEF_TOAST_OK        (1)
@@ -68,6 +70,9 @@ stock RW_CefInit()
     CEF_RegisterEvent("phone:set", "RW_CefPhoneSet", Argument_String, Argument_String, Argument_Integer);
     CEF_RegisterEvent("phone:911", "RW_CefPhone911", Argument_Integer);
     CEF_RegisterEvent("phone:close", "RW_CefPhoneClosed");
+    CEF_RegisterEvent("hud:bonus", "RW_HudBonusClick", Argument_Integer);
+    CEF_RegisterEvent("hud:bonushide", "RW_HudBonusHideEvent", Argument_Integer);
+    CEF_RegisterEvent("hud:donate", "RW_HudDonateEvent", Argument_Integer);
     SetTimer("RW_CefPulse", 1000, true);
     print("[cef] browser interface ready (resource railway).");
     return 1;
@@ -86,6 +91,8 @@ stock RW_CefStart(playerid)
     CEF_CreateBrowser(playerid, CEF_UI_PHONE, CEF_UI_PHONE_URL, false, true);
     CEF_SetBrowserLayer(playerid, CEF_UI_PHONE, 150);
     CEF_SetBrowserVisible(playerid, CEF_UI_PHONE, false);
+    CEF_CreateBrowser(playerid, CEF_UI_HUD, CEF_UI_HUD_URL, true, false);
+    CEF_SetBrowserLayer(playerid, CEF_UI_HUD, 90);
     return 1;
 }
 stock RW_CefReset(playerid)
@@ -94,6 +101,7 @@ stock RW_CefReset(playerid)
         CEF_DestroyBrowser(playerid, CEF_UI_MENU);
         CEF_DestroyBrowser(playerid, CEF_UI_NOTIFY);
         CEF_DestroyBrowser(playerid, CEF_UI_PHONE);
+        CEF_DestroyBrowser(playerid, CEF_UI_HUD);
     }
     gCefReady[playerid] = false; gCefMode[playerid] = CEF_MODE_NONE;
     return 1;
@@ -292,6 +300,34 @@ public RW_CefClick(playerid, browserid, id)
     if (gCefMode[playerid] == CEF_MODE_JOB) return RW_JobCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_APP) return RW_PhoneAppCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_PROPERTY) return RW_PropCefClick(playerid, id);
+    if (gCefMode[playerid] == CEF_MODE_DONATE) return RW_DonateCefClick(playerid, id);
+    return 1;
+}
+
+/*  ------------------------------- HUD events ------------------------------ */
+/*  HUD получает только готовые данные: радар, подсказки и карточку бонуса.  */
+stock RW_CefHudRadar(playerid, angle, const blips[], const zone[])
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_EmitEvent(playerid, CEF_UI_HUD, "hud:radar", CEF_INT(angle), CEF_STR(blips), CEF_STR(zone));
+    return 1;
+}
+stock RW_CefHudHint(playerid, const hints[])
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_EmitEvent(playerid, CEF_UI_HUD, "hud:hint", CEF_STR(hints));
+    return 1;
+}
+stock RW_CefHudBonus(playerid, const key[], amount, day)
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_EmitEvent(playerid, CEF_UI_HUD, "hud:bonus", CEF_STR(key), CEF_INT(amount), CEF_INT(day));
+    return 1;
+}
+stock RW_CefHudShow(playerid, on)
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_EmitEvent(playerid, CEF_UI_HUD, "hud:show", CEF_INT(on));
     return 1;
 }
 

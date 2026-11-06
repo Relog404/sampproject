@@ -46,6 +46,9 @@
     #include <railway/cefstub>
 #endif
 #include <railway/property>
+#include <railway/hud>
+#include <railway/donate>
+#include <railway/city>
 #include <railway/commands>
 
 /* ------------------------------------------------------------------ запуск */
@@ -105,6 +108,9 @@ public OnGameModeInit()
     if (!RW_EconomySchema()) print("[economy] Economy tables unavailable; jobs, shops and bank accounts disabled.");
     if (!RW_PropSchema()) print("[property] Property table unavailable; houses and businesses are disabled.");
     if (!RW_PropAucSchema()) print("[property] Auction table unavailable; seized property will not be sold.");
+    if (!RW_HudSchema()) print("[hud] Bonus table unavailable; starter bonuses are disabled.");
+    if (!RW_DonateSchema()) print("[donate] Donate table unavailable; points are not kept.");
+    RW_CityInit();
     if (!RW_PhoneAppsSchema()) print("[phoneapps] News table unavailable; the Weazel News app is disabled.");
     RW_WeatherSet(1);
     RW_EconomyInit();
@@ -117,6 +123,7 @@ public OnGameModeInit()
     SetTimer("RW_TransportPulse", 1000, true);
     SetTimer("RW_EconomyPulse", 1000, true);
     SetTimer("RW_PropPulse", 1000, true);
+    SetTimer("RW_HudPulse", 500, true);
     SetTimer("RW_WeatherPulse", 1000, true);
     SetTimer("RW_GroupPulse", 1000, true);
     SetTimer("RW_UberPulse", 1000, true);
@@ -170,6 +177,11 @@ public OnPlayerConnect(playerid)
     RW_TransportReset(playerid);
     RW_EconomySave(playerid);
     RW_EconomyReset(playerid);
+    RW_HudSave(playerid);
+    RW_HudReset(playerid);
+    RW_DonateSave(playerid);
+    RW_DonateReset(playerid);
+    RW_CityReset(playerid);
     RW_PropReset(playerid);
     RW_PhoneAppsReset(playerid);
     RW_PropReset(playerid);
@@ -226,6 +238,11 @@ public OnPlayerDisconnect(playerid, reason)
     RW_CefReset(playerid);
     RW_PhoneReset(playerid);
     RW_PoliceReset(playerid);
+    RW_HudSave(playerid);
+    RW_DonateSave(playerid);
+    RW_HudReset(playerid);
+    RW_DonateReset(playerid);
+    RW_CityReset(playerid);
     RW_ClearRegisterPassword(playerid);
     RW_SaveAccount(playerid);
     RW_Veh_OnPlayerDisconnect(playerid);
@@ -280,6 +297,7 @@ public OnPlayerSpawn(playerid)
     SetPlayerArmour(playerid, 0.0);
     SetPlayerWantedLevel(playerid, 0);
     SetCameraBehindPlayer(playerid);
+    RW_CitySpawn(playerid);
 
     ResetPlayerMoney(playerid);
     GivePlayerMoney(playerid, gMoney[playerid]);
