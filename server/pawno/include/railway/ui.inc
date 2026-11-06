@@ -131,6 +131,7 @@ stock RW_UI_BuildPanel(playerid, mode)
     else if (mode == UI_MAP) { x = 220.0; y = 170.0; width = 200.0; height = 124.0; }
     else if (mode == UI_SETTINGS || mode == UI_BIND) height = 194.0;
     else if (mode == UI_PASSENGERS) height = 240.0;
+    else if (mode == UI_VEHICLE) { x = 300.0; width = 322.0; }   /* room for the car preview */
     gUI[playerid][0] = RW_TD_Box(playerid, x, y, width, height, 0x141920F2);
     gUI[playerid][22] = RW_TD_Box(playerid, x, y, 2.0, height, 0xD8C39BFF);
     gUI[playerid][23] = RW_TD_Label(playerid, x+12.0, y+9.0, "RAILWAY / CONTROL", 0.14);
@@ -143,7 +144,7 @@ stock RW_UI_BuildPanel(playerid, mode)
     PlayerTextDrawLetterSize(playerid, gUI[playerid][2], 0.18, 0.85);
     for (new i; i < 8; i++) {
         new slot = i;
-        if (mode == UI_VEHICLE && i == 7) slot = 5;
+        if (mode == UI_VEHICLE && i == 7) slot = 6;   /* row 5 is the cabin row */
         else if (mode == UI_SETTINGS && i >= 5) slot = i-2;
         else if (mode == UI_BIND && i == 7) slot = 4;
         new Float:rowY = y+67.0+19.0*slot;
@@ -157,7 +158,7 @@ stock RW_UI_BuildPanel(playerid, mode)
         PlayerTextDrawLetterSize(playerid, gUI[playerid][3+i], 0.20, 0.95);
         PlayerTextDrawUseBox(playerid, gUI[playerid][3+i], 1);
         PlayerTextDrawBoxColor(playerid, gUI[playerid][3+i], 0xFFFFFF09);
-        PlayerTextDrawTextSize(playerid, gUI[playerid][3+i], x+width-12.0, 13.0);
+        PlayerTextDrawTextSize(playerid, gUI[playerid][3+i], x+(mode == UI_VEHICLE ? 165.0 : width-12.0), 13.0);
         PlayerTextDrawSetSelectable(playerid, gUI[playerid][3+i], 1);
     }
     gUI[playerid][11] = RW_TD_Label(playerid, x+12.0, y+height-18.0, "Close / ESC", 0.17);

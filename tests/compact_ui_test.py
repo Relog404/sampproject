@@ -35,11 +35,11 @@ class CompactRussianUiTest(unittest.TestCase):
         self.assertLess(190*240, 246*302*0.65)
 
     def test_sparse_rows_have_compacted_hitboxes(self):
-        self.assertIn('mode == UI_VEHICLE && i == 7) slot = 5', self.ui)
+        self.assertIn('mode == UI_VEHICLE && i == 7) slot = 6', self.ui)   # row 5 is the cabin row
         self.assertIn('mode == UI_SETTINGS && i >= 5) slot = i-2', self.ui)
         self.assertIn('mode == UI_BIND && i == 7) slot = 4', self.ui)
         self.assertIn('19.0*slot', self.ui)
-        self.assertIn('x+width-12.0, 13.0', self.ui)
+        self.assertIn('x+(mode == UI_VEHICLE ? 165.0 : width-12.0)', self.ui)
         self.assertIn('PlayerTextDrawDestroy(playerid, gUI[playerid][22])', self.ui)
 
     def test_all_text_passes_through_per_player_encoder(self):

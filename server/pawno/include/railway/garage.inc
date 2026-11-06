@@ -59,6 +59,7 @@ stock RW_GarageInit()
 stock RW_GarageHide(playerid)
 {
     if (gGarageCreated[playerid]) for (new i; i < 13; i++) PlayerTextDrawHide(playerid, gGarageTD[playerid][i]);
+    RW_UI_PreviewHide(playerid);
     return 1;
 }
 stock RW_GarageReset(playerid)
@@ -106,7 +107,7 @@ stock RW_GarageOpen(playerid, bool:resetPage = true)
     if (!gGarageCreated[playerid]) {
         gGarageTD[playerid][0] = CreatePlayerTextDraw(playerid, 190.0, 90.0, "LD_SPAC:white");
         PlayerTextDrawFont(playerid, gGarageTD[playerid][0], 4);
-        PlayerTextDrawTextSize(playerid, gGarageTD[playerid][0], 260.0, 272.0);
+        PlayerTextDrawTextSize(playerid, gGarageTD[playerid][0], 370.0, 272.0);
         PlayerTextDrawColor(playerid, gGarageTD[playerid][0], 0x141920F8);
         RW_GarageLabel(playerid, 1, 203.0, 104.0, "STATION / GARAGE");
         RW_GarageLabel(playerid, 2, 203.0, 123.0, "SELECT CAR / KEY REQUIRED");
@@ -123,6 +124,7 @@ stock RW_GarageOpen(playerid, bool:resetPage = true)
     for (new i = 12; i <= 18; i++) PlayerTextDrawHide(playerid, gUI[playerid][i]);
     gUIMode[playerid] = UI_GARAGE;
     for (new i; i < 13; i++) PlayerTextDrawShow(playerid, gGarageTD[playerid][i]);
+    new previewModel;
     for (new row; row < 6; row++) {
         new idx = gGaragePage[playerid]*6+row;
         if (idx >= gGarageCount[playerid]) { PlayerTextDrawHide(playerid, gGarageTD[playerid][3+row]); continue; }
@@ -132,10 +134,13 @@ stock RW_GarageOpen(playerid, bool:resetPage = true)
             r = db_query(gDB, query);
             if (r != DBResult:0) { model = db_get_field_assoc_int(r, "model"); db_free_result(r); }
         } else for (new s; s < VEHICLE_SLOTS; s++) if (gVeh[s][vsUsed] && gVehKeyUid[s] == -id) model = gVeh[s][vsModel];
+        if (row == 0) previewModel = model;
         RW_VehicleName(model, name, sizeof name);
         format(label, sizeof label, "%s / %s", name, id > 0 ? ("OWNED") : ("TEMP"));
         PlayerTextDrawSetString(playerid, gGarageTD[playerid][3+row], label);
     }
+    if (previewModel >= 400 && previewModel <= 611) RW_UI_PreviewShow(playerid, previewModel, 445.0, 100.0, 110.0, 150.0);
+    else RW_UI_PreviewHide(playerid);
     new label[80]; format(label, sizeof label, "%d CARS / PAGE %d", gGarageCount[playerid], gGaragePage[playerid]+1);
     PlayerTextDrawSetString(playerid, gGarageTD[playerid][12], label);
     RW_UI_SelectBegin(playerid);

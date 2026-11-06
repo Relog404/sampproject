@@ -64,7 +64,7 @@ stock RW_UI_Vehicle(playerid)
         RW_UI_Row(playerid, 5, label);
     }
     RW_UI_Row(playerid, 7, "Refresh status");
-    RW_UI_PreviewShow(playerid, GetVehicleModel(v), 452.0, 120.0, 128.0, 96.0);
+    RW_UI_PreviewShow(playerid, GetVehicleModel(v), 480.0, 155.0, 130.0, 100.0);
     return 1;
 }
 stock RW_UI_Passengers(playerid)

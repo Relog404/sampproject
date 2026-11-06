@@ -14,6 +14,7 @@ CORE = pawn('core')
 CABIN = pawn('cabin')
 INV = pawn('inventory')
 UI = pawn('ui')
+GARAGE = pawn('garage')
 WEP = pawn('weapons')
 VEH = pawn('vehicles')
 INTER = pawn('interaction')
@@ -123,9 +124,29 @@ class CompactGridTest(unittest.TestCase):
     def test_car_preview_helpers(self):
         self.assertIn('stock RW_UI_PreviewShow(playerid, model, Float:x, Float:y, Float:w, Float:h)', UI)
         self.assertIn('stock RW_UI_PreviewHide(playerid)', UI)
-        self.assertIn('RW_UI_PreviewShow(playerid, GetVehicleModel(v), 452.0, 120.0, 128.0, 96.0);', INTER)
+        self.assertIn('RW_UI_PreviewShow(playerid, GetVehicleModel(v), 480.0, 155.0, 130.0, 100.0);', INTER)
         self.assertIn('PlayerTextDrawSetPreviewRot(playerid, gUIPreview[playerid], -16.0, 0.0, -35.0, 0.9);', UI)
         self.assertIn('RW_UI_PreviewHide(playerid);', UI.split('stock RW_UI_Close')[1][:400])
+
+
+class CardPreviewTest(unittest.TestCase):
+    def test_vehicle_card_shows_the_car(self):
+        self.assertIn('RW_UI_PreviewShow(playerid, GetVehicleModel(v), 480.0, 155.0, 130.0, 100.0);', INTER)
+        # the card is wider for UI_VEHICLE so the preview never covers a row
+        self.assertIn('else if (mode == UI_VEHICLE) { x = 300.0; width = 322.0; }', UI)
+        self.assertIn('x+(mode == UI_VEHICLE ? 165.0 : width-12.0)', UI)
+
+    def test_cabin_row_does_not_overlap_refresh(self):
+        # row 7 used to fall on slot 5, the same line as the new cabin row
+        self.assertIn('if (mode == UI_VEHICLE && i == 7) slot = 6;', UI)
+        self.assertNotIn('if (mode == UI_VEHICLE && i == 7) slot = 5;', UI)
+
+    def test_garage_card_shows_the_car(self):
+        self.assertIn('RW_UI_PreviewShow(playerid, previewModel, 445.0, 100.0, 110.0, 150.0);', GARAGE)
+        self.assertIn('PlayerTextDrawTextSize(playerid, gGarageTD[playerid][0], 370.0, 272.0);', GARAGE)
+        self.assertIn('if (row == 0) previewModel = model;', GARAGE)
+        hide = GARAGE.split('stock RW_GarageHide')[1].split('\nstock ')[0]
+        self.assertIn('RW_UI_PreviewHide(playerid);', hide)
 
 
 class GiveItemTest(unittest.TestCase):
