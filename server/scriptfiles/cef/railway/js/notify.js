@@ -26,8 +26,12 @@
     }, 3200);
   });
 
-  if (window.location.search.indexOf('fake=1') >= 0) {
+  /* Local preview: ?fake=1, or just opening the page in a browser. */
+  function demo() {
     RW.fake('ui:toast', ['Engine started', 1]);
     window.setTimeout(function () { RW.fake('ui:toast', ['No key in the ignition', 2]); }, 700);
+    window.setTimeout(function () { RW.fake('ui:toast', ['Infernus, doors unlocked', 0]); }, 1400);
   }
+  if (window.location.search.indexOf('fake=1') >= 0) demo();
+  else window.setTimeout(function () { if (!RW.ready()) demo(); }, 200);
 })();

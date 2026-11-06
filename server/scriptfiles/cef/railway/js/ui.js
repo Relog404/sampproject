@@ -128,13 +128,18 @@
     if (event.key === 'Escape' && open) RW.emit('ui:closed');
   });
 
-  /* Local preview: index.html?fake=1 */
-  if (window.location.search.indexOf('fake=1') >= 0) {
+  /* Local preview: index.html?fake=1, or just opening the file in a browser. */
+  function demo() {
     RW.fake('ui:open', ['Infernus', 'Your car']);
     RW.fake('ui:row', [0, 'Doors', 'locked', 'door']);
     RW.fake('ui:row', [1, 'Engine', 'off', 'engine', '', 'state-off']);
+    RW.fake('ui:row', [2, 'Key', 'inside', 'key', '', 'state-on']);
+    RW.fake('ui:row', [3, 'Lights', 'off', 'light']);
     RW.fake('ui:row', [4, 'Passengers', '2', 'users']);
     RW.fake('ui:action', [7, 'Refresh', '']);
+    RW.fake('ui:action', [8, 'Close', 'danger']);
     RW.fake('ui:end', []);
   }
+  if (window.location.search.indexOf('fake=1') >= 0) demo();
+  else window.setTimeout(function () { if (!RW.ready()) demo(); }, 200);
 })();

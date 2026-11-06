@@ -133,8 +133,12 @@ class NativeInterfaceTest(unittest.TestCase):
             return result
         imported = names(natives, libraries)
         exported = names(publics, natives)
-        self.assertFalse(any(n.startswith('CEF_') for n in imported))
-        self.assertFalse(any(n.startswith('OnCef') for n in exported))
+        # the shipped build talks to omp-cef, and only through these natives
+        self.assertEqual(sorted(n for n in imported if n.startswith('CEF_')),
+                         ['CEF_AddResource', 'CEF_CreateBrowser', 'CEF_DestroyBrowser',
+                          'CEF_EmitEvent', 'CEF_FocusBrowser', 'CEF_PlayerHasPlugin',
+                          'CEF_RegisterEvent', 'CEF_SetBrowserLayer', 'CEF_SetBrowserVisible'])
+        self.assertIn('plugins cef', (ROOT/'server/server.cfg').read_text(encoding='cp1251'))
         for name in ('CreatePlayerTextDraw', 'PlayerTextDrawSetString', 'SelectTextDraw',
                      'PlayerTextDrawDestroy', 'ShowPlayerDialog', 'db_open', 'SHA256_PassHash'):
             self.assertIn(name, imported)

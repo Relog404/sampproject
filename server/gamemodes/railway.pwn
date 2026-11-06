@@ -15,6 +15,10 @@
 
 #pragma dynamic 32768
 
+/* Browser interface on the omp-cef plugin. Set to 0 to build a gamemode that
+   needs no plugin at all - the TextDraw interface is then the only one. */
+#define RAILWAY_CEF             (1)
+
 #include <railway/core>
 #include <railway/ui>
 #include <railway/accounts>
@@ -30,7 +34,11 @@
 #include <railway/cabin>
 #include <railway/skins>
 #include <railway/armour>
-#include <railway/cefui>
+#if RAILWAY_CEF
+    #include <railway/cefui>
+#else
+    #include <railway/cefstub>
+#endif
 #include <railway/commands>
 
 /* ------------------------------------------------------------------ запуск */

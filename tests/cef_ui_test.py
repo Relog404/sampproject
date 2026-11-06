@@ -41,6 +41,20 @@ class PluginWiringTest(unittest.TestCase):
                        'CEF_RegisterEvent', 'CEF_EmitEvent', 'CEF_PlayerHasPlugin'):
             self.assertRegex(cef, r'\bnative\s+(?:bool:)?%s\(' % native)
 
+    def test_pluginless_build_is_possible(self):
+        """RAILWAY_CEF 0 builds a gamemode with no plugin import at all."""
+        main = pawn(MAIN)
+        self.assertIn('#define RAILWAY_CEF             (1)', main)
+        self.assertIn('#if RAILWAY_CEF', main)
+        self.assertIn('#include <railway/cefui>', main)
+        self.assertIn('#include <railway/cefstub>', main)
+        stub = pawn(INC / 'railway' / 'cefstub.inc')
+        for name in ('RW_CefOn', 'RW_CefInit', 'RW_CefStart', 'RW_CefReset', 'RW_CefToast', 'RW_CefClose'):
+            self.assertIn('stock%s%s(' % (' ' if not name.startswith('RW_CefOn') else ' bool:', name), stub, name)
+        # the two menus only reach the browser behind the switch
+        inter = pawn(INTER)
+        self.assertIn('#if RAILWAY_CEF\n        if (RW_CefOn(playerid)) return RW_CefVehicle(playerid);', inter)
+
     def test_init_and_lifecycle_in_the_gamemode(self):
         main = pawn(MAIN)
         self.assertIn('#include <railway/cefui>', main)

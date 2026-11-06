@@ -23,6 +23,11 @@
     }
   };
 
+  /* True once the plugin bridge is really there (inside the game). */
+  RW.ready = function () {
+    return !!(window.cef && typeof window.cef.emit === 'function');
+  };
+
   /* Local preview support: ?fake=1 renders a demo card in a browser. */
   RW.fake = function (name, args) {
     if (handlers[name]) handlers[name].apply(null, args);

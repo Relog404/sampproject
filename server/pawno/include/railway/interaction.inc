@@ -48,7 +48,9 @@ stock RW_UI_Settings(playerid)
 }
 stock RW_UI_Vehicle(playerid)
 {
-    if (RW_CefOn(playerid)) return RW_CefVehicle(playerid);
+    #if RAILWAY_CEF
+        if (RW_CefOn(playerid)) return RW_CefVehicle(playerid);
+    #endif
     new v = gControlVehicle[playerid];
     if (v <= 0 || v >= MAX_VEHICLES || gVehSlotOf[v] < 0) return RW_UI_Close(playerid);
     new slot = gVehSlotOf[v], name[48];
@@ -70,7 +72,9 @@ stock RW_UI_Vehicle(playerid)
 }
 stock RW_UI_Passengers(playerid)
 {
-    if (RW_CefOn(playerid)) return RW_CefPassengers(playerid);
+    #if RAILWAY_CEF
+        if (RW_CefOn(playerid)) return RW_CefPassengers(playerid);
+    #endif
     new v = gControlVehicle[playerid], count;
     RW_UI_Panel(playerid, UI_PASSENGERS, "Passengers", "Select a passenger to eject");
     for (new j; j < 6; j++) gUITarget[playerid][j] = INVALID_PLAYER_ID;
@@ -246,6 +250,7 @@ stock RW_UI_Language(playerid, bool:latin)
     return RW_ControlNotify(playerid, latin ? ("TextDraw panels enabled. /uiru - native dialogs.") : ("Native dialogs enabled. /uitd - TextDraw panels. All text is English."));
 }
 
+#if RAILWAY_CEF
 /*  ============================================================================
  *  Browser card of the car (omp-cef). Same actions as the TextDraw panel.
  *  ========================================================================= */
@@ -320,3 +325,4 @@ stock RW_CefPassengerClick(playerid, id)
     }
     return 1;
 }
+#endif
