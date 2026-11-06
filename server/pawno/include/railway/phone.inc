@@ -633,12 +633,17 @@ stock RW_Phone911(playerid, reason)
     new Float:x, Float:y, Float:z;
     GetPlayerPos(playerid, x, y, z);
     format(message, sizeof message, "[911] %s: %s (number %d)", nick, why, gPhoneNum[playerid]);
-    new sent;
-    for (new i; i < MAX_PLAYERS; i++) {
-        if (i == playerid || !IsPlayerConnected(i) || !gLogged[i]) continue;
-        SendClientMessage(i, 0xFF6B6BFF, message);
-        SetPlayerMapIcon(i, PHONE_911_ICON, x, y, z, 0, 0xFF6B6BFF, MAPICON_GLOBAL);
-        sent++;
+    RW_EmsCall(playerid, reason, x, y, z);         /* запись дл€ планшета служб */
+    new pass, sent;
+    for (pass = 0; pass < 2 && !sent; pass++) {
+        /* первый проход Ч только своей службе, второй Ч всем, если смены нет */
+        for (new i; i < MAX_PLAYERS; i++) {
+            if (i == playerid || !IsPlayerConnected(i) || !gLogged[i]) continue;
+            if (!pass && !RW_EmsWants911(i, reason)) continue;
+            SendClientMessage(i, 0xFF6B6BFF, message);
+            SetPlayerMapIcon(i, PHONE_911_ICON, x, y, z, 0, 0xFF6B6BFF, MAPICON_GLOBAL);
+            sent++;
+        }
     }
     RW_Ok(playerid, "Call sent to 911. Stay where you are.");
     if (!sent) RW_Info(playerid, "Nobody else is online right now.");

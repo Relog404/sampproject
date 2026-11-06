@@ -283,6 +283,7 @@ public RW_CefClick(playerid, browserid, id)
     if (gCefMode[playerid] == CEF_MODE_PASSENGERS) return RW_CefPassengerClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_POLICE) return RW_PoliceCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_MDT) return RW_MdtCefClick(playerid, id);
+    if (gCefMode[playerid] == CEF_MODE_EMS) return RW_EmsCefClick(playerid, id);
     return 1;
 }
 

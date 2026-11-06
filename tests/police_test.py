@@ -143,7 +143,8 @@ class PoliceItemTest(unittest.TestCase):
 
     def test_giveitem_grants_charges_not_copies(self):
         give = block(INV, 'stock RW_InvGiveCommand(playerid, const params[])', '\nstock ')
-        self.assertIn('amount = (type == ITEM_TASER) ? 2 : 100;', give)
+        self.assertIn('if (type == ITEM_TASER) amount = 2;', give)
+        self.assertIn('else if (type == ITEM_BATON) amount = 100;', give)
 
     def test_the_card_offers_the_right_buttons(self):
         render = block(INV, 'stock RW_InvContextRender(playerid)', '\nstock ')
@@ -172,7 +173,8 @@ class PoliceMechanicsTest(unittest.TestCase):
         self.assertIn('if (RW_PoliceBadge(playerid) <= 0) return RW_Error(playerid, "You need your police badge in the inventory.");', guard)
         self.assertIn('if (target >= 0 && !RW_PoliceNear(playerid, target, range)) return RW_Error(playerid, "Stand closer to the player.");', guard)
         duty = block(POLICE, 'stock bool:RW_PoliceOnDuty(playerid)', '\nstock ')
-        self.assertIn('return gLogged[playerid] && gDuty[playerid] && gFaction[playerid] > 0;', duty)
+        # фракция 3 — скорая: её служебные действия другие
+        self.assertIn('return gLogged[playerid] && gDuty[playerid] && (gFaction[playerid] == FACTION_LSPD || gFaction[playerid] == FACTION_SHERIFF);', duty)
 
     def test_cuffing_needs_cuffs_and_freezes_the_player(self):
         cuff = block(POLICE, 'stock RW_PoliceCuff(playerid, target)')

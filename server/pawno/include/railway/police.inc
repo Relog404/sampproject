@@ -106,6 +106,7 @@ stock RW_FactionName(id, dest[], size = sizeof dest)
     switch (id) {
         case 1: format(dest, size, "LSPD");
         case 2: format(dest, size, "Sheriff");
+        case 3: format(dest, size, "Ambulance");
         default: format(dest, size, "Civilian");
     }
     return 1;
@@ -272,7 +273,7 @@ stock RW_PoliceSave(playerid)
 
 stock bool:RW_PoliceOnDuty(playerid)
 {
-    return gLogged[playerid] && gDuty[playerid] && gFaction[playerid] > 0;
+    return gLogged[playerid] && gDuty[playerid] && (gFaction[playerid] == FACTION_LSPD || gFaction[playerid] == FACTION_SHERIFF);
 }
 /* Общая проверка: служба, значок и, если указан игрок, дистанция. */
 stock RW_PoliceCanAct(playerid, target = -1, Float:range = POLICE_RANGE)
@@ -1082,9 +1083,13 @@ stock RW_PoliceClick(playerid, row) { return RW_PoliceAction(playerid, row, fals
 
 stock RW_MdtOpen(playerid)
 {
-    if (!RW_PoliceCanAct(playerid)) return 0;
+    new bool:police = RW_PoliceOnDuty(playerid), bool:medic = RW_EmsOnDuty(playerid);
+    if (!police && !medic) return RW_Error(playerid, "You are not on duty.");
+    if (police && RW_PoliceBadge(playerid) <= 0) return RW_Error(playerid, "You need a police badge in the inventory.");
+    if (medic && RW_EmsItem(playerid, ITEM_MEDKIT) < 0) return RW_Error(playerid, "You need a medkit in the inventory.");
     gMdtPage[playerid] = 0;
     gMdtList[playerid] = 0;
+    gMdtTab[playerid] = police ? MDT_CITIZENS : MDT_CALLS;
     return RW_MdtRender(playerid);
 }
 stock RW_MdtRender(playerid)
@@ -1116,6 +1121,8 @@ stock RW_MdtList(playerid, limit)
         format(query, sizeof query, "SELECT c.id,c.model,c.token,a.name AS owner FROM owned_cars c LEFT JOIN accounts a ON a.id=c.owner ORDER BY c.id DESC LIMIT %d OFFSET %d", limit, gMdtPage[playerid]*limit);
     } else if (gMdtTab[playerid] == MDT_ARRESTS) {
         format(query, sizeof query, "SELECT r.id,r.minutes,r.bail,r.officer,a.name AS who FROM arrests r LEFT JOIN accounts a ON a.id=r.player_id ORDER BY r.id DESC LIMIT %d OFFSET %d", limit, gMdtPage[playerid]*limit);
+    } else if (gMdtTab[playerid] == MDT_CALLS) {
+        return RW_EmsMdtList(playerid, limit);       /* список строит ems.inc */
     } else {
         format(query, sizeof query, "SELECT f.id,f.amount,f.paid,f.officer,a.name AS who FROM fines f LEFT JOIN accounts a ON a.id=f.player_id ORDER BY f.id DESC LIMIT %d OFFSET %d", limit, gMdtPage[playerid]*limit);
     }
@@ -1172,23 +1179,29 @@ stock RW_MdtList(playerid, limit)
 // Первый экран планшета: вкладки.
 stock RW_CefMdtRender(playerid)
 {
-    if (!RW_CefOpen(playerid, CEF_MODE_MDT, "MDT", "Police database")) return RW_MdtPanel(playerid);
-    RW_CefRow(playerid, 0, "Citizens", "names", "users");
-    RW_CefRow(playerid, 1, "Vehicles", "garage", "car");
-    RW_CefRow(playerid, 2, "Arrests", "last arrests", "clock");
-    RW_CefRow(playerid, 3, "Fines", "last fines", "bag");
-    RW_CefRow(playerid, 4, gTrack[playerid] >= 0 ? ("Stop tracking") : ("Tracking"), gTrack[playerid] >= 0 ? ("on") : ("off"), "map");
+    if (!RW_CefOpen(playerid, CEF_MODE_MDT, "MDT", "Service database")) return RW_MdtPanel(playerid);
+    if (RW_PoliceOnDuty(playerid)) {
+        RW_CefRow(playerid, 0, "Citizens", "names", "users");
+        RW_CefRow(playerid, 1, "Vehicles", "garage", "car");
+        RW_CefRow(playerid, 2, "Arrests", "last arrests", "clock");
+        RW_CefRow(playerid, 3, "Fines", "last fines", "bag");
+    }
+    RW_CefRow(playerid, 4, "Calls", "911", "alert");
+    if (RW_PoliceOnDuty(playerid)) RW_CefRow(playerid, 5, gTrack[playerid] >= 0 ? ("Stop tracking") : ("Tracking"), gTrack[playerid] >= 0 ? ("on") : ("off"), "map");
     RW_CefAction(playerid, 8, "Close", "danger");
     return RW_CefEnd(playerid);
 }
 stock RW_MdtPanel(playerid)
 {
-    RW_UI_Panel(playerid, UI_MDT, "MDT", "Police database");
-    RW_UI_Row(playerid, 0, "Citizens");
-    RW_UI_Row(playerid, 1, "Vehicles");
-    RW_UI_Row(playerid, 2, "Arrests");
-    RW_UI_Row(playerid, 3, "Fines");
-    RW_UI_Row(playerid, 4, gTrack[playerid] >= 0 ? ("Stop tracking") : ("Tracking"));
+    RW_UI_Panel(playerid, UI_MDT, "MDT", "Service database");
+    if (RW_PoliceOnDuty(playerid)) {
+        RW_UI_Row(playerid, 0, "Citizens");
+        RW_UI_Row(playerid, 1, "Vehicles");
+        RW_UI_Row(playerid, 2, "Arrests");
+        RW_UI_Row(playerid, 3, "Fines");
+    }
+    RW_UI_Row(playerid, 4, "Calls");
+    if (RW_PoliceOnDuty(playerid)) RW_UI_Row(playerid, 5, gTrack[playerid] >= 0 ? ("Stop tracking") : ("Tracking"));
     RW_UI_Row(playerid, 7, "Close");
     return 1;
 }
@@ -1218,7 +1231,13 @@ stock RW_MdtPanelList(playerid)
 stock RW_MdtTabClick(playerid, row, bool:cef)
 {
     if (row == (cef ? 8 : 7)) return RW_UI_Close(playerid);
-    if (row == 4) {
+    if (row == 4) {                                  /* вкладка «Вызовы» */
+        gMdtTab[playerid] = MDT_CALLS;
+        gMdtPage[playerid] = 0;
+        gMdtList[playerid] = 1;
+        return RW_MdtRender(playerid);
+    }
+    if (row == 5) {
         if (gTrack[playerid] >= 0) { RW_PoliceUntrack(playerid); return RW_MdtRender(playerid); }
         return RW_Info(playerid, "Open the Citizens tab and pick a name to start tracking.");
     }
@@ -1240,6 +1259,7 @@ stock RW_MdtAction(playerid, row, bool:cef)
     }
     if (row < 0 || row >= limit || !gMdtIds[playerid][row]) return 1;
     new id = gMdtIds[playerid][row];
+    if (gMdtTab[playerid] == MDT_CALLS) return RW_EmsMdtClick(playerid, id);
     if (gMdtTab[playerid] == MDT_CITIZENS) {
         new target = -1;
         for (new i; i < MAX_PLAYERS; i++) if (IsPlayerConnected(i) && gLogged[i] && gAccountId[i] == id) { target = i; break; }
@@ -1320,7 +1340,7 @@ stock RW_PoliceDutyCommand(playerid)
     new fname[24], message[128];
     RW_FactionName(gFaction[playerid], fname, sizeof fname);
     if (gDuty[playerid]) {
-        SetPlayerColor(playerid, 0x4A8FE7FF);
+        SetPlayerColor(playerid, (gFaction[playerid] == FACTION_EMS) ? 0x7BD88FFF : 0x4A8FE7FF);
         format(message, sizeof message, "%s: on duty. Y on a player for actions, Y on yourself for the tablet.", fname);
         return RW_Ok(playerid, message);
     }
@@ -1340,7 +1360,7 @@ stock RW_PoliceFactionCommand(playerid, const params[])
     if (target < 0) return 1;
     if (!b[0] || !RW_IsNumeric(b)) return RW_Error(playerid, "Use: /faction <playerid> <0-2> [rank]. 0 - dismiss.");
     new faction = strval(b), rank = c[0] && RW_IsNumeric(c) ? strval(c) : 1;
-    if (faction < 0 || faction > 2) return RW_Error(playerid, "Faction: 0 civilian, 1 LSPD, 2 Sheriff.");
+    if (faction < 0 || faction > 3) return RW_Error(playerid, "Faction: 0 civilian, 1 LSPD, 2 Sheriff, 3 ambulance.");
     if (rank < 1 || rank > 10) return RW_Error(playerid, "Rank must be 1 to 10.");
     gFaction[target] = faction;
     gRank[target] = rank;

@@ -49,6 +49,9 @@
 #define CEF_MODE_PASSENGERS         (2)
 #define CEF_MODE_POLICE             (3)
 #define CEF_MODE_MDT                (4)
+#define CEF_MODE_EMS                (5)
+/* вкладки планшета служб: полици€ видит 0-3 и 5, скора€ Ч вызовы */
+#define MDT_CALLS                   (4)
 #define PHONE_TARIFFS               (3)
 #define ITEM_SIM                    8
 #define ITEM_PHONE                  9
@@ -56,9 +59,18 @@
 #define ITEM_TASER                  11
 #define ITEM_BATON                  12
 #define ITEM_BADGE                  13
+#define ITEM_DEFIB                  14
+#define ITEM_MEDKIT                 15
 #define FACTION_NONE                0
 #define FACTION_LSPD                1
 #define FACTION_SHERIFF             2
+#define FACTION_EMS                 3
+#define EMS_DEFIB_CHARGES           3
+/* All Saints General: куда скора€ сдаЄт пациентов. */
+#define HOSPITAL_X                  1175.8
+#define HOSPITAL_Y                  -1324.7
+#define HOSPITAL_Z                  15.4
+#define HOSPITAL_RANGE              40.0
 /* LSPD: entrance and the cells behind the station. */
 #define POLICE_STATION_X            1544.6
 #define POLICE_STATION_Y            -1675.5

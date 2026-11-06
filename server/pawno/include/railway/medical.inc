@@ -82,7 +82,7 @@ stock RW_MedOpen(playerid)
         RW_MedLabel(playerid, 1, 238.0, 303.0, "YOU ARE DOWNED", 150.0);
         RW_MedLabel(playerid, 2, 238.0, 318.0, "Bleeding out in 3:00", 160.0);
         RW_MedIcon(playerid, 3, 238.0, 334.0, 1240);
-        RW_MedLabel(playerid, 4, 266.0, 338.0, "CALL MEDICS (SOON)", 140.0, true);
+        RW_MedLabel(playerid, 4, 266.0, 338.0, "CALL AN AMBULANCE", 140.0, true);
         RW_MedIcon(playerid, 5, 238.0, 360.0, 1242);
         RW_MedLabel(playerid, 6, 266.0, 364.0, "WAIT +7 MIN", 140.0, true);
         RW_MedLabel(playerid, 7, 238.0, 378.0, "Adrenaline or another player can revive you", 160.0);
@@ -110,7 +110,11 @@ stock RW_MedClick(playerid, PlayerText:clicked)
     if (clicked != gMedTD[playerid][4] && clicked != gMedTD[playerid][6]) return 1;
     if (GetTickCount()-gMedTick[playerid] < 400) return 1;
     gMedTick[playerid] = GetTickCount();
-    if (clicked == gMedTD[playerid][4]) return RW_Error(playerid, "Medics are not available yet. Wait, or ask someone for adrenaline.");
+    if (clicked == gMedTD[playerid][4]) {
+        new id = RW_EmsCall(playerid, 3, gDownX[playerid], gDownY[playerid], gDownZ[playerid]);
+        if (!id) return RW_Error(playerid, "The call did not go through. Try again in a second.");
+        return RW_Ok(playerid, "The ambulance is on its way. Lie still: /calls shows your call to the medics.");
+    }
     if (gDownEnd[playerid] - GetTickCount() + DOWN_EXTRA_MS > DOWN_MAX_MS) return RW_Error(playerid, "You cannot wait any longer.");
     gDownEnd[playerid] += DOWN_EXTRA_MS;
     RW_MedRender(playerid);
@@ -182,6 +186,7 @@ stock RW_MedRevive(target)
     if (!gDowned[target]) return 0;
     RW_MedClearDown(target);
     SetPlayerHealth(target, REVIVE_HP);
+    RW_EmsShakeStart(target);   /* адреналин: десять секунд трясёт руки */
     return RW_Ok(target, "Adrenaline kicks in. You are on your feet.");
 }
 stock RW_MedFinish(playerid)

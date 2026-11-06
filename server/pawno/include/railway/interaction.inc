@@ -43,6 +43,7 @@ stock RW_SelfMenu(playerid)
 {
     /* На службе Y на себя открывает планшет, а не телефон. */
     if (RW_PoliceOnDuty(playerid) && RW_PoliceBadge(playerid) > 0) return RW_MdtOpen(playerid);
+    if (RW_EmsOnDuty(playerid) && RW_EmsItem(playerid, ITEM_MEDKIT) >= 0) return RW_MdtOpen(playerid);
     if (RW_PhoneHasItem(playerid) <= 0) return RW_Error(playerid, "You have no phone. Buy one at a 24/7 shop.");
     if (gPhoneNum[playerid] <= 0) return RW_Error(playerid, "No SIM card: buy one and insert it with /sim.");
     return RW_PhoneOpen(playerid);
@@ -69,6 +70,8 @@ stock RW_PlayerMenu(playerid, target)
     /* Полицейский на службе — действия; адвокат у задержанного — дело. */
     if (RW_PoliceOnDuty(playerid) && RW_PoliceBadge(playerid) > 0) return RW_PoliceMenuOpen(playerid, target);
     if (RW_IsLawyer(playerid) && gJailTime[target] > 0) return RW_PoliceCaseStart(playerid, target);
+    /* Упавшего игрока лечат; медик на службе лечит и просто прохожих. */
+    if (gDowned[target] || (RW_EmsOnDuty(playerid) && RW_EmsItem(playerid, ITEM_MEDKIT) >= 0)) return RW_EmsMenuOpen(playerid, target);
     if (gPhoneNum[playerid] <= 0) return RW_Error(playerid, "You need a phone with a SIM card.");
     if (RW_PhoneHasItem(target) <= 0 || gPhoneNum[target] <= 0) return RW_Error(playerid, "He has no phone with him.");
     if (RW_PhoneKnows(playerid, gPhoneNum[target])) return RW_PhoneCall(playerid, gPhoneNum[target]);
@@ -196,6 +199,10 @@ stock RW_UI_Click(playerid, row)
         if (GetTickCount()-gControlTick[playerid] < 250) return 1;
         gControlTick[playerid] = GetTickCount();
         return RW_MdtClick(playerid, row);
+    } else if (mode == UI_EMS) {
+        if (GetTickCount()-gControlTick[playerid] < 250) return 1;
+        gControlTick[playerid] = GetTickCount();
+        return RW_EmsClick(playerid, row);
     } else if (mode == UI_PHONE || mode == UI_PHONE_CONT) {
         if (GetTickCount()-gControlTick[playerid] < 250) return 1;
         gControlTick[playerid] = GetTickCount();

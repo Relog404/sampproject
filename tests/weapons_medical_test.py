@@ -137,11 +137,13 @@ class MedicalSourceTest(unittest.TestCase):
         self.assertIn('SetTimerEx("RW_MedBandageDone", MED_USE_MS',MED)
         self.assertIn('Wait a second between bandages',MED)
         self.assertIn('healed > 100.0',MED)
-    def test_downed_state_timers_and_placeholder_medics(self):
+    def test_downed_state_timers_and_the_ambulance_call(self):
         self.assertIn('#define DOWN_MS        (180000)',MED)
         self.assertIn('#define DOWN_EXTRA_MS  (420000)',MED)
-        self.assertIn('"CALL MEDICS (SOON)"',MED)
-        self.assertIn('Medics are not available yet',MED)
+        self.assertIn('"CALL AN AMBULANCE"',MED)
+        # кнопка больше не заглушка: она создаёт вызов 911 для скорой
+        self.assertIn('RW_EmsCall(playerid, 3, gDownX[playerid], gDownY[playerid], gDownZ[playerid])',MED)
+        self.assertIn('The ambulance is on its way',MED)
         self.assertIn('You hold on for 7 more minutes',MED)
         self.assertIn('SetTimerEx("RW_MedBleedOut", DOWN_MS',MED)
         self.assertIn('if (RW_MedSpawn(playerid)) return 1;',MAIN)
@@ -154,6 +156,7 @@ class MedicalSourceTest(unittest.TestCase):
         self.assertIn('No downed player within 3 metres',syringe)
         self.assertIn('SetTimerEx("RW_MedSyringeDone", MED_USE_MS',syringe)
         self.assertIn('RW_MedRevive(target)',MED)
+        self.assertIn('RW_EmsShakeStart(target)',MED)   # адреналин: 10 секунд тряски
         self.assertIn('#define REVIVE_HP      (30.0)',MED)
         self.assertIn('You are downed. Someone else must inject you',syringe)
 

@@ -28,6 +28,7 @@
 #include <railway/ground>
 #include <railway/weapons>
 #include <railway/medical>
+#include <railway/ems>
 #include <railway/vehicles>
 #include <railway/speedo>
 #include <railway/interaction>
@@ -95,10 +96,12 @@ public OnGameModeInit()
     if (!RW_PhoneSchema()) print("[phone] Phone tables unavailable; calls and SMS disabled.");
     if (!RW_PoliceSchema()) print("[police] Police tables unavailable; arrests and fines disabled.");
     RW_PoliceInit();
+    if (!RW_EmsSchema()) print("[ems] Emergency tables unavailable; 911 calls disabled.");
     RW_GarageInit();
     RW_MotionInit();
     SetTimer("RW_PhonePulse", 1000, true);
     SetTimer("RW_PolicePulse", 1000, true);
+    SetTimer("RW_EmsPulse", 1000, true);
     RW_CefInit();
     SetTimer("RW_CabinPulse", 100, true);
     RW_UI_Init();
@@ -145,6 +148,7 @@ public OnPlayerConnect(playerid)
     RW_CefReset(playerid);
     RW_PhoneReset(playerid);
     RW_PoliceReset(playerid);
+    RW_EmsReset(playerid);
     gLogged[playerid] = false;
     gAccountId[playerid] = -1;
     gAdminLevel[playerid] = 0;
@@ -193,6 +197,8 @@ public OnPlayerDisconnect(playerid, reason)
     RW_ArmourReset(playerid);
     RW_PhoneSave(playerid);
     RW_PoliceSave(playerid);
+    RW_EmsCallClose(playerid);
+    RW_EmsReset(playerid);
     RW_CefReset(playerid);
     RW_PhoneReset(playerid);
     RW_PoliceReset(playerid);

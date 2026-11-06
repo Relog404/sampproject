@@ -52,6 +52,7 @@ stock RW_CommandHelp(playerid)
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/phone{FFFFFF} - phone; /call, /sms, /contacts, /addcontact, /911, /topup, /tariff, /sim.");
     SendClientMessage(playerid, COLOR_GREY, "Police: /duty, /mdt, /cuff, /escort, /wall, /wanted, /arrest, /release, /fine, /track; Y on a player.");
     SendClientMessage(playerid, COLOR_GREY, "Lawyer: /lawyer, /bailrequest, /endcase, /lawprice; Y on a detained player to take the case.");
+    SendClientMessage(playerid, COLOR_GREY, "Ambulance: /revive, /heal, /carry, /load, /admit, /ems, /calls, /take <id>; Y on a downed player.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/spcar <id>{FFFFFF} - temporary car (400-611). /garage - station garage.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} - unlock/lock the aimed car; its key must be in /inv.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/key{FFFFFF} - insert/remove key; N - engine.");
@@ -351,6 +352,15 @@ stock RW_CommandProcess(playerid, cmdtext[])
     if (!strcmp(cmd, "lawprice", true)) return RW_LawyerPriceCommand(playerid, params);
     if (!strcmp(cmd, "bailrequest", true)) return RW_PoliceBailRequest(playerid);
     if (!strcmp(cmd, "endcase", true)) return RW_PoliceCaseEnd(playerid);
+    if (!strcmp(cmd, "heal", true)) return RW_EmsHealCommand(playerid, params);
+    if (!strcmp(cmd, "revive", true)) return RW_EmsReviveCommand(playerid, params);
+    if (!strcmp(cmd, "carry", true)) return RW_EmsCarryCommand(playerid, params);
+    if (!strcmp(cmd, "drop", true)) return RW_EmsDrop(playerid);
+    if (!strcmp(cmd, "load", true)) return RW_EmsLoadIn(playerid);
+    if (!strcmp(cmd, "admit", true)) return RW_EmsAdmit(playerid);
+    if (!strcmp(cmd, "ems", true)) return RW_EmsListCommand(playerid);
+    if (!strcmp(cmd, "calls", true)) return RW_EmsCallsCommand(playerid);
+    if (!strcmp(cmd, "take", true)) return RW_EmsTakeCommand(playerid, params);
     if (!strcmp(cmd, "phone", true)) return RW_PhoneOpen(playerid);
     if (!strcmp(cmd, "call", true)) return RW_PhoneCallCommand(playerid, params);
     if (!strcmp(cmd, "sms", true)) return RW_PhoneSmsCommand(playerid, params);

@@ -19,6 +19,7 @@
 #define UI_PHONE_CONT 12
 #define UI_POLICE 13
 #define UI_MDT 14
+#define UI_EMS 15
 new PlayerText:gUIPreview[MAX_PLAYERS];
 new PlayerText:gUI[MAX_PLAYERS][UI_COUNT];
 new bool:gUICreated[MAX_PLAYERS], bool:gUIInput[MAX_PLAYERS];
