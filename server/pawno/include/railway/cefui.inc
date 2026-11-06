@@ -291,6 +291,7 @@ public RW_CefClick(playerid, browserid, id)
     if (gCefMode[playerid] == CEF_MODE_BANK) return RW_BankCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_JOB) return RW_JobCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_APP) return RW_PhoneAppCefClick(playerid, id);
+    if (gCefMode[playerid] == CEF_MODE_PROPERTY) return RW_PropCefClick(playerid, id);
     return 1;
 }
 

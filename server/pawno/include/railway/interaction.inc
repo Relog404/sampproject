@@ -234,6 +234,8 @@ stock RW_UI_Click(playerid, row)
         if (GetTickCount()-gControlTick[playerid] < 250) return 1;
         gControlTick[playerid] = GetTickCount();
         return RW_JobClick(playerid, row);
+    } else if (mode == UI_PROPERTY) {
+        return RW_PropClick(playerid, row);
     } else if (mode == UI_PHONE_APP) {
         return RW_PhoneAppClick(playerid, row);
     } else if (mode == UI_PHONE || mode == UI_PHONE_CONT) {

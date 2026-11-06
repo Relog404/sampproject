@@ -1,0 +1,435 @@
+/*  ============================================================================
+ *  railway/property.inc
+ *  Недвижимость: дома и бизнесы, двери, вход и налоги.
+ *
+ *  Как и везде, всё считает сервер: браузерное меню и TextDraw-меню вызывают
+ *  одни и те же функции, состояние лежит в SQLite и переживает перезапуск.
+ *  Деньги за покупку и налоги идут со счёта в банке, а не из кармана: клиент
+ *  не может «заплатить» тем, чего у него нет.
+ *
+ *  Кодировка исходников: Windows-1251.
+ *  ========================================================================= */
+#if defined _railway_property_included
+    #endinput
+#endif
+#define _railway_property_included
+
+#include <railway/core>
+#include <railway/ui>
+#include <railway/economy>
+
+#define PROP_KIND_HOUSE         0
+#define PROP_KIND_BIZ           1
+#define PROP_MAX                8
+#define PROP_RANGE              6.0         /* радиус двери                  */
+#define PROP_SELL_PERCENT       75          /* выкуп государством, % от цены  */
+#define PROP_TAX_LIMIT          3           /* просрочек до аукциона         */
+
+/* Вид, цена, налог за payday, интерьер. */
+static const gPropInfo[][4] = {
+    { PROP_KIND_HOUSE,  25000,  500, 1 },
+    { PROP_KIND_HOUSE,  35000,  650, 2 },
+    { PROP_KIND_HOUSE,  30000,  600, 1 },
+    { PROP_KIND_HOUSE,  28000,  550, 2 },
+    { PROP_KIND_BIZ,   120000, 2500, 17 },
+    { PROP_KIND_BIZ,   110000, 2300, 17 },
+    { PROP_KIND_BIZ,   100000, 2100, 17 },
+    { PROP_KIND_BIZ,   130000, 2700, 17 }
+};
+/* Настоящие адреса Los Santos. */
+static const gPropNames[][] = {
+    "Ganton, house 14",
+    "Jefferson, house 7",
+    "Willowfield, house 3",
+    "El Corona, house 22",
+    "24/7 Downtown",
+    "24/7 Ganton",
+    "24/7 Las Colinas",
+    "24/7 Unity"
+};
+/* Двери: точки на улице у настоящих домов и магазинов. */
+static const Float:gPropDoor[][3] = {
+    { 2270.0, -1680.0, 13.5 },      /* Ganton       */
+    { 2050.0, -1400.0, 13.5 },      /* Jefferson    */
+    { 2170.0, -1990.0, 13.6 },      /* Willowfield  */
+    { 1780.0, -1900.0, 13.5 },      /* El Corona    */
+    { 1352.4, -1759.4, 13.5 },      /* Downtown     */
+    { 2244.4, -1665.4, 13.5 },      /* Ganton       */
+    { 2503.4, -1722.4, 13.4 },      /* Las Colinas  */
+    { 1833.4, -1842.4, 13.5 }       /* Unity        */
+};
+/* Точка внутри: квартиры (интерьеры 1 и 2) и торговый зал 24/7 (интерьер 17). */
+static const Float:gPropIn[][3] = {
+    {  223.0439, 1287.2197, 1082.1296 },
+    {  225.6307, 1021.4432, 1084.0695 },
+    {  223.0439, 1287.2197, 1082.1296 },
+    {  225.6307, 1021.4432, 1084.0695 },
+    {  -25.8849, -185.8689, 1003.5499 },
+    {  -25.8849, -185.8689, 1003.5499 },
+    {  -25.8849, -185.8689, 1003.5499 },
+    {  -25.8849, -185.8689, 1003.5499 }
+};
+
+new gPropOwner[PROP_MAX];               /* account id владельца, 0 — город   */
+new gPropDoorOpen[PROP_MAX];            /* 1 — двери открыты                 */
+new gPropTaxDue[PROP_MAX];              /* накопленный налог                 */
+new gPropMissed[PROP_MAX];              /* сколько payday просрочено         */
+new gPropCash[PROP_MAX];                /* касса бизнеса                     */
+new gPropOwnerName[PROP_MAX][MAX_PLAYER_NAME+1];
+new gPropAt[MAX_PLAYERS];               /* -1 снаружи, иначе id недвижимости */
+new gPropOpen[MAX_PLAYERS];             /* id в открытом меню                */
+
+/*  ---------------------------------- база -------------------------------- */
+
+stock RW_PropSchema()
+{
+    if (!RW_DB_Exec("CREATE TABLE IF NOT EXISTS properties (id INTEGER PRIMARY KEY, owner_id INT, doors INT, tax_due INT, missed INT, cash INT)")) return 0;
+    for (new i; i < PROP_MAX; i++) {
+        new query[160];
+        format(query, sizeof query, "INSERT OR IGNORE INTO properties (id,owner_id,doors,tax_due,missed,cash) VALUES (%d,0,0,0,0,0)", i);
+        if (!RW_DB_Exec(query)) return 0;
+    }
+    return 1;
+}
+/* Состояние держим в памяти, в базу пишем при каждом изменении. */
+stock RW_PropLoad()
+{
+    new DBResult:r = db_query(gDB, "SELECT p.id,p.owner_id,p.doors,p.tax_due,p.missed,p.cash,a.name FROM properties p LEFT JOIN accounts a ON a.id=p.owner_id ORDER BY p.id");
+    if (r == DBResult:0) return 0;
+    new rows = db_num_rows(r);
+    for (new i; i < rows && i < PROP_MAX; i++) {
+        gPropOwner[i] = db_get_field_assoc_int(r, "owner_id");
+        gPropDoorOpen[i] = db_get_field_assoc_int(r, "doors");
+        gPropTaxDue[i] = db_get_field_assoc_int(r, "tax_due");
+        gPropMissed[i] = db_get_field_assoc_int(r, "missed");
+        gPropCash[i] = db_get_field_assoc_int(r, "cash");
+        new name[MAX_PLAYER_NAME+1];
+        db_get_field_assoc(r, "name", name, sizeof name);
+        format(gPropOwnerName[i], MAX_PLAYER_NAME+1, "%s", name);
+        db_next_row(r);
+    }
+    db_free_result(r);
+    return 1;
+}
+stock RW_PropSave(id)
+{
+    new query[200];
+    format(query, sizeof query, "UPDATE properties SET owner_id=%d,doors=%d,tax_due=%d,missed=%d,cash=%d WHERE id=%d",
+        gPropOwner[id], gPropDoorOpen[id], gPropTaxDue[id], gPropMissed[id], gPropCash[id], id);
+    return RW_DB_Exec(query);
+}
+
+/*  -------------------------------- помощники ----------------------------- */
+
+stock RW_PropNear(playerid)
+{
+    for (new i; i < PROP_MAX; i++)
+        if (IsPlayerInRangeOfPoint(playerid, PROP_RANGE, gPropDoor[i][0], gPropDoor[i][1], gPropDoor[i][2])) return i;
+    return -1;
+}
+stock RW_PropMine(playerid, id)
+{
+    return (id >= 0 && id < PROP_MAX && gPropOwner[id] > 0 && gPropOwner[id] == gAccountId[playerid]) ? 1 : 0;
+}
+stock RW_PropKindName(id, dest[], size = sizeof dest)
+{
+    format(dest, size, "%s", gPropInfo[id][0] == PROP_KIND_BIZ ? ("Business") : ("House"));
+    return 1;
+}
+/* Подпись объекта: адрес, вид, цена и хозяин. */
+stock RW_PropLabel(id, dest[], size = sizeof dest)
+{
+    new kind[16], price[32];
+    RW_PropKindName(id, kind, sizeof kind);
+    RW_FormatMoney(gPropInfo[id][1], price, sizeof price);
+    if (gPropOwner[id] > 0)
+        format(dest, size, "%s (%s) - %s, owner %s", gPropNames[id], kind, price, gPropOwnerName[id]);
+    else
+        format(dest, size, "%s (%s) - %s, sold by the city", gPropNames[id], kind, price);
+    return 1;
+}
+
+/*  ---------------------------------- меню -------------------------------- */
+
+stock RW_PropOpen(playerid)
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    new id = gPropAt[playerid] >= 0 ? (gPropAt[playerid]) : (RW_PropNear(playerid));
+    if (id < 0) return RW_Error(playerid, "No house or business door nearby. Stand at the door.");
+    gPropOpen[playerid] = id;
+    return RW_PropRender(playerid);
+}
+stock RW_PropRender(playerid)
+{
+    #if RAILWAY_CEF
+        if (RW_CefOn(playerid)) return RW_CefProp(playerid);
+    #endif
+    return RW_PropPanel(playerid);
+}
+stock RW_PropSubtitle(playerid, dest[], size = sizeof dest)
+{
+    new id = gPropOpen[playerid], acc[32];
+    RW_FormatMoney(gBank[playerid], acc, sizeof acc);
+    if (id < 0) { format(dest, size, "Account %s", acc); return 1; }
+    if (RW_PropMine(playerid, id)) {
+        if (gPropTaxDue[id] > 0) format(dest, size, "Yours, tax due %d (%d paydays late)", gPropTaxDue[id], gPropMissed[id]);
+        else format(dest, size, "Yours, tax is paid. Account %s", acc);
+        return 1;
+    }
+    if (gPropOwner[id] > 0) { format(dest, size, "Owned by %s. Account %s", gPropOwnerName[id], acc); return 1; }
+    format(dest, size, "For sale. Account %s", acc);
+    return 1;
+}
+/* Строки меню: общие для браузера и TextDraw. */
+stock RW_PropRows(playerid)
+{
+    new id = gPropOpen[playerid], row[96], tax[32];
+    RW_FormatMoney(gPropInfo[id][2], tax, sizeof tax);
+    RW_PropLabel(id, row, sizeof row);
+    RW_AppRowProp(playerid, 0, row, "", "home");
+    if (gPropOwner[id] <= 0) {
+        new price[32];
+        RW_FormatMoney(gPropInfo[id][1], price, sizeof price);
+        format(row, sizeof row, "Buy it for %s (from the account)", price);
+        RW_AppRowProp(playerid, 1, row, "buy", "wallet");
+    } else if (RW_PropMine(playerid, id)) {
+        new back[32];
+        RW_FormatMoney(gPropInfo[id][1] * PROP_SELL_PERCENT / 100, back, sizeof back);
+        format(row, sizeof row, "Sell it to the city for %s", back);
+        RW_AppRowProp(playerid, 1, row, "sell", "wallet");
+    } else {
+        RW_AppRowProp(playerid, 1, "Not yours: the owner only", "", "info");
+    }
+    if (RW_PropMine(playerid, id)) {
+        format(row, sizeof row, "Doors: %s", gPropDoorOpen[id] ? ("open") : ("closed"));
+        RW_AppRowProp(playerid, 2, row, "doors", "key");
+        format(row, sizeof row, "Tax per payday: %s", tax);
+        RW_AppRowProp(playerid, 3, row, "tax", "wallet");
+    } else {
+        RW_AppRowProp(playerid, 2, "The owner opens the doors", "", "info");
+        RW_AppRowProp(playerid, 3, "Tax per payday: %s", "", "info");
+    }
+    if (gPropAt[playerid] >= 0) RW_AppRowProp(playerid, 4, "Go outside", "exit", "door");
+    else RW_AppRowProp(playerid, 4, "Go inside", "enter", "door");
+    RW_AppRowProp(playerid, 5, "Pay the tax: /paytax", "", "wallet");
+    return 1;
+}
+/* Обёртка строки: в браузер с иконкой, в TextDraw без неё. */
+stock RW_AppRowProp(playerid, row, const text[], const arg[], const icon[])
+{
+    #if RAILWAY_CEF
+        if (RW_CefOn(playerid)) { RW_CefRow(playerid, row, text, arg, icon); return 1; }
+    #else
+        #pragma unused arg, icon
+    #endif
+    RW_UI_Row(playerid, row, text);
+    return 1;
+}
+stock RW_CefProp(playerid)
+{
+    new subtitle[96];
+    RW_PropSubtitle(playerid, subtitle, sizeof subtitle);
+    if (!RW_CefOpen(playerid, CEF_MODE_PROPERTY, "Property", subtitle)) return RW_PropPanel(playerid);
+    RW_PropRows(playerid);
+    RW_CefAction(playerid, 8, "Close", "danger");
+    return RW_CefEnd(playerid);
+}
+stock RW_PropPanel(playerid)
+{
+    new subtitle[96];
+    RW_PropSubtitle(playerid, subtitle, sizeof subtitle);
+    RW_UI_Panel(playerid, UI_PROPERTY, "Property", subtitle);
+    RW_PropRows(playerid);
+    RW_UI_Row(playerid, 7, "Close");
+    return 1;
+}
+stock RW_PropAction(playerid, row, bool:cef)
+{
+    if (row == (cef ? 8 : 7)) return RW_UI_Close(playerid);
+    new id = gPropOpen[playerid];
+    if (id < 0) return 1;
+    if (GetTickCount() - gAppTick[playerid] < 250 && row != 4) return 1;
+    gAppTick[playerid] = GetTickCount();
+    if (row == 1) {
+        if (RW_PropMine(playerid, id)) return RW_PropSell(playerid, id);
+        return RW_PropBuy(playerid, id);
+    }
+    if (row == 2) return RW_PropToggleDoors(playerid, id);
+    if (row == 4) {
+        if (gPropAt[playerid] >= 0) return RW_PropExit(playerid);
+        return RW_PropEnter(playerid, id);
+    }
+    return 1;
+}
+stock RW_PropCefClick(playerid, row) { return RW_PropAction(playerid, row, true); }
+stock RW_PropClick(playerid, row) { return RW_PropAction(playerid, row, false); }
+
+/*  --------------------------------- действия ----------------------------- */
+
+stock RW_PropBuy(playerid, id)
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    if (id < 0 || id >= PROP_MAX) return RW_Error(playerid, "No such property.");
+    if (gPropOwner[id] > 0) return RW_Error(playerid, "It is already owned.");
+    if (RW_PropOwns(playerid) >= 0) return RW_Error(playerid, "You already own property. Sell it first.");
+    new price = gPropInfo[id][1];
+    if (gBank[playerid] < price) return RW_Error(playerid, "Not enough money on the account.");
+    RW_BankTake(playerid, price);
+    gPropOwner[id] = gAccountId[playerid];
+    gPropDoorOpen[id] = 0;
+    gPropTaxDue[id] = 0;
+    gPropMissed[id] = 0;
+    RW_GetNick(playerid, gPropOwnerName[id], MAX_PLAYER_NAME+1);
+    RW_PropSave(id);
+    RW_UI_Close(playerid);
+    new sum[32], message[160];
+    RW_FormatMoney(price, sum, sizeof sum);
+    format(message, sizeof message, "Bought %s for %s. Doors are closed: /doors opens them.", gPropNames[id], sum);
+    return RW_Ok(playerid, message);
+}
+stock RW_PropSell(playerid, id)
+{
+    if (!RW_PropMine(playerid, id)) return RW_Error(playerid, "This is not yours.");
+    new back = gPropInfo[id][1] * PROP_SELL_PERCENT / 100;
+    back = back + gPropCash[id];
+    RW_BankAdd(playerid, back);
+    gPropOwner[id] = 0;
+    gPropOwnerName[id][0] = 0;
+    gPropDoorOpen[id] = 0;
+    gPropTaxDue[id] = 0;
+    gPropMissed[id] = 0;
+    gPropCash[id] = 0;
+    RW_PropSave(id);
+    RW_UI_Close(playerid);
+    new sum[32], message[160];
+    RW_FormatMoney(back, sum, sizeof sum);
+    format(message, sizeof message, "Sold %s: %s back on the account, the cash register with it.", gPropNames[id], sum);
+    return RW_Ok(playerid, message);
+}
+stock RW_PropToggleDoors(playerid, id)
+{
+    if (!RW_PropMine(playerid, id)) return RW_Error(playerid, "Only the owner opens these doors.");
+    if (gPropMissed[id] >= PROP_TAX_LIMIT) return RW_Error(playerid, "The city sealed the doors: pay the tax with /paytax.");
+    gPropDoorOpen[id] = gPropDoorOpen[id] ? (0) : (1);
+    RW_PropSave(id);
+    new message[128];
+    format(message, sizeof message, "Doors are now %s.", gPropDoorOpen[id] ? ("open") : ("closed"));
+    return RW_Ok(playerid, message);
+}
+stock RW_PropEnter(playerid, id)
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    if (id < 0 || id >= PROP_MAX) return RW_Error(playerid, "No such property.");
+    if (gPropAt[playerid] >= 0) return RW_Info(playerid, "You are already inside. /exit gets you out.");
+    if (!RW_PropMine(playerid, id) && !gPropDoorOpen[id])
+        return RW_Error(playerid, "The door is locked. Only the owner can open it.");
+    if (!RW_PropNear(playerid)) return RW_Error(playerid, "Stand at the door.");
+    SetPlayerInterior(playerid, gPropInfo[id][3]);
+    SetPlayerPos(playerid, gPropIn[id][0], gPropIn[id][1], gPropIn[id][2]);
+    SetPlayerFacingAngle(playerid, 0.0);
+    gPropAt[playerid] = id;
+    new message[128];
+    format(message, sizeof message, "%s: you are inside. /exit - back to the street.", gPropNames[id]);
+    return RW_Ok(playerid, message);
+}
+stock RW_PropExit(playerid)
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    new id = gPropAt[playerid];
+    if (id < 0) return RW_Info(playerid, "You are not inside.");
+    SetPlayerInterior(playerid, 0);
+    SetPlayerVirtualWorld(playerid, 0);
+    SetPlayerPos(playerid, gPropDoor[id][0], gPropDoor[id][1], gPropDoor[id][2]);
+    gPropAt[playerid] = -1;
+    new message[128];
+    format(message, sizeof message, "%s: you are on the street again.", gPropNames[id]);
+    return RW_Ok(playerid, message);
+}
+/* Есть ли у игрока недвижимость: индекс или -1. */
+stock RW_PropOwns(playerid)
+{
+    for (new i; i < PROP_MAX; i++) if (RW_PropMine(playerid, i)) return i;
+    return -1;
+}
+stock RW_PropPayTax(playerid, id)
+{
+    if (!RW_PropMine(playerid, id)) return RW_Error(playerid, "This is not yours.");
+    if (gPropTaxDue[id] <= 0) return RW_Info(playerid, "The tax is already paid.");
+    if (gBank[playerid] < gPropTaxDue[id]) return RW_Error(playerid, "Not enough money on the account.");
+    RW_BankTake(playerid, gPropTaxDue[id]);
+    gPropTaxDue[id] = 0;
+    gPropMissed[id] = 0;
+    RW_PropSave(id);
+    new sum[32], message[144];
+    RW_FormatMoney(gPropInfo[id][2], sum, sizeof sum);
+    format(message, sizeof message, "Tax paid for %s (%s per payday). The doors are yours again.", gPropNames[id], sum);
+    return RW_Ok(playerid, message);
+}
+/* Налог списывается на payday: со счёта, иначе копится долг. */
+public RW_PropTaxTick(playerid)
+{
+    if (!gLogged[playerid]) return 0;
+    for (new i; i < PROP_MAX; i++) {
+        if (!RW_PropMine(playerid, i)) continue;
+        new tax = gPropInfo[i][2];
+        if (gBank[playerid] >= tax) {
+            RW_BankTake(playerid, tax);
+            gPropMissed[i] = 0;
+        } else {
+            gPropTaxDue[i] = gPropTaxDue[i] + tax;
+            gPropMissed[i]++;
+            if (gPropMissed[i] >= PROP_TAX_LIMIT) gPropDoorOpen[i] = 0;
+        }
+        RW_PropSave(i);
+    }
+    return 1;
+}
+
+/*  --------------------------------- команды ------------------------------ */
+
+stock RW_PropertyCommand(playerid) { return RW_PropOpen(playerid); }
+stock RW_EnterCommand(playerid)
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    return RW_PropEnter(playerid, RW_PropNear(playerid));
+}
+stock RW_ExitCommand(playerid) { return RW_PropExit(playerid); }
+stock RW_DoorsCommand(playerid)
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    new id = RW_PropNear(playerid);
+    if (id < 0) {
+        new own = RW_PropOwns(playerid);
+        if (own < 0) return RW_Error(playerid, "Stand at your door or buy a property first.");
+        return RW_PropToggleDoors(playerid, own);
+    }
+    return RW_PropToggleDoors(playerid, id);
+}
+stock RW_PayTaxCommand(playerid)
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    new id = RW_PropNear(playerid);
+    if (id < 0) id = RW_PropOwns(playerid);
+    if (id < 0) return RW_Error(playerid, "You own no property.");
+    return RW_PropPayTax(playerid, id);
+}
+
+/*  ---------------------------------- точки ------------------------------- */
+
+stock RW_PropInit()
+{
+    RW_PropLoad();
+    for (new i; i < PROP_MAX; i++) {
+        new label[96];
+        RW_PropLabel(i, label, sizeof label);
+        CreatePickup(1272, 1, gPropDoor[i][0], gPropDoor[i][1], gPropDoor[i][2], 0);
+        Create3DTextLabel(label, 0xD8C39BFF, gPropDoor[i][0], gPropDoor[i][1], gPropDoor[i][2] + 1.1, 20.0, 0, 0);
+    }
+    return 1;
+}
+stock RW_PropReset(playerid)
+{
+    gPropAt[playerid] = -1;
+    gPropOpen[playerid] = -1;
+    return 1;
+}

@@ -29,7 +29,9 @@
 #define COLOR_ERROR                 0xFF6B6BFF
 #define COLOR_INFO                  0x8FD3FFFF
 
-/* Вызываются из interaction.inc, описаны позже: работа, такси, адвокат. */
+/* Вызываются из других срезов, описаны позже: работа, такси, адвокат, налог. */
+forward RW_PropTaxTick(playerid);
+forward RW_PropClick(playerid, row);
 forward RW_JobHandOver(playerid);
 forward RW_UberOrder(playerid);
 forward RW_TaxiRankCall(playerid);
@@ -68,6 +70,7 @@ forward RW_LawyerCallFor(playerid, target);
 #define CEF_MODE_BANK               (10)
 #define CEF_MODE_JOB                (11)
 #define CEF_MODE_APP                (12)
+#define CEF_MODE_PROPERTY           (13)
 /* вкладки планшета служб: полиция видит 0-3 и 5, скорая — вызовы */
 #define MDT_CALLS                   (4)
 /* топливо */

@@ -45,6 +45,7 @@
 #else
     #include <railway/cefstub>
 #endif
+#include <railway/property>
 #include <railway/commands>
 
 /* ------------------------------------------------------------------ запуск */
@@ -102,9 +103,11 @@ public OnGameModeInit()
     if (!RW_EmsSchema()) print("[ems] Emergency tables unavailable; 911 calls disabled.");
     if (!RW_TransportSchema()) print("[transport] Transport tables unavailable; trunks and tuning disabled.");
     if (!RW_EconomySchema()) print("[economy] Economy tables unavailable; jobs, shops and bank accounts disabled.");
+    if (!RW_PropSchema()) print("[property] Property table unavailable; houses and businesses are disabled.");
     if (!RW_PhoneAppsSchema()) print("[phoneapps] News table unavailable; the Weazel News app is disabled.");
     RW_WeatherSet(1);
     RW_EconomyInit();
+    RW_PropInit();
     RW_GarageInit();
     RW_MotionInit();
     SetTimer("RW_PhonePulse", 1000, true);
@@ -165,7 +168,9 @@ public OnPlayerConnect(playerid)
     RW_TransportReset(playerid);
     RW_EconomySave(playerid);
     RW_EconomyReset(playerid);
+    RW_PropReset(playerid);
     RW_PhoneAppsReset(playerid);
+    RW_PropReset(playerid);
     gLogged[playerid] = false;
     gAccountId[playerid] = -1;
     gAdminLevel[playerid] = 0;

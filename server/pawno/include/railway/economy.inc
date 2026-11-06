@@ -1006,6 +1006,8 @@ stock Float:RW_EconomyDistance(playerid, Float:x, Float:y, Float:z)
 
 stock RW_EconomyPayday(playerid)
 {
+    /* Недвижимость: налог списывается со счёта, иначе копится долг. */
+    RW_PropTaxTick(playerid);
     new salary = RW_JobSalary(gJob[playerid]) * gJobLevel[playerid];
     new interest = gBank[playerid] * BANK_INTEREST_PERCENT / 100;
     if (interest > BANK_INTEREST_MAX) interest = BANK_INTEREST_MAX;
