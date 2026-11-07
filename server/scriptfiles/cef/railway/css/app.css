@@ -251,27 +251,12 @@ html, body {
 /* --------------------------------- HUD --------------------------------- */
 /* Прозрачный минимализм: ничего лишнего, тёмное стекло поверх картинки.   */
 .hud-body { background: transparent; overflow: hidden; }
-.hud { position: fixed; inset: 0; pointer-events: none; font: 400 13px/1.35 "Segoe UI", Roboto, sans-serif;
+.hud { position: fixed; inset: 0; pointer-events: none; user-select: none; font: 400 13px/1.35 "Segoe UI", Roboto, sans-serif;
        color: #F2F4F8; text-shadow: 0 1px 2px rgba(0,0,0,.55); transition: opacity .18s ease; }
 .hud.off { opacity: 0; }
-
-.radar { position: absolute; left: 26px; bottom: 26px; width: 168px; height: 168px;
-         border-radius: 50%; background: rgba(10,14,20,.28);
-         box-shadow: inset 0 0 0 1px rgba(255,255,255,.10), 0 6px 18px rgba(0,0,0,.28);
-         backdrop-filter: blur(2px); }
-.radar-ring { position: absolute; inset: 34px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
-.radar-cross { position: absolute; background: rgba(255,255,255,.08); }
-.radar-cross.v { left: 50%; top: 6%; width: 1px; height: 88%; }
-.radar-cross.h { top: 50%; left: 6%; height: 1px; width: 88%; }
-.radar-n { position: absolute; left: 50%; top: 50%; font-size: 11px; letter-spacing: .08em;
-           color: #F5B04C; opacity: .85; }
-.radar-me { position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px;
-            border-radius: 50%; background: #FFFFFF; box-shadow: 0 0 0 2px rgba(255,255,255,.18); }
-.radar-blips { position: absolute; inset: 0; }
-.blip { position: absolute; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%;
-        opacity: .9; box-shadow: 0 0 6px rgba(0,0,0,.4); }
-.radar-zone { position: absolute; left: 0; right: 0; bottom: -20px; text-align: center; font-size: 11px;
-              letter-spacing: .06em; color: rgba(242,244,248,.72); }
+/* Курсор включается только по /mouse: тогда можно нажать карточку. */
+.hud.mouse { pointer-events: auto; }
+.hud.mouse .hint { cursor: default; }
 
 .hints { position: absolute; right: 26px; bottom: 30px; display: flex; flex-direction: column;
          gap: 6px; align-items: flex-end; }

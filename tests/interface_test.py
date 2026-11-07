@@ -62,41 +62,22 @@ class HudTableTest(unittest.TestCase):
 
 
 class HudRadarTest(unittest.TestCase):
-    """The radar: real Los Santos points, drawn from server data."""
+    """The radar is gone: the game has its own, and the HUD stays quiet."""
 
-    def test_points_of_interest_lie_in_los_santos(self):
-        table = block(HUD, 'static const Float:gHudPoi[][3] = {', '};')
-        rows = re.findall(r'\{([^}]+)\}', table)
-        self.assertEqual(len(rows), 9)
-        for row in rows:
-            x, y, z = [float(part) for part in row.split(',')]
-            self.assertTrue(300.0 < x < 3000.0, row)
-            self.assertTrue(-2700.0 < y < -300.0, row)
-            self.assertTrue(0.0 < z < 40.0, row)
+    def test_no_radar_is_drawn_or_sent(self):
+        self.assertNotIn('gHudPoi', HUD)
+        self.assertNotIn('gHudZone', HUD)
+        self.assertNotIn('hud:radar', HUD)
+        self.assertNotIn('id="radar"', PAGE)
+        self.assertNotIn('.radar {', CSS)
+        self.assertNotIn('hud:radar', SCRIPT)
 
-    def test_every_point_has_a_kind(self):
-        table = block(HUD, 'static const Float:gHudPoi[][3] = {', '};')
-        kinds = block(HUD, 'static const gHudPoiKind[] = {', '};')
-        self.assertEqual(len(re.findall(r'\{[^}]+\}', table)), kinds.count('HUD_POI_'))
-
-    def test_zone_names_match_the_zone_points(self):
-        points = block(HUD, 'new Float:gHudZone[][3] = {', '};')
-        names = block(HUD, 'new gHudZoneName[][] = {', '};')
-        self.assertEqual(len(re.findall(r'\{[^}]+\}', points)), len(re.findall(r'"([a-zA-Z]+)"', names)))
-
-    def test_the_radar_packet_goes_out_twice_a_second(self):
+    def test_the_pulse_still_updates_hints_and_the_card(self):
         self.assertIn('SetTimer("RW_HudPulse", 500, true);', MAIN)
         self.assertIn('forward RW_HudPulse();', CORE)
         pulse = block(HUD, 'public RW_HudPulse()')
-        self.assertIn('RW_HudRadar(playerid);', pulse)
-        self.assertIn('CEF_EmitEvent(playerid, CEF_UI_HUD, "hud:radar"', CEFUI)
-        self.assertIn('return RW_CefHudRadar(playerid, floatround(angle), blips, zone);', HUD)
-
-    def test_other_players_are_shown_only_in_the_same_world(self):
-        radar = block(HUD, 'stock RW_HudRadar(playerid)')
-        self.assertIn('GetPlayerVirtualWorld(i) != GetPlayerVirtualWorld(playerid)', radar)
-        self.assertIn('GetPlayerInterior(i) != GetPlayerInterior(playerid)', radar)
-        self.assertIn('HUD_MAX_BLIPS', radar)
+        self.assertIn('RW_HudHints(playerid);', pulse)
+        self.assertIn('RW_HudBonusCard(playerid);', pulse)
 
 
 class HudBonusTest(unittest.TestCase):
@@ -114,10 +95,11 @@ class HudBonusTest(unittest.TestCase):
         self.assertIn('return HUD_DAILY_BONUS * day;', bonus)
         self.assertIn('if (day > HUD_DAILY_LIMIT) day = HUD_DAILY_LIMIT;', bonus)
 
-    def test_the_card_is_a_key_and_two_numbers(self):
+    def test_the_card_offers_the_daily_bonus_first(self):
         card = block(HUD, 'stock RW_HudBonusCard(playerid)')
         self.assertIn('"online"', card)
         self.assertIn('"starter"', card)
+        self.assertTrue(card.index('"starter"') < card.index('"online"'))
         self.assertIn('RW_HudBonusEmit(playerid, "", 0, 0)', card)
 
     def test_a_hidden_card_goes_away_until_the_next_bonus(self):
@@ -131,6 +113,8 @@ class HudBonusTest(unittest.TestCase):
         claim = block(HUD, 'stock RW_HudBonusClaim(playerid)')
         self.assertIn('RW_AddMoney(playerid, HUD_ONLINE_BONUS);', claim)
         self.assertIn('RW_BankAdd(playerid, amount);', claim)
+        self.assertTrue(claim.index('RW_BankAdd(playerid, amount);') < claim.index('RW_AddMoney(playerid, HUD_ONLINE_BONUS);'))
+        self.assertIn('Balance: %d.', claim)
         self.assertIn('RW_Error(playerid, "Nothing to claim yet:', claim)
 
     def test_the_page_prints_the_card_in_russian(self):
@@ -154,23 +138,35 @@ class HudKeysTest(unittest.TestCase):
         self.assertIn("donate: 'Донат'", SCRIPT)
         self.assertIn("engine: 'Двигатель'", SCRIPT)
 
-    def test_radar_hints_and_card_are_on_the_page(self):
-        self.assertIn('id="radar"', PAGE)
+    def test_hints_and_card_are_on_the_page(self):
         self.assertIn('id="hints"', PAGE)
         self.assertIn('id="bonus"', PAGE)
         self.assertIn('id="bonusClose"', PAGE)
+        self.assertNotIn('id="radar"', PAGE)
+
+    def test_the_browser_menu_of_the_page_is_disabled(self):
+        self.assertIn("document.addEventListener('contextmenu'", SCRIPT)
+        self.assertIn('e.preventDefault()', SCRIPT)
+
+    def test_the_mouse_is_hidden_until_the_player_asks_for_it(self):
+        self.assertIn("RW.on('hud:mouse'", SCRIPT)
+        self.assertIn('.hud.mouse {', CSS)
+        self.assertIn('stock RW_CefHudMouse(playerid, on)', CEFUI)
+        self.assertIn('CEF_FocusBrowser(playerid, CEF_UI_HUD, on ? true : false);', CEFUI)
+        self.assertIn('stock RW_HudMouseCommand(playerid)', HUD)
+        self.assertIn('"mouse", true', CMDS)
+        self.assertIn('CEF_CreateBrowser(playerid, CEF_UI_HUD, CEF_UI_HUD_URL, false, false);', CEFUI)
 
     def test_the_style_is_transparent_and_minimal(self):
-        self.assertIn('.radar {', CSS)
         self.assertIn('.hint {', CSS)
         self.assertIn('.bonus {', CSS)
         self.assertIn('backdrop-filter', CSS)
-        for colour in ('rgba(10,14,20,.28)', 'rgba(10,14,20,.30)', 'rgba(14,18,26,.34)'):
+        for colour in ('rgba(10,14,20,.30)', 'rgba(14,18,26,.34)'):
             self.assertIn(colour, CSS)
 
     def test_the_browser_is_created_and_destroyed(self):
         self.assertIn('#define CEF_UI_HUD          (103)', CEFUI)
-        self.assertIn('CEF_CreateBrowser(playerid, CEF_UI_HUD, CEF_UI_HUD_URL, true, false);', CEFUI)
+        self.assertIn('CEF_CreateBrowser(playerid, CEF_UI_HUD, CEF_UI_HUD_URL, false, false);', CEFUI)
         self.assertIn('CEF_DestroyBrowser(playerid, CEF_UI_HUD);', CEFUI)
 
 
@@ -293,8 +289,8 @@ class InterfaceLanguageTest(unittest.TestCase):
 
     def test_the_pages_are_russian(self):
         self.assertIn('Скрыть', PAGE)
-        self.assertIn('Радар', PAGE)
         self.assertIn('Взаимодействие', SCRIPT)
+        self.assertIn('Железная дорога', (CEF / 'auth.html').read_text(encoding='utf-8'))
 
 
 if __name__ == '__main__':

@@ -94,7 +94,7 @@ stock RW_CefStart(playerid)
     CEF_CreateBrowser(playerid, CEF_UI_PHONE, CEF_UI_PHONE_URL, false, true);
     CEF_SetBrowserLayer(playerid, CEF_UI_PHONE, 150);
     CEF_SetBrowserVisible(playerid, CEF_UI_PHONE, false);
-    CEF_CreateBrowser(playerid, CEF_UI_HUD, CEF_UI_HUD_URL, true, false);
+    CEF_CreateBrowser(playerid, CEF_UI_HUD, CEF_UI_HUD_URL, false, false);
     CEF_SetBrowserLayer(playerid, CEF_UI_HUD, 90);
     CEF_CreateBrowser(playerid, CEF_UI_AUTH, CEF_UI_AUTH_URL, false, true);
     CEF_SetBrowserLayer(playerid, CEF_UI_AUTH, 300);
@@ -336,6 +336,14 @@ stock RW_CefHudShow(playerid, on)
 {
     if (!RW_CefOn(playerid)) return 0;
     CEF_EmitEvent(playerid, CEF_UI_HUD, "hud:show", CEF_INT(on));
+    return 1;
+}
+/* Курсор нужен только чтобы нажать карточку: /mouse включает его и выключает. */
+stock RW_CefHudMouse(playerid, on)
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_FocusBrowser(playerid, CEF_UI_HUD, on ? true : false);
+    CEF_EmitEvent(playerid, CEF_UI_HUD, "hud:mouse", CEF_INT(on ? 1 : 0));
     return 1;
 }
 

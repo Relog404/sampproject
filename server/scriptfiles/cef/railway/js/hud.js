@@ -49,40 +49,17 @@
     }
   };
 
-  var RADIUS = 200;      // метров от края до края радара
   var hud = document.getElementById('hud');
-  var blips = document.getElementById('blips');
   var hints = document.getElementById('hints');
-  var zone = document.getElementById('zone');
-  var radarN = document.getElementById('radarN');
   var bonus = document.getElementById('bonus');
   var bonusTitle = document.getElementById('bonusTitle');
   var bonusText = document.getElementById('bonusText');
   var bonusGo = document.getElementById('bonusGo');
   var bonusClose = document.getElementById('bonusClose');
-  var COLORS = { 1: '#F5B04C', 2: '#7FD1AE', 3: '#8FC4FF', 4: '#FF8A8A', 5: '#C9A6FF' };
 
   function translate(key) {
     return WORDS[key] || key;
   }
-
-  /* Радар: сервер шлёт угол и список "вид:dx:dy" через точку с запятой. */
-  RW.on('hud:radar', function (angle, list, zoneName) {
-    var parts = (list || '').split(';');
-    var html = '';
-    for (var i = 0; i < parts.length; i++) {
-      var p = parts[i].split(':');
-      if (p.length < 3) continue;
-      var x = parseFloat(p[1]) / RADIUS * 100;
-      var y = parseFloat(p[2]) / RADIUS * 100;
-      if (x * x + y * y > 50 * 50) continue;
-      html += '<i class="blip" style="left:' + (50 + x) + '%;top:' + (50 + y) + '%;background:' +
-        (COLORS[p[0]] || '#FFFFFF') + '"></i>';
-    }
-    blips.innerHTML = html;
-    zone.textContent = zoneName || '';
-    if (radarN) radarN.style.transform = 'rotate(' + (-angle) + 'deg) translateY(-46px) rotate(' + angle + 'deg)';
-  });
 
   /* Подсказки: что делает клавиша прямо сейчас. */
   RW.on('hud:hint', function (list) {
@@ -112,10 +89,19 @@
     hud.classList.toggle('off', !on);
   });
 
+  /* Никакого контекстного меню браузера поверх игры. */
+  document.addEventListener('contextmenu', function (e) { e.preventDefault(); return false; });
+  document.addEventListener('selectstart', function (e) { e.preventDefault(); });
+
   bonusGo.addEventListener('click', function () { RW.emit('hud:bonus', 1); });
   bonusClose.addEventListener('click', function () {
     bonus.classList.add('off');
     RW.emit('hud:bonushide', 1);
+  });
+
+  /* Режим мыши: включается командой /mouse, иначе курсор не мешает играть. */
+  RW.on('hud:mouse', function (on) {
+    hud.classList.toggle('mouse', !!on);
   });
 
   /* F2 открывает донат-меню, когда окно в фокусе. */

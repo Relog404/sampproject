@@ -411,6 +411,7 @@ stock RW_CommandProcess(playerid, cmdtext[])
     if (!strcmp(cmd, "rob", true)) return RW_PropRobCommand(playerid);
     if (!strcmp(cmd, "hud", true)) return RW_HudCommand(playerid);
     if (!strcmp(cmd, "bonus", true)) return RW_BonusCommand(playerid);
+    if (!strcmp(cmd, "mouse", true)) return RW_HudMouseCommand(playerid);
     if (!strcmp(cmd, "donate", true)) return RW_DonateCommand(playerid);
     if (!strcmp(cmd, "points", true)) return RW_PointsCommand(playerid);
     if (!strcmp(cmd, "givedonate", true)) return RW_GiveDonateCommand(playerid, params);

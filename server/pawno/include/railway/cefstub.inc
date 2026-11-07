@@ -69,3 +69,8 @@ stock RW_CefAuthClose(playerid)
     #pragma unused playerid
     return 0;
 }
+stock RW_CefHudMouse(playerid, on)
+{
+    #pragma unused playerid, on
+    return 0;
+}
