@@ -88,6 +88,15 @@ stock bool:RW_InputTrim(text[])
     return text[0] ? true : false;
 }
 
+/* Текст из поля: обрезать по длине, пустое не пропускать. */
+stock bool:RW_InputText(text[], dest[], size = sizeof dest)
+{
+    if (!RW_InputTrim(text)) return false;
+    if (strlen(text) >= size) return false;
+    format(dest, size, "%s", text);
+    return true;
+}
+
 /* Только цифры: буквы и минус в цену не превращаются. */
 stock RW_InputNumber(const text[])
 {
@@ -155,6 +164,19 @@ stock RW_InputApply(playerid, kind, arg, arg2, const text[])
         if (amount < 1) return RW_Error(playerid, "Сумма — числом, больше нуля.");
         RW_BankTransfer(playerid, arg, amount);
         return RW_BankRender(playerid);
+    }
+    if (kind == INPUT_FAMILY_NAME) {
+        new name[FAMILY_MAX_NAME], copy[INPUT_MAX_TEXT];
+        format(copy, sizeof copy, "%s", text);
+        if (!RW_InputText(copy, name, sizeof name)) return RW_Error(playerid, "Название — до 24 знаков, без кавычек.");
+        RW_FamilyCreateNamed(playerid, name);
+        return RW_FamilyOpen(playerid);
+    }
+    if (kind == INPUT_FAMILY_CASH) {
+        new amount = RW_InputNumber(text);
+        if (amount < 1) return RW_Error(playerid, "Сумма — числом, больше нуля.");
+        RW_FamilyCashTake(playerid, amount);
+        return RW_FamilyOpen(playerid);
     }
     if (kind == INPUT_TILL_PUT || kind == INPUT_TILL_TAKE) {
         new amount = RW_InputNumber(text);

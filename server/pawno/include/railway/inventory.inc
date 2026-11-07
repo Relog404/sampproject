@@ -466,6 +466,7 @@ stock RW_InvUseLabel(type, bool:weaponInHand, dest[], size = sizeof dest)
 #define INV_CEF_ACT_WEAR        4       /* надеть, взять в руки, снять        */
 #define INV_CEF_ACT_USE         5       /* главное действие вещи              */
 #define INV_CEF_ACT_SELL        6       /* продать на маркетплейсе            */
+#define INV_CEF_ACT_STASH       7       /* на склад семьи                     */
 
 /* Короткое название вещи: и в ячейке, и в шапке карточки. */
 stock RW_InvTitle(type, data, amount, dest[], size = sizeof dest)
@@ -602,6 +603,10 @@ stock RW_InvCefContext(playerid, slot)
             format(price, sizeof price, "Продать");
             RW_CefInvAction(playerid, INV_CEF_ACT_SELL, price, "ok");
         }
+        /* Склад семьи: сдать вещь, не вспоминая номер слота. */
+        if (slot < INV_SLOTS && RW_InvCanRemove(playerid, slot) && RW_FamilyCanStore(playerid)) {
+            RW_CefInvAction(playerid, INV_CEF_ACT_STASH, "На склад семьи", "box");
+        }
     }
     return RW_CefInvEnd(playerid);
 }
@@ -616,6 +621,12 @@ stock RW_InvCefClick(playerid, id)
         if (action == INV_CEF_ACT_MOVE) { RW_InvTransfer(playerid, gInvFromGround[playerid] ? 0 : RW_InvSectionOf(playerid)); return RW_InvCef(playerid, false); }
         if (action == INV_CEF_ACT_WEAR) { RW_InvWearSelected(playerid); return RW_InvCef(playerid, false); }
         if (action == INV_CEF_ACT_SELL) return RW_InputSellPrice(playerid, gInvSelected[playerid]);
+        if (action == INV_CEF_ACT_STASH) {
+            new slot_stash = RW_InvFind(playerid, gInvSelected[playerid]);
+            if (slot_stash < 0) return RW_Error(playerid, "Этой вещи уже нет в инвентаре.");
+            RW_FamilyStoreSlot(playerid, slot_stash);
+            return RW_InvCef(playerid, false);
+        }
         if (action == INV_CEF_ACT_USE) { RW_UI_Close(playerid); return RW_InvUseSelected(playerid); }
         return 1;
     }

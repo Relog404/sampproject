@@ -82,20 +82,20 @@ class FamilyCreateTest(unittest.TestCase):
     def test_the_price_and_the_limits(self):
         self.assertIn('#define FAMILY_CREATE_COST  50000', FAMILY)
         self.assertIn('#define FAMILY_SLOTS        40', FAMILY)
-        create = block(FAMILY, 'stock RW_FamilyCreate(playerid, const params[])')
+        create = block(FAMILY, 'stock RW_FamilyCreateNamed(playerid, const name[])')
         self.assertIn('if (gMoney[playerid] < FAMILY_CREATE_COST) return RW_Error', create)
         self.assertIn('RW_TakeMoney(playerid, FAMILY_CREATE_COST)', create)
         self.assertIn('if (strlen(name) < 3)', create)
         self.assertIn('RW_SafeSqlText(name)', create)
 
     def test_the_founder_becomes_the_leader(self):
-        create = block(FAMILY, 'stock RW_FamilyCreate(playerid, const params[])')
+        create = block(FAMILY, 'stock RW_FamilyCreateNamed(playerid, const name[])')
         self.assertIn('FAMILY_RANK_LEADER', create)
         self.assertIn('gFamilyRank[playerid] = FAMILY_RANK_LEADER;', create)
         self.assertIn('INSERT INTO families(name,leader,cash,stamp)', create)
 
     def test_you_cannot_found_a_second_family(self):
-        create = block(FAMILY, 'stock RW_FamilyCreate(playerid, const params[])')
+        create = block(FAMILY, 'stock RW_FamilyCreateNamed(playerid, const name[])')
         self.assertIn('if (gFamily[playerid] != FAMILY_NONE) return RW_Error', create)
 
 
@@ -148,19 +148,19 @@ class FamilyCarTest(unittest.TestCase):
         self.assertIn('ITEM_CAR_KEY', block(FAMILY, 'stock RW_FamilyKeySlot(playerid)'))
 
     def test_the_stash_is_limited(self):
-        for caller in ('stock RW_FamilyGiveCar(playerid)', 'stock RW_FamilyStore(playerid, const params[])'):
+        for caller in ('stock RW_FamilyGiveCar(playerid)', 'stock RW_FamilyStoreSlot(playerid, slot)'):
             body = block(FAMILY, caller)
             self.assertIn('FAMILY_SLOTS', body)
 
     def test_taking_an_item_back_grants_it_to_the_bag(self):
-        take = block(FAMILY, 'stock RW_FamilyTakeItem(playerid, const params[])')
+        take = block(FAMILY, 'stock RW_FamilyTakeId(playerid, id)')
         self.assertIn('RW_FamilyGrant(playerid, type, data, amount)', take)
         self.assertIn('DELETE FROM family_items WHERE id=%d AND family=%d', take)
         grant = block(FAMILY, 'stock RW_FamilyGrant(playerid, type, data, amount)')
         self.assertIn('UPDATE inventory_items SET amount=%d WHERE uid=%d', grant)
 
     def test_only_seniors_fill_the_stash(self):
-        store = block(FAMILY, 'stock RW_FamilyStore(playerid, const params[])')
+        store = block(FAMILY, 'stock RW_FamilyStoreSlot(playerid, slot)')
         self.assertIn('if (gFamilyRank[playerid] < FAMILY_RANK_SENIOR) return RW_Error', store)
         self.assertIn('RW_InvCanRemove(playerid, slot)', store)
 
@@ -206,7 +206,7 @@ class FamilyCashTest(unittest.TestCase):
     """Only the leader spends the crew's money."""
 
     def test_only_the_leader_takes_from_the_box(self):
-        cash = block(FAMILY, 'stock RW_FamilyCashCommand(playerid, const params[])')
+        cash = block(FAMILY, 'stock RW_FamilyCashTake(playerid, amount)')
         self.assertIn('if (gFamilyRank[playerid] != FAMILY_RANK_LEADER) return RW_Error', cash)
         self.assertIn('RW_FamilyTakeMoney(gFamily[playerid], amount)', cash)
         self.assertIn('RW_AddMoney(playerid, amount);', cash)
@@ -236,8 +236,29 @@ class FamilyInterfaceTest(unittest.TestCase):
 
     def test_a_lone_player_is_offered_to_found_a_family(self):
         rows = block(FAMILY, 'stock RW_FamilyRows(playerid)')
-        self.assertIn('Вы не в семье', rows)
-        self.assertIn('/fcreate <название>', rows)
+        self.assertIn('"Создать семью"', rows)
+        self.assertIn('"нажмите: название спросит поле ввода"', rows)
+        action = block(FAMILY, 'stock RW_FamilyAction(playerid, row, bool:cef)')
+        self.assertIn('if (row == 0 && gFamily[playerid] == FAMILY_NONE) return RW_FamilyAskName(playerid);', action)
+        self.assertIn('INPUT_FAMILY_NAME, 0, "Новая семья"', block(FAMILY, 'stock RW_FamilyAskName(playerid)'))
+
+    def test_the_stash_opens_as_a_list_not_as_chat(self):
+        rows = block(FAMILY, 'stock RW_FamilyStorageRows(playerid)')
+        self.assertIn('ORDER BY id LIMIT %d OFFSET %d', rows)
+        self.assertIn('gFamilyIds[playerid][index] = id;', rows)
+        action = block(FAMILY, 'stock RW_FamilyAction(playerid, row, bool:cef)')
+        self.assertIn('if (gFamilyMode[playerid] == FAMILY_MODE_STORAGE)', action)
+        self.assertIn('RW_FamilyTakeId(playerid, id);', action)
+        self.assertIn('return RW_FamilyOpen(playerid);', action)
+        self.assertIn('return RW_FamilyOpenStorage(playerid);', action)
+
+    def test_the_crew_takes_the_cash_and_leaves_by_click(self):
+        action = block(FAMILY, 'stock RW_FamilyAction(playerid, row, bool:cef)')
+        self.assertIn('INPUT_FAMILY_CASH, 0, "Касса семьи"', action)
+        self.assertIn('RW_FamilyLeave(playerid);', action)
+        self.assertTrue(block(FAMILY, 'stock bool:RW_FamilyCanStore(playerid)'))
+        self.assertIn('RW_FamilyStoreSlot(playerid, slot_stash);',
+                      block(pawn('inventory'), 'stock RW_InvCefClick(playerid, id)'))
 
     def test_the_commands_are_registered(self):
         for command in ('family', 'fcreate', 'finvite', 'fjoin', 'fleave', 'fkick',

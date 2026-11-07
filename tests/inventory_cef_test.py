@@ -120,9 +120,9 @@ class InventoryClickTest(unittest.TestCase):
 
     def test_every_action_redraws_the_grid(self):
         click = block(INV, 'stock RW_InvCefClick(playerid, id)')
-        # четыре действия перерисовывают сетку, пятое (левый клик) тоже:
+        # пять действий перерисовывают сетку, шестое (левый клик) тоже:
         # «Взять в руки» и «Использовать» закрывают инвентарь перед действием.
-        self.assertEqual(click.count('return RW_InvCef(playerid, false);'), 5)
+        self.assertEqual(click.count('return RW_InvCef(playerid, false);'), 6)
         self.assertIn('if (action == INV_CEF_ACT_WEAR) { RW_InvWearSelected(playerid); return RW_InvCef(playerid, false); }', click)
         self.assertIn('if (action == INV_CEF_ACT_USE) { RW_UI_Close(playerid); return RW_InvUseSelected(playerid); }', click)
 

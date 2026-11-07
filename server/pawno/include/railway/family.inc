@@ -36,6 +36,8 @@
 #define FAMILY_INCOME       150     /* с территории за раз */
 #define FAMILY_PAY_PERIOD   600     /* раз в десять минут */
 #define FAMILY_ROWS         6
+#define FAMILY_MODE_MAIN    0       /* главная: семья, касса, склад     */
+#define FAMILY_MODE_STORAGE 1       /* склад: вещи и «взять»            */
 
 /* Реальные точки: районы Лос-Сантоса, за которые идут войны. */
 static const Float:gFamilyZone[FAMILY_ZONES][3] = {
@@ -55,6 +57,9 @@ new gFamilyCash[MAX_PLAYERS];
 new gFamilyCapture[MAX_PLAYERS];
 new gFamilyZoneStamp;
 new gFamilyTick[MAX_PLAYERS];
+new gFamilyMode[MAX_PLAYERS];        /* главная или склад                 */
+new gFamilyPage[MAX_PLAYERS];        /* страница склада                   */
+new gFamilyIds[MAX_PLAYERS][FAMILY_ROWS]; /* вещи на складе: что лежит на строке */
 
 forward RW_FamilyPulse();
 forward RW_FamilyClick(playerid, row);
@@ -78,6 +83,8 @@ stock RW_FamilyReset(playerid)
     gFamilyCash[playerid] = 0;
     gFamilyCapture[playerid] = 0;
     gFamilyTick[playerid] = 0;
+    gFamilyMode[playerid] = FAMILY_MODE_MAIN;
+    gFamilyPage[playerid] = 0;
     return 1;
 }
 stock RW_FamilyLoad(playerid)
@@ -169,13 +176,10 @@ stock bool:RW_FamilyTakeMoney(family, amount)
 
 /*  -------------------------------- создание ------------------------------- */
 
-stock RW_FamilyCreate(playerid, const params[])
+/* Зарегистрировать семью: и /fcreate <название>, и поле ввода в панели. */
+stock RW_FamilyCreateNamed(playerid, const name[])
 {
-    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
     if (gFamily[playerid] != FAMILY_NONE) return RW_Error(playerid, "Вы уже в семье: сначала /fleave.");
-    if (!params[0]) return RW_Info(playerid, "Использование: /fcreate <название>. Стоит 50 000 наличными.");
-    new name[FAMILY_MAX_NAME];
-    format(name, sizeof name, "%s", params);
     if (strlen(name) < 3) return RW_Error(playerid, "Слишком короткое название: хотя бы три буквы.");
     if (!RW_SafeSqlText(name)) return RW_Error(playerid, "В названии только буквы, цифры и пробелы.");
     if (gMoney[playerid] < FAMILY_CREATE_COST) return RW_Error(playerid, "Нужно 50 000 наличными на регистрацию семьи.");
@@ -202,6 +206,14 @@ stock RW_FamilyCreate(playerid, const params[])
     new message[180];
     format(message, sizeof message, "Семья «%s» зарегистрирована. Вы — лидер. Зовите людей: /finvite <id>.", name);
     return RW_Ok(playerid, message);
+
+}
+
+stock RW_FamilyCreate(playerid, const params[])
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
+    if (!params[0]) return RW_Info(playerid, "Использование: /fcreate <название>. Стоит 50 000 наличными.");
+    return RW_FamilyCreateNamed(playerid, params);
 }
 
 /*  --------------------------------- состав -------------------------------- */
@@ -329,14 +341,12 @@ stock RW_FamilyStash(family, type, data, amount)
     return RW_DB_Exec(query);
 }
 /* Кладёт предмет со слота инвентаря на склад семьи. */
-stock RW_FamilyStore(playerid, const params[])
+/* Положить вещь на склад семьи: и /fstore <слот>, и кнопка в карточке вещи. */
+stock RW_FamilyStoreSlot(playerid, slot)
 {
-    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
     if (gFamily[playerid] == FAMILY_NONE) return RW_Error(playerid, "Вы не в семье.");
     if (gFamilyRank[playerid] < FAMILY_RANK_SENIOR) return RW_Error(playerid, "На склад сдают лидер и старшие.");
     if (!gInvLoaded[playerid]) return RW_Error(playerid, "Инвентарь ещё загружается.");
-    if (!params[0]) return RW_Info(playerid, "Использование: /fstore <слот инвентаря>. Забрать: /ftake <номер>.");
-    new slot = strval(params);
     if (slot < 0 || slot >= INV_SLOTS) return RW_Error(playerid, "Нет такого слота: слоты с 0 до 79.");
     new type = gInv[playerid][slot][iiType], data = gInv[playerid][slot][iiData], amount = gInv[playerid][slot][iiAmount];
     if (type <= 0 || amount < 1) return RW_Error(playerid, "В этом слоте пусто.");
@@ -352,33 +362,57 @@ stock RW_FamilyStore(playerid, const params[])
     RW_InvAttach(playerid);
     if (gUIMode[playerid] == UI_INVENTORY) RW_InvRender(playerid);
     return RW_Ok(playerid, "Предмет ушёл на склад семьи. Забрать: /ftake <номер>, список: /fstore list.");
+
 }
-stock RW_FamilyTakeItem(playerid, const params[])
+
+stock RW_FamilyStore(playerid, const params[])
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
+    if (!params[0]) return RW_Info(playerid, "Использование: /fstore <слот инвентаря>. Забрать: /ftake <номер>.");
+    return RW_FamilyStoreSlot(playerid, strval(params));
+}
+/* Взять вещь со склада: клик передаёт номер строки из базы, команда —
+   порядковый номер из списка, но делает это одно и то же. */
+stock RW_FamilyTakeId(playerid, id)
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
     if (gFamily[playerid] == FAMILY_NONE) return RW_Error(playerid, "Вы не в семье.");
     if (!gInvLoaded[playerid]) return RW_Error(playerid, "Инвентарь ещё загружается.");
-    if (!params[0]) return RW_FamilyStorageList(playerid);
-    new row = strval(params);
+    if (id <= 0) return RW_Error(playerid, "Нет такого предмета.");
     new query[260];
-    format(query, sizeof query, "SELECT id,type,data,amount FROM family_items WHERE family=%d ORDER BY id", gFamily[playerid]);
+    format(query, sizeof query, "SELECT type,data,amount FROM family_items WHERE id=%d AND family=%d", id, gFamily[playerid]);
     new DBResult:r = db_query(gDB, query);
-    if (r == DBResult:0) return RW_Error(playerid, "Склад пуст.");
-    new rows = db_num_rows(r), id, type, data, amount;
-    for (new i; i < rows; i++) {
-        id = db_get_field_assoc_int(r, "id");
-        type = db_get_field_assoc_int(r, "type");
-        data = db_get_field_assoc_int(r, "data");
-        amount = db_get_field_assoc_int(r, "amount");
-        if (i == row - 1) break;
-        db_next_row(r);
-    }
+    if (r == DBResult:0) return RW_Error(playerid, "Этого предмета уже нет на складе.");
+    if (!db_num_rows(r)) { db_free_result(r); return RW_Error(playerid, "Этого предмета уже нет на складе."); }
+    new type = db_get_field_assoc_int(r, "type"), data = db_get_field_assoc_int(r, "data");
+    new amount = db_get_field_assoc_int(r, "amount");
     db_free_result(r);
-    if (row < 1 || row > rows || id <= 0) return RW_Error(playerid, "Нет такого предмета. Список: /fstore list.");
+    if (type <= 0 || amount < 1) return RW_Error(playerid, "Этого предмета уже нет на складе.");
     if (RW_FamilyGrant(playerid, type, data, amount) <= 0) return RW_Error(playerid, "В инвентаре нет места.");
     format(query, sizeof query, "DELETE FROM family_items WHERE id=%d AND family=%d", id, gFamily[playerid]);
     RW_DB_Exec(query);
     return RW_Ok(playerid, "Предмет взят со склада семьи.");
+}
+
+stock RW_FamilyTakeItem(playerid, const params[])
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
+    if (gFamily[playerid] == FAMILY_NONE) return RW_Error(playerid, "Вы не в семье.");
+    if (!params[0]) return RW_FamilyStorageList(playerid);
+    new row = strval(params);
+    new query[260];
+    format(query, sizeof query, "SELECT id FROM family_items WHERE family=%d ORDER BY id", gFamily[playerid]);
+    new DBResult:r = db_query(gDB, query);
+    if (r == DBResult:0) return RW_Error(playerid, "Склад пуст.");
+    new rows = db_num_rows(r), id;
+    for (new i; i < rows; i++) {
+        id = db_get_field_assoc_int(r, "id");
+        if (i == row - 1) break;
+        db_next_row(r);
+    }
+    db_free_result(r);
+    if (row < 1 || row > rows || id <= 0) return RW_Error(playerid, "Нет такого предмета.");
+    return RW_FamilyTakeId(playerid, id);
 }
 /* Выдача со склада: пачки патронов и прекурсоров не теряют количество. */
 stock RW_FamilyGrant(playerid, type, data, amount)
@@ -558,6 +592,20 @@ stock RW_FamilyTick(playerid)
 
 /*  ---------------------------------- касса -------------------------------- */
 
+/* Снять деньги из кассы семьи: и /fcash <сумма>, и кнопка в панели. */
+stock RW_FamilyCashTake(playerid, amount)
+{
+    if (gFamilyRank[playerid] != FAMILY_RANK_LEADER) return RW_Error(playerid, "Кассой распоряжается лидер.");
+    if (amount <= 0) return RW_Error(playerid, "Сумма должна быть больше нуля.");
+    if (!RW_FamilyTakeMoney(gFamily[playerid], amount)) return RW_Error(playerid, "В кассе столько нет.");
+    RW_AddMoney(playerid, amount);
+    new money[32], message[160];
+    RW_FormatMoney(amount, money, sizeof money);
+    format(message, sizeof message, "Снято из кассы: %s.", money);
+    return RW_Ok(playerid, message);
+
+}
+
 stock RW_FamilyCashCommand(playerid, const params[])
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
@@ -568,21 +616,62 @@ stock RW_FamilyCashCommand(playerid, const params[])
         new name[FAMILY_MAX_NAME], message[200], money[32];
         RW_FamilyName(gFamily[playerid], name, sizeof name);
         RW_FormatMoney(gFamilyCash[playerid], money, sizeof money);
-        format(message, sizeof message, "Касса семьи «%s»: %s. Территорий: %d, бойцов: %d. Снять: /fcash <сумма>.", name, money, RW_FamilyZones(gFamily[playerid]), RW_FamilyMembers(gFamily[playerid]));
+        format(message, sizeof message, "Касса семьи \"%s\": %s. Территорий: %d, бойцов: %d. Снять: /fcash <сумма>.", name, money, RW_FamilyZones(gFamily[playerid]), RW_FamilyMembers(gFamily[playerid]));
         return RW_Info(playerid, message);
     }
-    if (gFamilyRank[playerid] != FAMILY_RANK_LEADER) return RW_Error(playerid, "Кассой распоряжается лидер.");
-    new amount = strval(sum);
-    if (amount <= 0) return RW_Error(playerid, "Сумма должна быть больше нуля.");
-    if (!RW_FamilyTakeMoney(gFamily[playerid], amount)) return RW_Error(playerid, "В кассе столько нет.");
-    RW_AddMoney(playerid, amount);
-    new money[32], message[160];
-    RW_FormatMoney(amount, money, sizeof money);
-    format(message, sizeof message, "Снято из кассы: %s.", money);
-    return RW_Ok(playerid, message);
+    return RW_FamilyCashTake(playerid, strval(sum));
 }
 
 /*  --------------------------------- панель -------------------------------- */
+
+/*  ---------------------------- склад семьи -------------------------------- */
+/*  Список вместо сообщений в чат: строка — вещь, нажатие забирает её. */
+stock RW_FamilyStorageRows(playerid)
+{
+    new query[260], family = gFamily[playerid];
+    format(query, sizeof query, "SELECT id,type,data,amount FROM family_items WHERE family=%d ORDER BY id LIMIT %d OFFSET %d",
+        family, FAMILY_ROWS, gFamilyPage[playerid] * FAMILY_ROWS);
+    /* Сначала чистим: иначе на новой странице в нижних строках останутся
+       вещи с прошлой и нажатие заберёт не то. */
+    for (new i; i < FAMILY_ROWS; i++) gFamilyIds[playerid][i] = 0;
+    new DBResult:r = db_query(gDB, query);
+    if (r == DBResult:0) { RW_FamilyRowOut(playerid, 0, "Склад пуст", "сдать вещь: кнопка в карточке", "info"); return 0; }
+    new rows = db_num_rows(r), index, item[40], text[96], arg[32];
+    for (; index < rows; index++) {
+        new id = db_get_field_assoc_int(r, "id"), type = db_get_field_assoc_int(r, "type");
+        new data = db_get_field_assoc_int(r, "data"), amount = db_get_field_assoc_int(r, "amount");
+        gFamilyIds[playerid][index] = id;
+        RW_MarketItemName(type, data, item, sizeof item);
+        format(text, sizeof text, "%s x%d", item, amount);
+        format(arg, sizeof arg, "взять");
+        RW_FamilyRowOut(playerid, index, text, arg, "box");
+        db_next_row(r);
+    }
+    db_free_result(r);
+    if (!index) RW_FamilyRowOut(playerid, 0, "На этой странице пусто", "вернитесь: кнопка «Назад»", "info");
+    return index;
+}
+
+/* Сдавать на склад могут лидер и старшие: остальным кнопку не показываем. */
+stock bool:RW_FamilyCanStore(playerid)
+{
+    if (!gLogged[playerid]) return false;
+    if (gFamily[playerid] == FAMILY_NONE) return false;
+    return gFamilyRank[playerid] >= FAMILY_RANK_SENIOR;
+}
+
+stock RW_FamilyAskName(playerid)
+{
+    return RW_InputOpen(playerid, INPUT_FAMILY_NAME, 0, "Новая семья",
+        "Название: буквы, цифры и пробелы, от трёх знаков", "Например: Северные");
+}
+
+stock RW_FamilyOpenStorage(playerid)
+{
+    gFamilyMode[playerid] = FAMILY_MODE_STORAGE;
+    gFamilyPage[playerid] = 0;
+    return RW_FamilyOpen(playerid);
+}
 
 stock RW_FamilyRowOut(playerid, row, const text[], const arg[], const icon[])
 {
@@ -600,10 +689,14 @@ stock RW_FamilyRows(playerid)
 {
     new row[96], arg[96], name[FAMILY_MAX_NAME];
     if (gFamily[playerid] == FAMILY_NONE) {
-        RW_FamilyRowOut(playerid, 0, "Вы не в семье", "создать: /fcreate <название>", "group");
+        RW_FamilyRowOut(playerid, 0, "Создать семью", "нажмите: название спросит поле ввода", "group");
         RW_FamilyRowOut(playerid, 1, "Стоимость семьи", "50 000 наличными", "wallet");
         RW_FamilyRowOut(playerid, 2, "Зачем это", "гараж, склад и территории", "info");
-        RW_FamilyRowOut(playerid, 3, "Приглашение", "принять: /fjoin", "users");
+        if (gFamilyInvite[playerid] != FAMILY_NONE) {
+            RW_FamilyName(gFamilyInvite[playerid], name, sizeof name);
+            format(arg, sizeof arg, "принять: семья «%s»", name);
+            RW_FamilyRowOut(playerid, 3, "Вас позвали в семью", arg, "users");
+        } else RW_FamilyRowOut(playerid, 3, "Приглашение", "никто не звал: ждите приглашения", "users");
         return 1;
     }
     RW_FamilyName(gFamily[playerid], name, sizeof name);
@@ -611,10 +704,11 @@ stock RW_FamilyRows(playerid)
     format(arg, sizeof arg, "вы — %s", gFamilyRankName[gFamilyRank[playerid]]);
     RW_FamilyRowOut(playerid, 0, row, arg, "group");
     format(row, sizeof row, "Касса: %d", gFamilyCash[playerid]);
-    format(arg, sizeof arg, "снять лидеру: /fcash <сумма>");
+    if (gFamilyRank[playerid] == FAMILY_RANK_LEADER) format(arg, sizeof arg, "снять: нажмите, сумму спросит поле ввода");
+    else format(arg, sizeof arg, "кассой распоряжается лидер");
     RW_FamilyRowOut(playerid, 1, row, arg, "wallet");
     format(row, sizeof row, "Склад: %d из %d", RW_FamilyItemCount(gFamily[playerid]), FAMILY_SLOTS);
-    format(arg, sizeof arg, "сдать /fstore <слот>, взять /ftake <номер>");
+    format(arg, sizeof arg, "открыть: нажмите, чтобы взять вещь");
     RW_FamilyRowOut(playerid, 2, row, arg, "box");
     format(row, sizeof row, "Территорий: %d", RW_FamilyZones(gFamily[playerid]));
     format(arg, sizeof arg, "захват: /fcap, список: /fzones");
@@ -622,6 +716,9 @@ stock RW_FamilyRows(playerid)
     format(row, sizeof row, "Бойцов: %d", RW_FamilyMembers(gFamily[playerid]));
     format(arg, sizeof arg, "позвать: /finvite <id>");
     RW_FamilyRowOut(playerid, 4, row, arg, "users");
+    format(row, sizeof row, "Выйти из семьи");
+    format(arg, sizeof arg, "лидер сначала передаёт пост: /frank <id> 2");
+    RW_FamilyRowOut(playerid, 5, row, arg, "danger");
     return 1;
 }
 stock RW_FamilyOpen(playerid)
@@ -634,26 +731,60 @@ stock RW_FamilyOpen(playerid)
     } else {
         format(subtitle, sizeof subtitle, "Семья даёт гараж, склад и территории");
     }
+    if (gFamily[playerid] == FAMILY_NONE) gFamilyMode[playerid] = FAMILY_MODE_MAIN;
+    if (gFamilyMode[playerid] == FAMILY_MODE_STORAGE) format(subtitle, sizeof subtitle, "Склад семьи: страница %d", gFamilyPage[playerid] + 1);
     #if RAILWAY_CEF
         if (RW_CefOpen(playerid, CEF_MODE_FAMILY, "Семья", subtitle)) {
-            RW_FamilyRows(playerid);
-            RW_CefAction(playerid, 6, "Захват территории", "");
+            if (gFamilyMode[playerid] == FAMILY_MODE_STORAGE) {
+                RW_FamilyStorageRows(playerid);
+                RW_CefAction(playerid, 6, "К семье", "");
+                RW_CefAction(playerid, 7, "Дальше", "");
+            } else {
+                RW_FamilyRows(playerid);
+                RW_CefAction(playerid, 6, "Захват территории", "");
+            }
             RW_CefAction(playerid, 8, "Закрыть", "danger");
             return RW_CefEnd(playerid);
         }
     #endif
     RW_UI_Panel(playerid, UI_FAMILY, "Семья", subtitle);
-    RW_FamilyRows(playerid);
-    RW_UI_Row(playerid, 6, "Захват территории");
+    if (gFamilyMode[playerid] == FAMILY_MODE_STORAGE) RW_FamilyStorageRows(playerid);
+    else RW_FamilyRows(playerid);
+    RW_UI_Row(playerid, 6, (gFamilyMode[playerid] == FAMILY_MODE_STORAGE) ? ("К семье") : ("Захват территории"));
     RW_UI_Row(playerid, 7, "Закрыть");
     return 1;
 }
 stock RW_FamilyAction(playerid, row, bool:cef)
 {
-    if (row == (cef ? 8 : 7)) return RW_UI_Close(playerid);
+    if (row == (cef ? 8 : 7)) { gFamilyMode[playerid] = FAMILY_MODE_MAIN; return RW_UI_Close(playerid); }
+    if (gFamilyMode[playerid] == FAMILY_MODE_STORAGE) {
+        if (row == 6) { gFamilyMode[playerid] = FAMILY_MODE_MAIN; return RW_FamilyOpen(playerid); }
+        if (cef && row == 7) {
+            new pages = (RW_FamilyItemCount(gFamily[playerid]) + FAMILY_ROWS - 1) / FAMILY_ROWS;
+            if (pages < 1) pages = 1;
+            gFamilyPage[playerid] = (gFamilyPage[playerid] + 1) % pages;
+            return RW_FamilyOpen(playerid);
+        }
+        if (row < FAMILY_ROWS && gFamilyIds[playerid][row] > 0) {
+            new id = gFamilyIds[playerid][row];
+            gFamilyIds[playerid][row] = 0;
+            RW_FamilyTakeId(playerid, id);
+            return RW_FamilyOpen(playerid);
+        }
+        return 1;
+    }
     if (row == 6) return RW_FamilyCapture(playerid);
-    if (row == 2 && gFamily[playerid] != FAMILY_NONE) return RW_FamilyStorageList(playerid);
+    if (row == 2 && gFamily[playerid] != FAMILY_NONE) return RW_FamilyOpenStorage(playerid);
     if (row == 3 && gFamily[playerid] != FAMILY_NONE) return RW_FamilyZonesCommand(playerid);
+    if (row == 0 && gFamily[playerid] == FAMILY_NONE) return RW_FamilyAskName(playerid);
+    if (row == 1 && gFamily[playerid] != FAMILY_NONE && gFamilyRank[playerid] == FAMILY_RANK_LEADER)
+        return RW_InputOpen(playerid, INPUT_FAMILY_CASH, 0, "Касса семьи",
+            "Сколько снять: наличными в карман", "Например: 5000");
+    if (row == 3 && gFamily[playerid] == FAMILY_NONE) return RW_FamilyJoin(playerid);
+    if (cef && row == 5 && gFamily[playerid] != FAMILY_NONE) {
+        RW_FamilyLeave(playerid);
+        return RW_FamilyOpen(playerid);
+    }
     return RW_FamilyOpen(playerid);
 }
 stock RW_FamilyClick(playerid, row) { return RW_FamilyAction(playerid, row, false); }
