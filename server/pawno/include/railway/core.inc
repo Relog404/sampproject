@@ -47,6 +47,9 @@ forward RW_MenuToggle(playerid);
 forward RW_SetCommand(playerid, const params[]);
 forward RW_KeyCommand(playerid, const params[]);
 forward RW_MenuFocus(playerid);
+forward RW_MarketPulse();
+forward RW_MarketClick(playerid, row);
+forward RW_MarketCefClick(playerid, id);
 forward RW_DonateOpen(playerid);
 forward RW_DonateClick(playerid, row);
 forward RW_DonateCefClick(playerid, id);
@@ -98,6 +101,7 @@ forward RW_LawyerCallFor(playerid, target);
 #define CEF_MODE_PROPERTY           (13)
 #define CEF_MODE_DONATE             (14)
 #define CEF_MODE_STORY              (15)
+#define CEF_MODE_MARKET             (16)
 /* Настройки интерфейса: их читают модули, подключённые раньше menu.inc. */
 #define SET_HUD             (1)         /* экранный интерфейс              */
 #define SET_HINTS           (2)         /* подсказки клавиш                */

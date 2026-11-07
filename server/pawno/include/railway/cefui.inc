@@ -318,6 +318,7 @@ public RW_CefClick(playerid, browserid, id)
     if (gCefMode[playerid] == CEF_MODE_PROPERTY) return RW_PropCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_DONATE) return RW_DonateCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_STORY) return RW_StoryCefClick(playerid, id);
+    if (gCefMode[playerid] == CEF_MODE_MARKET) return RW_MarketCefClick(playerid, id);
     return 1;
 }
 

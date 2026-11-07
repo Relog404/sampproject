@@ -30,6 +30,7 @@
 #define UI_PROPERTY 23
 #define UI_DONATE 24
 #define UI_STORY 25
+#define UI_MARKET 26
 new PlayerText:gUIPreview[MAX_PLAYERS];
 new PlayerText:gUI[MAX_PLAYERS][UI_COUNT];
 new bool:gUICreated[MAX_PLAYERS], bool:gUIInput[MAX_PLAYERS];

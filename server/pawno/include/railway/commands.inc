@@ -57,7 +57,7 @@ stock RW_CommandHelp(playerid)
     SendClientMessage(playerid, COLOR_GREY, "Деньги: /shop, /bank, /balance, /deposit, /withdraw, /transfer <id> <сумма>, /job, /work, /quitjob, /payday.");
     SendClientMessage(playerid, COLOR_GREY, "Недвижимость: /property, /doors, /enter, /exit, /paytax, /till put|take <сумма>, /bid <сумма>, /rob (12:00-01:00).");
     SendClientMessage(playerid, COLOR_GREY, "Сюжет: /story - восемь глав с опытом и деньгами; /profile - уровень, опыт и вся статистика.");
-    SendClientMessage(playerid, COLOR_GREY, "Интерфейс: /hud - экранный интерфейс, /bonus - бесплатный бонус, F2 или /donate - донат, /set <hud|hints|bonus|speedo|names|markers|welcome>, /key <0|1|2>, Alt + Y - курсор мыши, C - донат, Alt + H - настройки, F3 (Alt + N) - меню, / - телефон, /talk - непись.");
+    SendClientMessage(playerid, COLOR_GREY, "Интерфейс: /hud - экранный интерфейс, /bonus - бесплатный бонус, F2 или /donate - донат, /set <hud|hints|bonus|speedo|names|markers|welcome>, /key <0|1|2>, Alt + Y - курсор мыши, C - донат, Alt + H - настройки, F3 (Alt + N) - меню, / - телефон, /talk - непись.  Маркетплейс: /market, /sell <слот> <цена> [часы], /buy <лот>, /stavka <лот> <сумма>, /unsell <лот>, /claim.");
     SendClientMessage(playerid, COLOR_GREY, "Приложения: /apps, /weather, /group, /g <текст>, /ginvite, /taxi, /uber, /news, /ad, /auto, /deliver, /snap, /photo, /lawcall, /radio.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/spcar <id>{FFFFFF} - временная машина (400-611). /garage - гараж вокзала.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} - открыть/закрыть машину под прицелом; ключ должен быть в /inv.");
@@ -418,6 +418,12 @@ stock RW_CommandProcess(playerid, cmdtext[])
     if (!strcmp(cmd, "settings", true)) return RW_SettingsCommand(playerid);
     if (!strcmp(cmd, "set", true)) return RW_SetCommand(playerid, params);
     if (!strcmp(cmd, "key", true)) return RW_KeyCommand(playerid, params);
+    if (!strcmp(cmd, "market", true) || !strcmp(cmd, "mp", true)) return RW_MarketCommand(playerid, params);
+    if (!strcmp(cmd, "sell", true)) return RW_SellCommand(playerid, params);
+    if (!strcmp(cmd, "buy", true)) return RW_BuyCommand(playerid, params);
+    if (!strcmp(cmd, "stavka", true)) return RW_BidCommand(playerid, params);
+    if (!strcmp(cmd, "unsell", true)) return RW_CancelCommand(playerid, params);
+    if (!strcmp(cmd, "claim", true)) return RW_TakeCommand(playerid);
     if (!strcmp(cmd, "donate", true)) return RW_DonateCommand(playerid);
     if (!strcmp(cmd, "points", true)) return RW_PointsCommand(playerid);
     if (!strcmp(cmd, "givedonate", true)) return RW_GiveDonateCommand(playerid, params);
