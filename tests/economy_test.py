@@ -194,34 +194,34 @@ class JobTest(unittest.TestCase):
 
     def test_hiring_happens_at_the_exchange(self):
         hire = block(ECON, 'stock RW_JobHire(playerid, job)')
-        self.assertIn('if (RW_JobHireIndex(playerid) < 0) return RW_Error(playerid, "Come to a hiring point: the docks, the station, the depots and the farms.");', hire)
+        self.assertIn('if (RW_JobHireIndex(playerid) < 0) return RW_Error(playerid, "Подойдите к точке найма: порт, вокзал, депо и фермы.");', hire)
         self.assertIn('RW_EconomySave(playerid);', hire)
-        self.assertIn('Hired as %s, level %d. /work takes a task, /quitjob leaves.', hire)
+        self.assertIn('Приняты: %s, уровень %d. /work берёт задание, /quitjob увольняет.', hire)
 
     def test_quitting_keeps_the_record(self):
         quitfn = block(ECON, 'stock RW_JobQuit(playerid)')
         self.assertIn('if (gJobStage[playerid] > 0) RW_JobTaskCancel(playerid, true);', quitfn)
-        self.assertIn('The level and the record stay on the card.', quitfn)
+        self.assertIn('Уровень и стаж остаются на карте.', quitfn)
 
     def test_a_task_is_two_points_with_a_deadline(self):
         take = block(ECON, 'stock RW_JobTaskTake(playerid)')
         self.assertIn('gJobStage[playerid] = 1;', take)
         self.assertIn('gJobEnd[playerid] = gettime() + JOB_TASK_SECONDS;', take)
         self.assertIn('SetPlayerMapIcon(playerid, ECON_TASK_ICON, x, y, z, 0, 0xF5B04CFF, MAPICON_GLOBAL);', take)
-        self.assertIn('if (GetTickCount() - gJobTick[playerid] < JOB_COOLDOWN_MS) return RW_Info(playerid, "Catch your breath for a second.");', take)
+        self.assertIn('if (GetTickCount() - gJobTick[playerid] < JOB_COOLDOWN_MS) return RW_Info(playerid, "Переведите дух: одну секунду.");', take)
 
     def test_each_job_has_its_own_conditions(self):
         take = block(ECON, 'stock RW_JobTaskTake(playerid)')
         self.assertIn('if (gJob[playerid] == JOB_TRUCKER && !RW_JobVehicleOk(playerid))', take)
         self.assertIn('if (gJob[playerid] == JOB_LOADER && GetPlayerState(playerid) != PLAYER_STATE_ONFOOT)', take)
-        self.assertIn('return RW_Error(playerid, "A loader works on foot: step out of the car.");', take)
+        self.assertIn('return RW_Error(playerid, "Грузчик работает пешком: выйдите из машины.");', take)
         self.assertIn('for (new i; i < sizeof gTruckModels; i++) if (gTruckModels[i] == model) return true;', ECON)
 
     def test_a_task_is_taken_and_handed_in_at_the_mark(self):
         work = block(ECON, 'stock RW_WorkCommand(playerid)')
         self.assertIn('if (gJobStage[playerid] == 0) return RW_JobTaskTake(playerid);', work)
         self.assertIn('IsPlayerInRangeOfPoint(playerid, JOB_TASK_RANGE, gJobX[playerid], gJobY[playerid], gJobZ[playerid])', work)
-        self.assertIn('Not there yet: %d m to the mark.', work)
+        self.assertIn('Ещё не дошли: до точки %d м.', work)
         self.assertIn('gJobStage[playerid] = 2;', work)
         self.assertIn('gJobPay[playerid] = floatround(RW_EconomyDistance(playerid, x, y, z) / 6.0);', work)
 
@@ -239,7 +239,7 @@ class JobTest(unittest.TestCase):
         self.assertIn('if (gJobStage[playerid] > 0 && gettime() > gJobEnd[playerid]) RW_JobTaskCancel(playerid);', pulse)
         cancel = block(ECON, 'stock RW_JobTaskCancel(playerid, bool:silent = false)')
         self.assertIn('RemovePlayerMapIcon(playerid, ECON_TASK_ICON);', cancel)
-        self.assertIn('Out of time. The task is gone, take another one.', cancel)
+        self.assertIn('Время вышло. Задание сгорело, возьмите новое.', cancel)
 
     def test_the_salary_arrives_on_the_account(self):
         payday = block(ECON, 'stock RW_EconomyPayday(playerid)')
@@ -252,16 +252,16 @@ class JobTest(unittest.TestCase):
 
     def test_the_menu_offers_every_job_and_a_way_out(self):
         # Текстовое меню показывает профессии страницами: пять строк, перелистывание и выход.
-        self.assertIn('RW_UI_Row(playerid, 5, \"Next jobs\");', ECON)
-        self.assertIn('RW_UI_Row(playerid, 5, \"First jobs\");', ECON)
-        self.assertIn('RW_UI_Row(playerid, 6, \"Quit the job\");', ECON)
+        self.assertIn('RW_UI_Row(playerid, 5, \"Дальше\");', ECON)
+        self.assertIn('RW_UI_Row(playerid, 5, \"В начало\");', ECON)
+        self.assertIn('RW_UI_Row(playerid, 6, \"Уволиться\");', ECON)
         self.assertIn('RW_UI_Row(playerid, 7, \"Close\");', ECON)
-        self.assertIn('if (gJob[playerid] != JOB_NONE) RW_CefAction(playerid, CEF_JOB_QUIT, \"Quit the job\", \"danger\");', ECON)
+        self.assertIn('if (gJob[playerid] != JOB_NONE) RW_CefAction(playerid, CEF_JOB_QUIT, \"Уволиться\", \"danger\");', ECON)
         action = block(ECON, 'stock RW_JobAction(playerid, row, bool:cef)')
         self.assertIn('if (row == 6) return RW_JobQuit(playerid);', action)
         self.assertIn('if (row == CEF_JOB_QUIT) return RW_JobQuit(playerid);', action)
         # Номера действий не пересекаются с номерами строк: иначе клик по профессии
-        # читался бы как «Quit the job».
+        # читался бы как «Уволиться».
         self.assertIn('#define CEF_JOB_QUIT                20', CORE)
         self.assertIn('#define CEF_JOB_CLOSE               21', CORE)
 
@@ -289,7 +289,7 @@ class JobTest(unittest.TestCase):
         self.assertIn('new timeBonus = RW_JobTimeBonus(gJob[playerid]);', done)
         self.assertIn('new bonus = weatherBonus + timeBonus;', done)
         self.assertIn('if (bonus != 0) pay = pay + floatround(float(pay) * float(bonus) / 100.0);', done)
-        self.assertIn('%+d%% for weather and time', done)
+        self.assertIn('%+d%% за погоду и время', done)
 
     def test_the_hiring_points_are_real_places(self):
         table = table_rows(ECON, 'gJobHire')
@@ -334,7 +334,7 @@ class JobTest(unittest.TestCase):
     def test_a_taxi_driver_lives_on_fares(self):
         take = block(ECON, 'stock RW_JobTaskTake(playerid)')
         self.assertIn('if (gJob[playerid] == JOB_TAXI)', take)
-        self.assertIn('Uber Drive app', take)
+        self.assertIn('Uber Drive', take)
         bonus = block(ECON, 'stock RW_TaxiJobBonus(playerid)')
         self.assertIn('if (gJob[playerid] != JOB_TAXI) return 0;', bonus)
         self.assertIn('gTaxiModels, sizeof gTaxiModels', bonus)
@@ -348,9 +348,9 @@ class JobTest(unittest.TestCase):
     def test_the_trucker_meets_a_receiver(self):
         work = block(ECON, 'stock RW_WorkCommand(playerid)')
         self.assertIn('gTruckerNames[random(sizeof gTruckerNames)]', work)
-        self.assertIn('the ramp is busy, wait %d seconds and press /work again.', work)
-        self.assertIn('urgent order, the cargo is taken at once.', work)
-        self.assertIn('signed the papers for the cargo.', work)
+        self.assertIn('рампа занята, подождите %d секунд и нажмите /work снова.', work)
+        self.assertIn('срочный заказ, груз принимают сразу.', work)
+        self.assertIn('подписал бумаги на груз.', work)
         self.assertIn('static const gTruckerNames[][]', ECON)
         # Ожидание считает сервер по своему времени.
         self.assertIn('gJobMeetEnd[playerid] = gettime() + TRUCKER_WAIT_SECONDS;', work)
@@ -433,16 +433,21 @@ class EconomyWiringTest(unittest.TestCase):
         self.assertIn('if (RW_CefOn(playerid)) return RW_CefShop(playerid);', ECON)
         self.assertIn('if (RW_CefOn(playerid)) return RW_CefJob(playerid);', ECON)
 
-    def test_no_cyrillic_reaches_the_player(self):
-        """Comments are Russian; the player-facing text is English — except
-        the job list, which is Russian on purpose (the server speaks Russian
-        and the labour exchange is the first thing a newcomer reads)."""
-        code = re.sub(r'/\*[\s\S]*?\*/', '', ECON)
-        for line in code.splitlines():
-            line = line.split('//', 1)[0]
-            if 'JOB_STASHER' in line or 'Заклад' in line or 'Склад семьи забит' in line:
-                continue
-            self.assertNotRegex(line, r'[А-Яа-я]')
+    def test_the_labour_exchange_speaks_russian(self):
+        """Биржа труда — первый экран новичка, поэтому профессии, подсказки
+        и сообщения заданий говорят по-русски (исходник в cp1251)."""
+        for job, name in (('JOB_LOADER', 'Грузчик'), ('JOB_COURIER', 'Курьер'),
+                          ('JOB_TRUCKER', 'Дальнобойщик'), ('JOB_GARBAGE', 'Мусорщик'),
+                          ('JOB_FARMER', 'Фермер'), ('JOB_MUSHROOM', 'Грибник'),
+                          ('JOB_QUARRY', 'Карьерщик'), ('JOB_LUMBER', 'Лесоруб'),
+                          ('JOB_POST', 'Почтальон'), ('JOB_BUS', 'Водитель автобуса'),
+                          ('JOB_TAXI', 'Таксист')):
+            self.assertIn('if (job == %s) format(dest, size, "%s")' % (job, name), ECON)
+        self.assertIn('"Грибник: лес у ручья"', ECON)
+        self.assertIn('ночь 22:00-06:00: +20 %', ECON)
+        self.assertIn('RW_CefOpen(playerid, CEF_MODE_JOB, "Биржа труда", subtitle)', ECON)
+        self.assertIn('RW_UI_Panel(playerid, UI_JOB, "Биржа труда", subtitle);', ECON)
+        self.assertIn('уровень %d", name, gJobLevel[playerid]', ECON)
 
 
 if __name__ == '__main__':

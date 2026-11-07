@@ -116,7 +116,7 @@ class WeatherTest(unittest.TestCase):
         self.assertIn('new weatherBonus = RW_WeatherBonus(gJob[playerid]);', done)
         self.assertIn('new bonus = weatherBonus + timeBonus;', done)
         self.assertIn('if (bonus != 0) pay = pay + floatround(float(pay) * float(bonus) / 100.0);', done)
-        self.assertIn('%+d%% for weather and time', done)
+        self.assertIn('%+d%% за погоду и время', done)
 
     def test_the_sky_changes_on_its_own(self):
         pulse = APPS.split('public RW_WeatherPulse()', 1)[1].split('\n}', 1)[0]

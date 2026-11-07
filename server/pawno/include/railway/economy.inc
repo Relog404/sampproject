@@ -323,7 +323,7 @@ stock bool:RW_BankNear(playerid)
 
 stock RW_BankOpen(playerid)
 {
-    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
     if (!RW_BankNear(playerid)) return RW_Error(playerid, "No ATM nearby. Try the station, the hospital or a gas station.");
     return RW_BankRender(playerid);
 }
@@ -387,7 +387,7 @@ stock RW_BankClick(playerid, row) { return RW_BankAction(playerid, row, false); 
 
 stock RW_BankDeposit(playerid, amount)
 {
-    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
     if (!RW_BankNear(playerid)) return RW_Error(playerid, "No ATM nearby.");
     if (amount <= 0) return RW_Error(playerid, "Nothing to put on the account.");
     if (!RW_TakeMoney(playerid, amount)) return RW_Error(playerid, "Not enough cash.");
@@ -401,7 +401,7 @@ stock RW_BankDeposit(playerid, amount)
 
 stock RW_BankWithdraw(playerid, amount)
 {
-    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
     if (!RW_BankNear(playerid)) return RW_Error(playerid, "No ATM nearby.");
     if (amount <= 0) return RW_Error(playerid, "Nothing to take.");
     if (gBank[playerid] < amount) return RW_Error(playerid, "Not enough money on the account.");
@@ -417,7 +417,7 @@ stock RW_BankWithdraw(playerid, amount)
 
 stock RW_BankTransfer(playerid, target, amount)
 {
-    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
     if (target < 0 || target >= MAX_PLAYERS || target == playerid || !IsPlayerConnected(target) || !gLogged[target])
         return RW_Error(playerid, "Player with that id is not online.");
     if (amount < BANK_MIN_TRANSFER) return RW_Error(playerid, "At least 50 on a transfer.");
@@ -436,7 +436,7 @@ stock RW_BankTransfer(playerid, target, amount)
 
 stock RW_BalanceCommand(playerid)
 {
-    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
     new cash[32], acc[32], message[160];
     RW_FormatMoney(gMoney[playerid], cash, sizeof cash);
     RW_FormatMoney(gBank[playerid], acc, sizeof acc);
@@ -499,7 +499,7 @@ stock bool:RW_ShopNear(playerid)
 
 stock RW_ShopOpen(playerid)
 {
-    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
     if (!RW_ShopNear(playerid)) return RW_Error(playerid, "No 24/7 shop nearby.");
     return RW_ShopRender(playerid);
 }
@@ -563,7 +563,7 @@ stock RW_ShopClick(playerid, row) { return RW_ShopAction(playerid, row, false); 
 
 stock RW_ShopBuy(playerid, row)
 {
-    if (!gLogged[playerid] || !gInvLoaded[playerid]) return RW_Error(playerid, "Log in first.");
+    if (!gLogged[playerid] || !gInvLoaded[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
     new type = gShopItems[row][0], data = gShopItems[row][1], amount = gShopItems[row][2], price = gShopItems[row][3];
     if (gMoney[playerid] < price) return RW_Error(playerid, "Not enough cash for it.");
     if (RW_InvFree(playerid, 0, type, data, amount) < 0) return RW_Error(playerid, "No room for it in your pockets.");
@@ -587,51 +587,52 @@ stock RW_ShopCommand(playerid) { return RW_ShopOpen(playerid); }
 
 stock RW_JobName(job, dest[], size = sizeof dest)
 {
-    if (job == JOB_LOADER) format(dest, size, "Loader");
-    else if (job == JOB_COURIER) format(dest, size, "Courier");
-    else if (job == JOB_TRUCKER) format(dest, size, "Trucker");
-    else if (job == JOB_GARBAGE) format(dest, size, "Garbage collector");
-    else if (job == JOB_FARMER) format(dest, size, "Farmer");
-    else if (job == JOB_MUSHROOM) format(dest, size, "Mushroom picker");
-    else if (job == JOB_QUARRY) format(dest, size, "Quarry worker");
-    else if (job == JOB_LUMBER) format(dest, size, "Lumberjack");
-    else if (job == JOB_POST) format(dest, size, "Postman");
+    if (job == JOB_LOADER) format(dest, size, "Грузчик");
+    else if (job == JOB_COURIER) format(dest, size, "Курьер");
+    else if (job == JOB_TRUCKER) format(dest, size, "Дальнобойщик");
+    else if (job == JOB_GARBAGE) format(dest, size, "Мусорщик");
+    else if (job == JOB_FARMER) format(dest, size, "Фермер");
+    else if (job == JOB_MUSHROOM) format(dest, size, "Грибник");
+    else if (job == JOB_QUARRY) format(dest, size, "Карьерщик");
+    else if (job == JOB_LUMBER) format(dest, size, "Лесоруб");
+    else if (job == JOB_POST) format(dest, size, "Почтальон");
     else if (job == JOB_STASHER) format(dest, size, "Закладчик");
-    else if (job == JOB_BUS) format(dest, size, "Bus driver");
-    else if (job == JOB_TAXI) format(dest, size, "Taxi driver");
+    else if (job == JOB_BUS) format(dest, size, "Водитель автобуса");
+    else if (job == JOB_TAXI) format(dest, size, "Таксист");
     else format(dest, size, "Unemployed");
     return 1;
 }
 /* Подпись профессии в меню биржи труда. */
 stock RW_JobTitle(job, dest[], size = sizeof dest)
 {
-    if (job == JOB_LOADER) format(dest, size, "Loader: crates in the docks");
-    else if (job == JOB_COURIER) format(dest, size, "Courier: parcels across the city");
-    else if (job == JOB_TRUCKER) format(dest, size, "Trucker: runs to other cities");
-    else if (job == JOB_GARBAGE) format(dest, size, "Garbage: bins around the city");
-    else if (job == JOB_FARMER) format(dest, size, "Farmer: rows in Blueberry Acres");
-    else if (job == JOB_MUSHROOM) format(dest, size, "Mushroom picker: woods by the creek");
-    else if (job == JOB_QUARRY) format(dest, size, "Quarry worker: Hunter Quarry");
-    else if (job == JOB_LUMBER) format(dest, size, "Lumberjack: Angel Pine forest");
-    else if (job == JOB_POST) format(dest, size, "Postman: boxes across the city");
+    if (job == JOB_LOADER) format(dest, size, "Грузчик: ящики в порту");
+    else if (job == JOB_COURIER) format(dest, size, "Курьер: посылки по городу");
+    else if (job == JOB_TRUCKER) format(dest, size, "Дальнобойщик: рейсы в другие города");
+    else if (job == JOB_GARBAGE) format(dest, size, "Мусорщик: баки по городу");
+    else if (job == JOB_FARMER) format(dest, size, "Фермер: грядки в Блуберри-Эйкерс");
+    else if (job == JOB_MUSHROOM) format(dest, size, "Грибник: лес у ручья");
+    else if (job == JOB_QUARRY) format(dest, size, "Карьерщик: карьер Хантер-Куорри");
+    else if (job == JOB_LUMBER) format(dest, size, "Лесоруб: лес у Эйнджел-Пайн");
+    else if (job == JOB_POST) format(dest, size, "Почтальон: ящики по городу");
     else if (job == JOB_STASHER) format(dest, size, "Закладчик: тайники по районам");
-    else if (job == JOB_BUS) format(dest, size, "Bus driver: the city ring route");
-    else if (job == JOB_TAXI) format(dest, size, "Taxi driver: fares from Uber Drive");
+    else if (job == JOB_BUS) format(dest, size, "Водитель: кольцевой маршрут по городу");
+    else if (job == JOB_TAXI) format(dest, size, "Таксист: заказы из Uber Drive");
     else format(dest, size, "Unemployed");
     return 1;
 }
 /* Подсказка: когда профессия выгоднее. */
 stock RW_JobHint(job, dest[], size = sizeof dest)
 {
-    if (job == JOB_GARBAGE) format(dest, size, "best 06:00-13:00");
-    else if (job == JOB_BUS) format(dest, size, "best at 07:00-09:30 and 17:00-19:30");
-    else if (job == JOB_TAXI) format(dest, size, "the meter pays, no tasks");
-    else if (job == JOB_FARMER) format(dest, size, "best in extra sunny");
-    else if (job == JOB_MUSHROOM) format(dest, size, "best in rain");
-    else if (job == JOB_QUARRY) format(dest, size, "best in fog");
-    else if (job == JOB_LUMBER) format(dest, size, "best in clear weather");
-    else if (job == JOB_TRUCKER || job == JOB_COURIER) format(dest, size, "best in clear weather");
-    else format(dest, size, "any way");
+    if (job == JOB_GARBAGE) format(dest, size, "лучше с 06:00 до 13:00");
+    else if (job == JOB_BUS) format(dest, size, "лучше с 07:00 до 09:30 и с 17:00 до 19:30");
+    else if (job == JOB_TAXI) format(dest, size, "платит счётчик, заданий нет");
+    else if (job == JOB_FARMER) format(dest, size, "лучше в ясную погоду");
+    else if (job == JOB_MUSHROOM) format(dest, size, "лучше в дождь");
+    else if (job == JOB_QUARRY) format(dest, size, "лучше в туман");
+    else if (job == JOB_LUMBER) format(dest, size, "лучше в ясную погоду");
+    else if (job == JOB_TRUCKER || job == JOB_COURIER) format(dest, size, "лучше в ясную погоду");
+    else if (job == JOB_STASHER) format(dest, size, "ночь 22:00-06:00: +20 %");
+    else format(dest, size, "как угодно");
     return 1;
 }
 // Начальная ставка задания: дальнобойщик возит далеко, грузчик — тяжело.
@@ -676,9 +677,9 @@ stock RW_JobHireIndex(playerid)
 }
 stock RW_JobOpen(playerid)
 {
-    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
     if (RW_JobHireIndex(playerid) < 0 && gJob[playerid] == JOB_NONE)
-        return RW_Error(playerid, "No labour exchange nearby. /job works at hiring points across the state.");
+        return RW_Error(playerid, "Рядом нет биржи труда. /job работает на точках найма по всему штату.");
     return RW_JobRender(playerid);
 }
 stock RW_JobRender(playerid)
@@ -692,15 +693,15 @@ stock RW_CefJob(playerid)
 {
     new name[24], subtitle[80];
     RW_JobName(gJob[playerid], name, sizeof name);
-    format(subtitle, sizeof subtitle, "%s - level %d", name, gJobLevel[playerid]);
-    if (!RW_CefOpen(playerid, CEF_MODE_JOB, "Labour exchange", subtitle)) return RW_JobPanel(playerid);
+    format(subtitle, sizeof subtitle, "%s — уровень %d", name, gJobLevel[playerid]);
+    if (!RW_CefOpen(playerid, CEF_MODE_JOB, "Биржа труда", subtitle)) return RW_JobPanel(playerid);
     for (new job = 1; job < JOB_COUNT; job++) {
         new title[72], hint[32];
         RW_JobTitle(job, title, sizeof title);
         RW_JobHint(job, hint, sizeof hint);
         RW_CefRow(playerid, job - 1, title, hint, "bag");
     }
-    if (gJob[playerid] != JOB_NONE) RW_CefAction(playerid, CEF_JOB_QUIT, "Quit the job", "danger");
+    if (gJob[playerid] != JOB_NONE) RW_CefAction(playerid, CEF_JOB_QUIT, "Уволиться", "danger");
     RW_CefAction(playerid, CEF_JOB_CLOSE, "Close", "danger");
     return RW_CefEnd(playerid);
 }
@@ -708,8 +709,8 @@ stock RW_JobPanel(playerid)
 {
     new name[24], subtitle[80];
     RW_JobName(gJob[playerid], name, sizeof name);
-    format(subtitle, sizeof subtitle, "%s - level %d", name, gJobLevel[playerid]);
-    RW_UI_Panel(playerid, UI_JOB, "Labour exchange", subtitle);
+    format(subtitle, sizeof subtitle, "%s — уровень %d", name, gJobLevel[playerid]);
+    RW_UI_Panel(playerid, UI_JOB, "Биржа труда", subtitle);
     /* В текстовом меню восемь строк: пять профессий, перелистывание, увольнение и выход. */
     new first = gJobPage[playerid] * 5 + 1;
     for (new row = 0; row < 5; row++) {
@@ -718,9 +719,9 @@ stock RW_JobPanel(playerid)
         else format(title, sizeof title, "-");
         RW_UI_Row(playerid, row, title);
     }
-    if (first + 5 < JOB_COUNT) RW_UI_Row(playerid, 5, "Next jobs");
-    else RW_UI_Row(playerid, 5, "First jobs");
-    if (gJob[playerid] != JOB_NONE) RW_UI_Row(playerid, 6, "Quit the job");
+    if (first + 5 < JOB_COUNT) RW_UI_Row(playerid, 5, "Дальше");
+    else RW_UI_Row(playerid, 5, "В начало");
+    if (gJob[playerid] != JOB_NONE) RW_UI_Row(playerid, 6, "Уволиться");
     RW_UI_Row(playerid, 7, "Close");
     return 1;
 }
@@ -743,10 +744,10 @@ stock RW_JobCefClick(playerid, row) { return RW_JobAction(playerid, row, true); 
 stock RW_JobClick(playerid, row) { return RW_JobAction(playerid, row, false); }
 stock RW_JobHire(playerid, job)
 {
-    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
-    if (job <= JOB_NONE || job >= JOB_COUNT) return RW_Error(playerid, "No such job.");
-    if (RW_JobHireIndex(playerid) < 0) return RW_Error(playerid, "Come to a hiring point: the docks, the station, the depots and the farms.");
-    if (gJob[playerid] == job) return RW_Info(playerid, "You already work here.");
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
+    if (job <= JOB_NONE || job >= JOB_COUNT) return RW_Error(playerid, "Нет такой работы.");
+    if (RW_JobHireIndex(playerid) < 0) return RW_Error(playerid, "Подойдите к точке найма: порт, вокзал, депо и фермы.");
+    if (gJob[playerid] == job) return RW_Info(playerid, "Вы уже здесь работаете.");
     if (gJobStage[playerid] > 0) RW_JobTaskCancel(playerid, true);
     gJob[playerid] = job;
     if (gJobLevel[playerid] < 1) gJobLevel[playerid] = 1;
@@ -755,18 +756,18 @@ stock RW_JobHire(playerid, job)
     RW_UI_Close(playerid);
     new name[24], message[160];
     RW_JobName(job, name, sizeof name);
-    format(message, sizeof message, "Hired as %s, level %d. /work takes a task, /quitjob leaves.", name, gJobLevel[playerid]);
+    format(message, sizeof message, "Приняты: %s, уровень %d. /work берёт задание, /quitjob увольняет.", name, gJobLevel[playerid]);
     return RW_Ok(playerid, message);
 }
 stock RW_JobQuit(playerid)
 {
-    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
-    if (gJob[playerid] == JOB_NONE) return RW_Info(playerid, "You are not employed.");
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
+    if (gJob[playerid] == JOB_NONE) return RW_Info(playerid, "Вы нигде не работаете.");
     if (gJobStage[playerid] > 0) RW_JobTaskCancel(playerid, true);
     gJob[playerid] = JOB_NONE;
     RW_EconomySave(playerid);
     RW_UI_Close(playerid);
-    return RW_Info(playerid, "You left the job. The level and the record stay on the card.");
+    return RW_Info(playerid, "Вы уволились. Уровень и стаж остаются на карте.");
 }
 // Точка задания: у каждой работы свои адреса.
 stock RW_JobPoint(playerid, job, stage, &Float:x, &Float:y, &Float:z)
@@ -841,18 +842,18 @@ stock bool:RW_JobVehicleOk(playerid)
 // Взять задание: точка, срок, иконка на карте и обещанная оплата.
 stock RW_JobTaskTake(playerid)
 {
-    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
-    if (gJob[playerid] == JOB_NONE) return RW_Error(playerid, "Get a job first: /job at the labour exchange.");
-    if (gJobStage[playerid] > 0) return RW_Info(playerid, "Finish the task you have taken.");
-    if (GetTickCount() - gJobTick[playerid] < JOB_COOLDOWN_MS) return RW_Info(playerid, "Catch your breath for a second.");
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
+    if (gJob[playerid] == JOB_NONE) return RW_Error(playerid, "Сначала устройтесь на работу: /job на бирже труда.");
+    if (gJobStage[playerid] > 0) return RW_Info(playerid, "Доделайте взятое задание.");
+    if (GetTickCount() - gJobTick[playerid] < JOB_COOLDOWN_MS) return RW_Info(playerid, "Переведите дух: одну секунду.");
     if (gJob[playerid] == JOB_TRUCKER && !RW_JobVehicleOk(playerid))
-        return RW_Error(playerid, "A trucker works from the cab: take a van or a truck from the base.");
+        return RW_Error(playerid, "Дальнобойщик работает из кабины: возьмите фургон или грузовик на базе.");
     if (gJob[playerid] == JOB_LOADER && GetPlayerState(playerid) != PLAYER_STATE_ONFOOT)
-        return RW_Error(playerid, "A loader works on foot: step out of the car.");
+        return RW_Error(playerid, "Грузчик работает пешком: выйдите из машины.");
     if (gJob[playerid] == JOB_TAXI)
-        return RW_Error(playerid, "A taxi driver takes orders in the Uber Drive app: /uber or /taxi.");
+        return RW_Error(playerid, "Таксист берёт заказы в приложении Uber Drive: /uber или /taxi.");
     if (gJob[playerid] == JOB_BUS && !RW_InModelList(RW_JobVehicleModel(playerid), gBusModels, sizeof gBusModels))
-        return RW_Error(playerid, "The route runs on a coach: take a bus from the depot in El Corona.");
+        return RW_Error(playerid, "Маршрут — на автобусе: возьмите его в парке Эль-Корона.");
     gJobMeet[playerid] = 0;
 
     new Float:x, Float:y, Float:z;
@@ -864,7 +865,7 @@ stock RW_JobTaskTake(playerid)
     gJobIcon[playerid] = true;
     gJobTick[playerid] = GetTickCount();
     new message[160];
-    format(message, sizeof message, "Task: the mark on the map, %d m away. %d seconds to do it.",
+    format(message, sizeof message, "Задание: метка на карте, %d м отсюда. На всё %d секунд.",
         floatround(RW_EconomyDistance(playerid, x, y, z)), JOB_TASK_SECONDS);
     return RW_Info(playerid, message);
 }
@@ -878,7 +879,7 @@ stock RW_JobTaskCancel(playerid, bool:silent = false)
     gJobEnd[playerid] = 0;
     gJobPay[playerid] = 0;
     gJobTick[playerid] = GetTickCount();
-    if (!silent) return RW_Error(playerid, "Out of time. The task is gone, take another one.");
+    if (!silent) return RW_Error(playerid, "Время вышло. Задание сгорело, возьмите новое.");
     return 1;
 }
 // Сдать задание: деньги в карман, опыт в карточку, уровень растёт.
@@ -960,14 +961,14 @@ stock RW_JobTaskDone(playerid)
     new sum[32], message[160];
     RW_FormatMoney(pay, sum, sizeof sum);
     if (bonus != 0)
-        format(message, sizeof message, "Done: %s in cash (%+d%% for weather and time). Cash: %d.", sum, bonus, gMoney[playerid]);
+        format(message, sizeof message, "Готово: %s наличными (%+d%% за погоду и время). Наличные: %d.", sum, bonus, gMoney[playerid]);
     else
-        format(message, sizeof message, "Done: %s in cash. Cash: %d.", sum, gMoney[playerid]);
+        format(message, sizeof message, "Готово: %s наличными. Наличные: %d.", sum, gMoney[playerid]);
     RW_Ok(playerid, message);
     if (gJobExp[playerid] >= gJobLevel[playerid] * JOB_EXP_PER_LEVEL && gJobLevel[playerid] < JOB_MAX_LEVEL) {
         gJobLevel[playerid]++;
         RW_EconomySave(playerid);
-        format(message, sizeof message, "Level %d. Tasks now pay better and the salary is higher.", gJobLevel[playerid]);
+        format(message, sizeof message, "Уровень %d. Задания платят больше, и зарплата выше.", gJobLevel[playerid]);
         return RW_Accent(playerid, message);
     }
     return 1;
@@ -975,27 +976,27 @@ stock RW_JobTaskDone(playerid)
 // /work: взять задание, сдать его на точке или узнать, сколько ещё идти.
 stock RW_WorkCommand(playerid)
 {
-    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
-    if (gJob[playerid] == JOB_NONE) return RW_Error(playerid, "Get a job first: /job at the labour exchange.");
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
+    if (gJob[playerid] == JOB_NONE) return RW_Error(playerid, "Сначала устройтесь на работу: /job на бирже труда.");
     if (gJobStage[playerid] == 0) return RW_JobTaskTake(playerid);
     if (GetTickCount() - gJobTick[playerid] < 1000) return 1;
     gJobTick[playerid] = GetTickCount();
     if (!IsPlayerInRangeOfPoint(playerid, JOB_TASK_RANGE, gJobX[playerid], gJobY[playerid], gJobZ[playerid])) {
         new message[128];
-        format(message, sizeof message, "Not there yet: %d m to the mark.", floatround(RW_EconomyDistance(playerid, gJobX[playerid], gJobY[playerid], gJobZ[playerid])));
+        format(message, sizeof message, "Ещё не дошли: до точки %d м.", floatround(RW_EconomyDistance(playerid, gJobX[playerid], gJobY[playerid], gJobZ[playerid])));
         return RW_Info(playerid, message);
     }
     if (gJob[playerid] == JOB_TRUCKER && gJobStage[playerid] == 2 && GetPlayerState(playerid) != PLAYER_STATE_DRIVER)
-        return RW_Error(playerid, "Deliver it in the van: sit behind the wheel.");
+        return RW_Error(playerid, "Сдавайте в фургоне: сядьте за руль.");
     if (gJob[playerid] == JOB_LOADER && GetPlayerState(playerid) != PLAYER_STATE_ONFOOT)
-        return RW_Error(playerid, "A loader works on foot: step out of the car.");
+        return RW_Error(playerid, "Грузчик работает пешком: выйдите из машины.");
 
     /* Дальнобойщик: на месте разгрузки сервер разыгрывает встречу с получателем. */
     if (gJobStage[playerid] == 2 && gJob[playerid] == JOB_TRUCKER) {
         new name[24], message[160];
         if (gJobMeet[playerid] == 1) {
             if (gettime() < gJobMeetEnd[playerid]) {
-                format(message, sizeof message, "The ramp is still busy: %d s to wait.", gJobMeetEnd[playerid] - gettime());
+                format(message, sizeof message, "Рампа ещё занята: ждать %d с.", gJobMeetEnd[playerid] - gettime());
                 return RW_Info(playerid, message);
             }
             gJobMeet[playerid] = 2;
@@ -1008,18 +1009,18 @@ stock RW_WorkCommand(playerid)
                 /* Рампа занята: груз примут через паузу, задание висит. */
                 gJobMeet[playerid] = 1;
                 gJobMeetEnd[playerid] = gettime() + TRUCKER_WAIT_SECONDS;
-                format(message, sizeof message, "%s: the ramp is busy, wait %d seconds and press /work again.", name, TRUCKER_WAIT_SECONDS);
+                format(message, sizeof message, "%s: рампа занята, подождите %d секунд и нажмите /work снова.", name, TRUCKER_WAIT_SECONDS);
                 return RW_Info(playerid, message);
             }
             if (roll < 50) {
                 /* Срочный заказ: получатель доплачивает. */
                 gJobMeet[playerid] = 3;
-                format(message, sizeof message, "%s: urgent order, the cargo is taken at once.", name);
+                format(message, sizeof message, "%s: срочный заказ, груз принимают сразу.", name);
                 RW_Info(playerid, message);
                 return RW_JobTaskDone(playerid);
             }
             gJobMeet[playerid] = 2;
-            format(message, sizeof message, "%s signed the papers for the cargo.", name);
+            format(message, sizeof message, "%s подписал бумаги на груз.", name);
             RW_Info(playerid, message);
             return RW_JobTaskDone(playerid);
         }
@@ -1038,7 +1039,7 @@ stock RW_WorkCommand(playerid)
         SetPlayerMapIcon(playerid, ECON_TASK_ICON, x, y, z, 0, 0x7BD88FFF, MAPICON_GLOBAL);
         gJobIcon[playerid] = true;
         new message[160];
-        format(message, sizeof message, "Got it. Carry it %d m from here, you have %d seconds.", floatround(RW_EconomyDistance(playerid, x, y, z)), JOB_TASK_SECONDS * 2);
+        format(message, sizeof message, "Получили. Несите %d м отсюда, на это %d секунд.", floatround(RW_EconomyDistance(playerid, x, y, z)), JOB_TASK_SECONDS * 2);
         return RW_Info(playerid, message);
     }
     return RW_JobTaskDone(playerid);
@@ -1066,26 +1067,26 @@ stock RW_EconomyPayday(playerid)
     new salary = RW_DonateBonus(playerid, RW_JobSalary(gJob[playerid]) * gJobLevel[playerid]);
     new interest = gBank[playerid] * BANK_INTEREST_PERCENT / 100;
     if (interest > BANK_INTEREST_MAX) interest = BANK_INTEREST_MAX;
-    if (salary <= 0 && interest <= 0) return RW_Info(playerid, "Payday: nothing to pay. Get a job: /job at the labour exchange.");
+    if (salary <= 0 && interest <= 0) return RW_Info(playerid, "Зарплата: платить нечего. Устройтесь: /job на бирже труда.");
     gBank[playerid] += salary + interest;
     RW_EconomySave(playerid);
     new message[192];
     if (salary > 0 && interest > 0)
-        format(message, sizeof message, "Payday: salary %d and interest %d are on the account. Balance: %d.", salary, interest, gBank[playerid]);
+        format(message, sizeof message, "Зарплата: оклад %d и проценты %d на счету. Остаток: %d.", salary, interest, gBank[playerid]);
     else if (salary > 0)
-        format(message, sizeof message, "Payday: salary %d is on the account. Balance: %d.", salary, gBank[playerid]);
+        format(message, sizeof message, "Зарплата: оклад %d на счету. Остаток: %d.", salary, gBank[playerid]);
     else
-        format(message, sizeof message, "Payday: interest %d is on the account. Balance: %d.", interest, gBank[playerid]);
+        format(message, sizeof message, "Зарплата: проценты %d на счету. Остаток: %d.", interest, gBank[playerid]);
     return RW_Ok(playerid, message);
 }
 stock RW_PaydayCommand(playerid)
 {
-    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
     new left = PAYDAY_SECONDS - gPayday[playerid];
     if (left < 0) left = 0;
     new name[24], message[192];
     RW_JobName(gJob[playerid], name, sizeof name);
-    format(message, sizeof message, "%s level %d: salary %d per payday. Next in %d s. Account: %d. Tasks: %d, earned: %d.",
+    format(message, sizeof message, "%s, уровень %d: оклад %d за цикл. Следующий через %d с. Счёт: %d. Заданий: %d, заработано: %d.",
         name, gJobLevel[playerid], RW_JobSalary(gJob[playerid]) * gJobLevel[playerid], left, gBank[playerid],
         gJobTasks[playerid], gJobEarned[playerid]);
     return RW_Info(playerid, message);
