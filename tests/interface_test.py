@@ -24,6 +24,7 @@ CORE = pawn('core')
 UI = pawn('ui')
 CEFUI = pawn('cefui')
 CMDS = pawn('commands')
+STUB = pawn('cefstub')
 ECON = pawn('economy')
 ACCOUNTS = pawn('accounts')
 MAIN = (ROOT / 'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
@@ -250,6 +251,47 @@ class CityTest(unittest.TestCase):
     def test_every_command_reaches_the_server(self):
         for command in ('hud', 'donate', 'points', 'givedonate', 'talk'):
             self.assertIn('"%s", true' % command, CMDS)
+
+
+class WalletTest(unittest.TestCase):
+    """Справа от штатного радара: счёт, наличные и московское время."""
+
+    def setUp(self):
+        self.wallet = block(HUD, 'stock RW_HudWallet(playerid)')
+
+    def test_the_page_has_a_place_for_it(self):
+        for marker in ('id="wallet"', 'id="walletBank"', 'id="walletCash"', 'id="walletTime"'):
+            self.assertIn(marker, PAGE)
+        self.assertIn('.wallet { position: absolute;', CSS)
+        self.assertIn('pointer-events: none;', CSS)
+        self.assertIn("RW.on('hud:wallet'", SCRIPT)
+
+    def test_the_server_sends_the_numbers(self):
+        self.assertIn('CEF_EmitEvent(playerid, CEF_UI_HUD, "hud:wallet", CEF_INT(bank), CEF_INT(cash),', CEFUI)
+        self.assertIn('stock RW_CefHudWallet(playerid, bank, cash, hour, minute)', CEFUI)
+        self.assertIn('stock RW_CefHudWallet(playerid, bank, cash, hour, minute)', STUB)
+        self.assertIn('RW_CefHudWallet(playerid, gBank[playerid], gMoney[playerid], hour, minute);', self.wallet)
+        self.assertIn('RW_HudWallet(playerid);', block(HUD, 'public RW_HudPulse()'))
+
+    def test_moscow_time_is_utc_plus_three(self):
+        """Часы идут от UTC: SQLite знает его всегда, gettime() — локальное."""
+        self.assertIn('#define HUD_MSK_HOURS       3', HUD)
+        clock = block(HUD, 'stock RW_HudClock()')
+        self.assertIn("SELECT CAST(strftime('%H','now') AS INTEGER) AS `utc`", clock)
+        self.assertIn('gClockShift = (strval(text) - hour + 24) % 24;', clock)
+        msk = block(HUD, 'stock RW_HudMsk(&hour, &minute)')
+        self.assertIn('hour = (hour + gClockShift + HUD_MSK_HOURS) % 24;', msk)
+        self.assertIn('RW_HudClock();', MAIN)
+
+    def test_the_page_only_rerenders_when_something_changed(self):
+        """Деньги и минуты не меняются дважды в секунду: лишний шум не нужен."""
+        self.assertIn('if (gBank[playerid] == gHudBank[playerid] && gMoney[playerid] == gHudCash[playerid]', self.wallet)
+        self.assertIn('minute == gHudMinute[playerid]) return 1;', self.wallet)
+
+    def test_the_page_prints_the_money_neatly(self):
+        self.assertIn("replace(/(\d)(?=(\d{3})+$)/g, '$1 ')", SCRIPT)
+        self.assertIn("(minute < 10 ? '0' : '')", SCRIPT)
+        self.assertIn("font-variant-numeric: tabular-nums;", CSS)
 
 
 class NoStarterBonusTest(unittest.TestCase):

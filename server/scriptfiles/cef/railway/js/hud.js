@@ -65,6 +65,7 @@
   /* Показ и скрытие всего HUD. */
   RW.on('hud:show', function (on) {
     hud.classList.toggle('off', !on);
+    if (!on && wallet) wallet.classList.remove('on');
   });
 
   /* Никакого контекстного меню браузера поверх игры. */
@@ -108,6 +109,28 @@
     if (percent > 100) percent = 100;
     speedoRpm.style.width = percent + '%';
     speedo.className = 'speedo on';
+  });
+
+  /* Кошелёк: банк, наличные и московское время. Цифры только от сервера,
+     страница лишь расставляет пробелы между разрядами и добавляет ноль. */
+  var wallet = document.getElementById('wallet');
+  var walletBank = document.getElementById('walletBank');
+  var walletCash = document.getElementById('walletCash');
+  var walletTime = document.getElementById('walletTime');
+
+  function sum(n) {
+    return String(Math.max(0, n | 0)).replace(/(\d)(?=(\d{3})+$)/g, '$1 ');
+  }
+  function clock(hour, minute) {
+    return (hour < 10 ? '0' : '') + (hour | 0) + ':' + (minute < 10 ? '0' : '') + (minute | 0);
+  }
+
+  RW.on('hud:wallet', function (bank, cash, hour, minute) {
+    if (!wallet) return;
+    walletBank.textContent = sum(bank);
+    walletCash.textContent = sum(cash);
+    walletTime.textContent = clock(hour, minute);
+    wallet.classList.add('on');
   });
 
   RW.on('hud:mouse', function (on) {

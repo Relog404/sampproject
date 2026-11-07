@@ -11,6 +11,13 @@
   <!-- Подсказки клавиш -->
   <div class="hints" id="hints"></div>
 
+  <!-- Кошелёк и время: стоит справа от штатного радара -->
+  <div class="wallet" id="wallet">
+    <div class="wallet-row"><span class="wallet-label">Банк</span><span class="wallet-sum" id="walletBank">0</span></div>
+    <div class="wallet-row"><span class="wallet-label">Наличные</span><span class="wallet-sum" id="walletCash">0</span></div>
+    <div class="wallet-row wallet-clock"><span class="wallet-label">Москва</span><span class="wallet-time" id="walletTime">--:--</span></div>
+  </div>
+
   <!-- Спидометр: показывает страница, сервер только шлёт цифры -->
   <div class="ground" id="ground"></div>
   <div class="speedo" id="speedo">

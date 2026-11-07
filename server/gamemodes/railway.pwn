@@ -115,6 +115,7 @@ public OnGameModeInit()
     if (!RW_PropSchema()) print("[property] Property table unavailable; houses and businesses are disabled.");
     if (!RW_PropAucSchema()) print("[property] Auction table unavailable; seized property will not be sold.");
     if (!RW_DonateSchema()) print("[donate] Donate table unavailable; points are not kept.");
+    RW_HudClock();
     RW_CityInit();
     if (!RW_StorySchema()) print("[story] Story table unavailable; progress is not kept.");
     if (!RW_MenuSchema()) print("[menu] Settings table unavailable; settings are not kept.");

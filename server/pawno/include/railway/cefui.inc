@@ -455,6 +455,14 @@ stock RW_CefHudHint(playerid, const hints[])
     CEF_EmitEvent(playerid, CEF_UI_HUD, "hud:hint", CEF_STR(hints));
     return 1;
 }
+/* Кошелёк: счёт в банке, наличные и московское время — справа от радара. */
+stock RW_CefHudWallet(playerid, bank, cash, hour, minute)
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_EmitEvent(playerid, CEF_UI_HUD, "hud:wallet", CEF_INT(bank), CEF_INT(cash),
+        CEF_INT(hour), CEF_INT(minute));
+    return 1;
+}
 stock RW_CefHudShow(playerid, on)
 {
     if (!RW_CefOn(playerid)) return 0;

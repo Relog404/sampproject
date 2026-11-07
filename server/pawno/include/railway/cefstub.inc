@@ -109,6 +109,11 @@ stock RW_CefHudHint(playerid, const hints[])
     #pragma unused playerid, hints
     return 0;
 }
+stock RW_CefHudWallet(playerid, bank, cash, hour, minute)
+{
+    #pragma unused playerid, bank, cash, hour, minute
+    return 0;
+}
 stock RW_CefHudShow(playerid, on)
 {
     #pragma unused playerid, on
