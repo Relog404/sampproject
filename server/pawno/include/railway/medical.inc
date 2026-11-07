@@ -90,17 +90,67 @@ stock RW_MedOpen(playerid)
         gMedCreated[playerid] = true;
     }
     gUIMode[playerid] = UI_DOWNED;
+    #if RAILWAY_CEF
+        if (RW_CefOn(playerid)) return RW_MedCef(playerid);
+    #endif
     for (new i; i < 9; i++) if (i != 8) PlayerTextDrawShow(playerid, gMedTD[playerid][i]);
     RW_MedRender(playerid);
     RW_UI_SelectBegin(playerid);
     return 1;
 }
-stock RW_MedRender(playerid)
+/* Текст таймера один для тексдрав-меню и для страницы. */
+stock RW_MedTimeLeft(playerid, dest[], size = sizeof dest)
 {
-    if (gUIMode[playerid] != UI_DOWNED || !gMedCreated[playerid]) return 1;
     new left = gDownEnd[playerid] - GetTickCount();
     if (left < 0) left = 0;
-    new text[64]; format(text, sizeof text, "Bleeding out in %d:%02d", left/60000, (left/1000)%60);
+    format(dest, size, "%d:%02d", left/60000, (left/1000)%60);
+    return left;
+}
+/* Скорая: один вызов для обоих меню. */
+stock RW_MedCall(playerid)
+{
+    new id = RW_EmsCall(playerid, 3, gDownX[playerid], gDownY[playerid], gDownZ[playerid]);
+    if (!id) return RW_Error(playerid, "The call did not go through. Try again in a second.");
+    return RW_Ok(playerid, "The ambulance is on its way. Lie still: /calls shows your call to the medics.");
+}
+/* Подождать ещё семь минут. */
+stock RW_MedWait(playerid)
+{
+    if (gDownEnd[playerid] - GetTickCount() + DOWN_EXTRA_MS > DOWN_MAX_MS) return RW_Error(playerid, "You cannot wait any longer.");
+    gDownEnd[playerid] += DOWN_EXTRA_MS;
+    RW_MedRender(playerid);
+    return RW_Ok(playerid, "You hold on for 7 more minutes.");
+}
+/* Страница раненого: две кнопки и таймер кровотечения. */
+stock RW_MedCef(playerid)
+{
+    if (!RW_CefOn(playerid)) return 0;
+    new time[16], subtitle[64];
+    RW_MedTimeLeft(playerid, time, sizeof time);
+    format(subtitle, sizeof subtitle, "Кровотечение: %s", time);
+    RW_UI_Panel(playerid, UI_DOWNED, "Вы ранены", subtitle);
+    RW_UI_Row(playerid, 0, "Вызвать скорую");
+    RW_UI_Row(playerid, 1, "Подождать ещё 7 минут");
+    return 1;
+}
+stock RW_MedCefClick(playerid, id)
+{
+    if (gUIMode[playerid] != UI_DOWNED) return 0;
+    if (GetTickCount() - gMedTick[playerid] < 400) return 1;
+    gMedTick[playerid] = GetTickCount();
+    if (id == 0) return RW_MedCall(playerid);
+    if (id == 1) return RW_MedWait(playerid);
+    return 1;
+}
+stock RW_MedRender(playerid)
+{
+    #if RAILWAY_CEF
+        if (gUIMode[playerid] == UI_DOWNED && RW_CefOn(playerid)) return RW_MedCef(playerid);
+    #endif
+    if (gUIMode[playerid] != UI_DOWNED || !gMedCreated[playerid]) return 1;
+    new time[16], text[64];
+    RW_MedTimeLeft(playerid, time, sizeof time);
+    format(text, sizeof text, "Bleeding out in %s", time);
     PlayerTextDrawSetString(playerid, gMedTD[playerid][2], text);
     return 1;
 }
@@ -110,15 +160,8 @@ stock RW_MedClick(playerid, PlayerText:clicked)
     if (clicked != gMedTD[playerid][4] && clicked != gMedTD[playerid][6]) return 1;
     if (GetTickCount()-gMedTick[playerid] < 400) return 1;
     gMedTick[playerid] = GetTickCount();
-    if (clicked == gMedTD[playerid][4]) {
-        new id = RW_EmsCall(playerid, 3, gDownX[playerid], gDownY[playerid], gDownZ[playerid]);
-        if (!id) return RW_Error(playerid, "The call did not go through. Try again in a second.");
-        return RW_Ok(playerid, "The ambulance is on its way. Lie still: /calls shows your call to the medics.");
-    }
-    if (gDownEnd[playerid] - GetTickCount() + DOWN_EXTRA_MS > DOWN_MAX_MS) return RW_Error(playerid, "You cannot wait any longer.");
-    gDownEnd[playerid] += DOWN_EXTRA_MS;
-    RW_MedRender(playerid);
-    return RW_Ok(playerid, "You hold on for 7 more minutes.");
+    if (clicked == gMedTD[playerid][4]) return RW_MedCall(playerid);
+    return RW_MedWait(playerid);
 }
 // Keeps the player lying at the place of death instead of respawning at once.
 stock RW_MedDown(playerid, Float:x, Float:y, Float:z)

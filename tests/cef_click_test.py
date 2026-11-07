@@ -33,6 +33,7 @@ CORE = pawn('core')
 CEF = pawn('cefui')
 GARAGE = pawn('garage')
 UI = pawn('ui')
+MEDICAL = pawn('medical')
 
 
 class ClickabilityTest(unittest.TestCase):
@@ -92,6 +93,35 @@ class KeyMenuScreenTest(unittest.TestCase):
         """Оба меню выдают ключ одной функцией: поведение не расходится."""
         td = block(GARAGE, 'stock RW_KeyMenuClick(playerid, PlayerText:clicked)')
         self.assertIn('return RW_KeyMenuGrant(playerid, row);', td)
+
+
+class DownedScreenTest(unittest.TestCase):
+    """Экран раненого: две кнопки, которые должны работать."""
+
+    def test_the_screen_opens_a_page(self):
+        open_ = block(MEDICAL, 'stock RW_MedOpen(playerid)')
+        self.assertIn('if (RW_CefOn(playerid)) return RW_MedCef(playerid);', open_)
+        screen = block(MEDICAL, 'stock RW_MedCef(playerid)')
+        self.assertIn('RW_UI_Panel(playerid, UI_DOWNED, "Вы ранены", subtitle);', screen)
+        self.assertIn('RW_UI_Row(playerid, 0, "Вызвать скорую");', screen)
+        self.assertIn('RW_UI_Row(playerid, 1, "Подождать ещё 7 минут");', screen)
+
+    def test_the_timer_is_shared(self):
+        render = block(MEDICAL, 'stock RW_MedRender(playerid)')
+        self.assertIn('return RW_MedCef(playerid);', render)
+        time = block(MEDICAL, 'stock RW_MedTimeLeft(')
+        self.assertIn('gDownEnd[playerid] - GetTickCount()', time)
+
+    def test_both_buttons_are_clickable(self):
+        click = block(MEDICAL, 'stock RW_MedCefClick(playerid, id)')
+        self.assertIn('if (id == 0) return RW_MedCall(playerid);', click)
+        self.assertIn('if (id == 1) return RW_MedWait(playerid);', click)
+        self.assertIn('GetTickCount() - gMedTick[playerid] < 400', click)
+
+    def test_the_text_draw_screen_acts_the_same(self):
+        td = block(MEDICAL, 'stock RW_MedClick(playerid, PlayerText:clicked)')
+        self.assertIn('return RW_MedCall(playerid);', td)
+        self.assertIn('return RW_MedWait(playerid);', td)
 
 
 class GarageScreenTest(unittest.TestCase):

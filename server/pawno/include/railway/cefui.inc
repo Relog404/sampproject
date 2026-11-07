@@ -325,6 +325,7 @@ public RW_CefClick(playerid, browserid, id)
     if (gCefMode[playerid] == CEF_MODE_INVENTORY) return RW_InvCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_GARAGE) return RW_GarageCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_KEYS) return RW_KeyMenuCefClick(playerid, id);
+    if (gCefMode[playerid] == CEF_MODE_DOWNED) return RW_MedCefClick(playerid, id);
     return 1;
 }
 

@@ -221,8 +221,18 @@ class EmsCallTest(unittest.TestCase):
         self.assertIn('for (pass = 0; pass < 2 && !sent; pass++)', emergency)
 
     def test_the_downed_menu_calls_the_ambulance_with_injured(self):
+        # вызов один для тексдрав-меню и для страницы раненого
+        call = block(MED, 'stock RW_MedCall(playerid)')
+        self.assertIn('RW_EmsCall(playerid, 3, gDownX[playerid], gDownY[playerid], gDownZ[playerid])', call)
         click = block(MED, 'stock RW_MedClick(playerid, PlayerText:clicked)')
-        self.assertIn('RW_EmsCall(playerid, 3, gDownX[playerid], gDownY[playerid], gDownZ[playerid])', click)
+        self.assertIn('if (clicked == gMedTD[playerid][4]) return RW_MedCall(playerid);', click)
+        self.assertIn('return RW_MedWait(playerid);', click)
+        # страница: две кнопки и таймер кровотечения
+        screen = block(MED, 'stock RW_MedCef(playerid)')
+        self.assertIn('RW_UI_Panel(playerid, UI_DOWNED, "Вы ранены", subtitle);', screen)
+        self.assertIn('RW_UI_Row(playerid, 0, "Вызвать скорую");', screen)
+        self.assertIn('RW_UI_Row(playerid, 1, "Подождать ещё 7 минут");', screen)
+        self.assertIn('Кровотечение: %s', screen)
 
     def test_taking_a_call_marks_it_on_the_map(self):
         accept = block(EMS, 'stock RW_EmsCallAccept(playerid, callid)')
