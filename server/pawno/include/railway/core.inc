@@ -100,6 +100,9 @@ forward RW_LawyerCallFor(playerid, target);
 #define CEF_GARAGE_PREV             20
 #define CEF_GARAGE_NEXT             21
 #define CEF_GARAGE_CLOSE            22
+#define CEF_KEYS_PREV               20
+#define CEF_KEYS_NEXT               21
+#define CEF_KEYS_CLOSE              22
 
 /* ------------------------------------------------------------------ настройки */
 #define SPCAR_MIN_ADMIN_LEVEL       (0)      /* 0 — /spcar доступна всем игрокам */
@@ -128,6 +131,7 @@ forward RW_LawyerCallFor(playerid, target);
 #define CEF_MODE_GOV                (19)
 #define CEF_MODE_INVENTORY          (20)
 #define CEF_MODE_GARAGE             (21)
+#define CEF_MODE_KEYS               (22)
 /* Настройки интерфейса: их читают модули, подключённые раньше menu.inc. */
 #define SET_HUD             (1)         /* экранный интерфейс              */
 #define SET_HINTS           (2)         /* подсказки клавиш                */

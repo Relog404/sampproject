@@ -335,26 +335,32 @@ stock RW_KeyMenuBuild(playerid)
     if (gKeyPage[playerid]*6 >= gKeyCount[playerid]) gKeyPage[playerid] = 0;
     return 1;
 }
+/* Подпись строки одна и та же для тексдрав-меню и для страницы. */
+stock bool:RW_KeyMenuRow(playerid, row, label[], size = sizeof label)
+{
+    new idx = gKeyPage[playerid]*6+row, entry, name[48];
+    if (idx >= gKeyCount[playerid]) return false;
+    entry = gKeyList[playerid][idx];
+    if (entry > 0) {
+        new slot = RW_IsOwnedSlot(entry);
+        if (slot < 0) return false;
+        RW_VehicleName(gVeh[slot][vsModel], name, sizeof name);
+        format(label, size, "%s / RW-%03d / %d", name, slot+1, entry);
+    } else {
+        new query[140], model, car = -entry;
+        format(query, sizeof query, "SELECT model FROM owned_cars WHERE id=%d", car);
+        new DBResult:r = db_query(gDB, query);
+        if (r != DBResult:0) { if (db_num_rows(r)) model = db_get_field_assoc_int(r, "model"); db_free_result(r); }
+        RW_VehicleName(model, name, sizeof name);
+        format(label, size, "%s / c%d / на стоянке", name, car);
+    }
+    return true;
+}
 stock RW_KeyMenuRender(playerid)
 {
-    new label[128], name[48];
+    new label[128];
     for (new row; row < 6; row++) {
-        new idx = gKeyPage[playerid]*6+row, entry;
-        if (idx >= gKeyCount[playerid]) { PlayerTextDrawHide(playerid, gKeyTD[playerid][3+row]); continue; }
-        entry = gKeyList[playerid][idx];
-        if (entry > 0) {
-            new slot = RW_IsOwnedSlot(entry);
-            if (slot < 0) { PlayerTextDrawHide(playerid, gKeyTD[playerid][3+row]); continue; }
-            RW_VehicleName(gVeh[slot][vsModel], name, sizeof name);
-            format(label, sizeof label, "id %d / RW-%03d / %s (%d) / %s", entry, slot+1, name, gVeh[slot][vsModel], gVehGarageId[slot] ? ("PERMANENT") : ("TEMP"));
-        } else {
-            new query[140], model, car = -entry;
-            format(query, sizeof query, "SELECT model FROM owned_cars WHERE id=%d", car);
-            new DBResult:r = db_query(gDB, query);
-            if (r != DBResult:0) { if (db_num_rows(r)) model = db_get_field_assoc_int(r, "model"); db_free_result(r); }
-            RW_VehicleName(model, name, sizeof name);
-            format(label, sizeof label, "c%d / stored / %s (%d)", car, name, model);
-        }
+        if (!RW_KeyMenuRow(playerid, row, label, sizeof label)) { PlayerTextDrawHide(playerid, gKeyTD[playerid][3+row]); continue; }
         PlayerTextDrawSetString(playerid, gKeyTD[playerid][3+row], label);
         PlayerTextDrawShow(playerid, gKeyTD[playerid][3+row]);
     }
@@ -390,11 +396,75 @@ stock RW_KeyMenuOpen(playerid, target)
         gKeyCreated[playerid] = true;
     }
     gUIMode[playerid] = UI_KEYMENU;
+    #if RAILWAY_CEF
+        if (RW_CefOn(playerid)) return RW_KeyMenuCef(playerid);
+    #endif
     for (new i; i < 13; i++) PlayerTextDrawShow(playerid, gKeyTD[playerid][i]);
     RW_KeyMenuRender(playerid);
     RW_UI_SelectBegin(playerid);
     return 1;
 }
+/*  Меню ключей в браузере: шесть машин, пролистывание, закрыть. */
+stock RW_KeyMenuCef(playerid)
+{
+    new subtitle[64], label[128];
+    format(subtitle, sizeof subtitle, "%d машин / страница %d", gKeyCount[playerid], gKeyPage[playerid] + 1);
+    if (!RW_CefOpen(playerid, CEF_MODE_KEYS, "Выдать ключ", subtitle)) return 0;
+    for (new row; row < 6; row++) {
+        if (!RW_KeyMenuRow(playerid, row, label, sizeof label)) continue;
+        RW_CefRow(playerid, row, label, gKeyList[playerid][gKeyPage[playerid]*6+row] > 0 ? ("в городе") : ("на стоянке"), "car");
+    }
+    if (gKeyPage[playerid] > 0) RW_CefAction(playerid, CEF_KEYS_PREV, "Назад", "");
+    if ((gKeyPage[playerid] + 1) * 6 < gKeyCount[playerid]) RW_CefAction(playerid, CEF_KEYS_NEXT, "Вперёд", "");
+    RW_CefAction(playerid, CEF_KEYS_CLOSE, "Закрыть", "danger");
+    return RW_CefEnd(playerid);
+}
+/* Выдать ключ на выбранную машину: одно и то же для обоих меню. */
+stock RW_KeyMenuGrant(playerid, row)
+{
+    new index = gKeyPage[playerid]*6+row, target = gKeyTarget[playerid];
+    if (index >= gKeyCount[playerid]) return 1;
+    if (target < 0 || !IsPlayerConnected(target) || !gLogged[target] || !gInvLoaded[target]) { RW_UI_Close(playerid); return RW_Error(playerid, "Target player is no longer available."); }
+    new entry = gKeyList[playerid][index], data;
+    if (entry > 0) {
+        new slot = RW_IsOwnedSlot(entry);
+        if (slot < 0 || !gVeh[slot][vsUsed] || gVehKeyUid[slot] <= 0) return RW_Error(playerid, "That car is gone. Pick another one.");
+        data = gVehKeyUid[slot];
+    } else {
+        new query[140];
+        format(query, sizeof query, "SELECT token FROM owned_cars WHERE id=%d", -entry);
+        new DBResult:r = db_query(gDB, query);
+        if (r != DBResult:0) { if (db_num_rows(r)) data = db_get_field_assoc_int(r, "token"); db_free_result(r); }
+        if (data <= 0) return RW_Error(playerid, "That car record is gone. Pick another one.");
+    }
+    new uid = RW_InvGrant(target, ITEM_CAR_KEY, data);
+    if (!uid) return RW_InvExplainGrant(playerid, target, ITEM_CAR_KEY, data);
+    printf("[garage] admin account=%d grants key token=%d uid=%d to account=%d from menu", gAccountId[playerid], data, uid, gAccountId[target]);
+    RW_Ok(target, "Car key received. /inv");
+    new message[128]; format(message, sizeof message, "Key for token %d granted to id %d (item %d).", data, target, uid);
+    RW_Ok(playerid, message);
+    return RW_UI_Close(playerid);
+}
+/* Клик по странице: машина, пролистывание или закрыть. */
+stock RW_KeyMenuCefClick(playerid, id)
+{
+    if (gUIMode[playerid] != UI_KEYMENU) return 0;
+    if (id == CEF_KEYS_CLOSE) return RW_UI_Close(playerid);
+    if (GetTickCount() - gKeyTick[playerid] < 800) return 1;
+    gKeyTick[playerid] = GetTickCount();
+    if (id == CEF_KEYS_PREV || id == CEF_KEYS_NEXT) {
+        if (id == CEF_KEYS_PREV) { if (gKeyPage[playerid] > 0) gKeyPage[playerid]--; }
+        else if ((gKeyPage[playerid] + 1) * 6 < gKeyCount[playerid]) gKeyPage[playerid]++;
+        RW_KeyMenuBuild(playerid);
+        #if RAILWAY_CEF
+            if (RW_CefOn(playerid)) return RW_KeyMenuCef(playerid);
+        #endif
+        return RW_KeyMenuRender(playerid);
+    }
+    if (id >= 0 && id < 6) return RW_KeyMenuGrant(playerid, id);
+    return 1;
+}
+
 stock RW_KeyMenuClick(playerid, PlayerText:clicked)
 {
     if (gUIMode[playerid] != UI_KEYMENU) return 0;
@@ -403,30 +473,7 @@ stock RW_KeyMenuClick(playerid, PlayerText:clicked)
     gKeyTick[playerid] = GetTickCount();
     if (clicked == gKeyTD[playerid][9]) { if (gKeyPage[playerid] > 0) gKeyPage[playerid]--; RW_KeyMenuBuild(playerid); RW_KeyMenuRender(playerid); return 1; }
     if (clicked == gKeyTD[playerid][10]) { if ((gKeyPage[playerid]+1)*6 < gKeyCount[playerid]) gKeyPage[playerid]++; RW_KeyMenuBuild(playerid); RW_KeyMenuRender(playerid); return 1; }
-    for (new row; row < 6; row++) if (clicked == gKeyTD[playerid][3+row]) {
-        new index = gKeyPage[playerid]*6+row, target = gKeyTarget[playerid];
-        if (index >= gKeyCount[playerid]) return 1;
-        if (target < 0 || !IsPlayerConnected(target) || !gLogged[target] || !gInvLoaded[target]) { RW_UI_Close(playerid); return RW_Error(playerid, "Target player is no longer available."); }
-        new entry = gKeyList[playerid][index], data;
-        if (entry > 0) {
-            new slot = RW_IsOwnedSlot(entry);
-            if (slot < 0 || !gVeh[slot][vsUsed] || gVehKeyUid[slot] <= 0) return RW_Error(playerid, "That car is gone. Pick another one.");
-            data = gVehKeyUid[slot];
-        } else {
-            new query[140];
-            format(query, sizeof query, "SELECT token FROM owned_cars WHERE id=%d", -entry);
-            new DBResult:r = db_query(gDB, query);
-            if (r != DBResult:0) { if (db_num_rows(r)) data = db_get_field_assoc_int(r, "token"); db_free_result(r); }
-            if (data <= 0) return RW_Error(playerid, "That car record is gone. Pick another one.");
-        }
-        new uid = RW_InvGrant(target, ITEM_CAR_KEY, data);
-        if (!uid) return RW_InvExplainGrant(playerid, target, ITEM_CAR_KEY, data);
-        printf("[garage] admin account=%d grants key token=%d uid=%d to account=%d from menu", gAccountId[playerid], data, uid, gAccountId[target]);
-        RW_Ok(target, "Car key received. /inv");
-        new message[128]; format(message, sizeof message, "Key for token %d granted to id %d (item %d).", data, target, uid);
-        RW_Ok(playerid, message);
-        return RW_UI_Close(playerid);
-    }
+    for (new row; row < 6; row++) if (clicked == gKeyTD[playerid][3+row]) return RW_KeyMenuGrant(playerid, row);
     return 1;
 }
 stock RW_KeyMenuCommand(playerid, const params[])

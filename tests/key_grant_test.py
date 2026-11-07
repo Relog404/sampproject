@@ -58,7 +58,11 @@ class KeyGrantInputTest(unittest.TestCase):
         # Spawned cars are listed by their SA-MP vehicle id, stored ones by c<id>.
         self.assertIn('gKeyList[playerid][gKeyCount[playerid]++] = gVeh[s][vsVehicleId]', build)
         self.assertIn('-db_get_field_assoc_int(r, "id")', build)
-        self.assertIn('"id %d / RW-%03d / %s (%d) / %s"', garage)
+        # подпись строки одна для тексдрав-меню и для страницы в браузере
+        row = garage.split('stock bool:RW_KeyMenuRow(', 1)[1].split('\nstock ', 1)[0]
+        self.assertIn('"%s / RW-%03d / %d"', row)
+        self.assertIn('"%s / c%d / на стоянке"', row)
+        self.assertIn('RW_KeyMenuGrant(playerid, row)', garage)
         self.assertIn('"c%d / stored / %s (%d)"', garage)
         # A click re-checks the target, grants that car's token and closes.
         self.assertIn('RW_InvGrant(target, ITEM_CAR_KEY, data)', click)

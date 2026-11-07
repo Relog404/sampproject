@@ -260,6 +260,7 @@ stock RW_UI_CefMode(mode)
     if (mode == UI_GOV) return CEF_MODE_GOV;
     if (mode == UI_INVENTORY) return CEF_MODE_INVENTORY;
     if (mode == UI_GARAGE) return CEF_MODE_GARAGE;
+    if (mode == UI_KEYMENU) return CEF_MODE_KEYS;
     return CEF_MODE_NONE;                   /* своей страницы нет: диалог */
 }
 stock RW_UI_Panel(playerid, mode, const title[], const subtitle[])
