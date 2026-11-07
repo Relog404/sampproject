@@ -117,7 +117,11 @@ class InventoryClickTest(unittest.TestCase):
 
     def test_every_action_redraws_the_grid(self):
         click = block(INV, 'stock RW_InvCefClick(playerid, id)')
-        self.assertEqual(click.count('return RW_InvCef(playerid);'), 4)
+        # четыре действия перерисовывают сетку, пятое (левый клик) тоже:
+        # «Взять в руки» и «Использовать» закрывают инвентарь перед действием.
+        self.assertEqual(click.count('return RW_InvCef(playerid);'), 5)
+        self.assertIn('if (action == INV_CEF_ACT_WEAR) { RW_InvWearSelected(playerid); return RW_InvCef(playerid); }', click)
+        self.assertIn('if (action == INV_CEF_ACT_USE) { RW_UI_Close(playerid); return RW_InvUseSelected(playerid); }', click)
 
     def test_russian_item_names_are_built_once(self):
         title = block(INV, 'stock RW_InvTitle(')

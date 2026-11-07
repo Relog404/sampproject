@@ -114,9 +114,13 @@ class EmsItemTest(unittest.TestCase):
         render = block(INV, 'stock RW_InvContextRender(playerid)', '\nstock ')
         self.assertIn('else if (type == ITEM_DEFIB || type == ITEM_MEDKIT) format(action, sizeof action, "%s", "USE");', render)
         self.assertIn('format(stats, sizeof stats, "1.5kg / %d of %d charges", amount, EMS_DEFIB_CHARGES);', render)
+        # Главное действие вынесено в общую функцию: тексдрав-меню и карточка
+        # в браузере делают одно и то же.
+        use = block(INV, 'stock RW_InvUseSelected(playerid)')
+        self.assertIn('if (type == ITEM_DEFIB) return RW_EmsReviveCommand(playerid, "");', use)
+        self.assertIn('if (type == ITEM_MEDKIT) return RW_EmsHealCommand(playerid, "");', use)
         click = block(INV, 'stock RW_InvClick(playerid, PlayerText:clicked)', '\npublic ')
-        self.assertIn('if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_DEFIB) return RW_EmsReviveCommand(playerid, "");', click)
-        self.assertIn('if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_MEDKIT) return RW_EmsHealCommand(playerid, "");', click)
+        self.assertIn('if (clicked == gInvTD[playerid][163] && !gInvFromGround[playerid]) return RW_InvUseSelected(playerid);', click)
 
 
 class EmsMechanicsTest(unittest.TestCase):

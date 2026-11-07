@@ -169,8 +169,15 @@ class ArmourSourceTest(unittest.TestCase):
         self.assertIn('RW_InvCell(playerid,133,gInvWorn[playerid]>0 ? ITEM_ARMOUR : 0', INV)
         self.assertIn('PlayerTextDrawSetSelectable(playerid,gInvTD[playerid][133],1);', INV)
         self.assertIn('Put body armour here: select it in MAIN and press WEAR.', INV)
-        self.assertIn('if(slot>=0 && gInv[playerid][slot][iiType]==ITEM_ARMOUR) return RW_ArmourWear(playerid, slot);', INV)
-        self.assertIn('if(gInvSelected[playerid]==gInvWorn[playerid]) return RW_ArmourRemove(playerid);', INV)
+        # «Надеть» — общая функция: её зовут и тексдрав-меню, и карточка в браузере.
+        wear = section(INV, 'stock RW_InvWearSelected(playerid)', '\nstock ')
+        self.assertIn('if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_ARMOUR) return RW_ArmourWear(playerid, slot);', wear)
+        self.assertIn('if (gInvSelected[playerid] == gInvWorn[playerid]) return RW_ArmourRemove(playerid);', wear)
+        click = section(INV, 'stock RW_InvClick(playerid, PlayerText:clicked)', '\npublic ')
+        self.assertIn('if (clicked == gInvTD[playerid][160] && !gInvFromGround[playerid]) return RW_InvWearSelected(playerid);', click)
+        card = section(INV, 'stock RW_InvCefContext(playerid, slot)', '\nstock ')
+        self.assertIn('INV_CEF_ACT_WEAR, type == ITEM_WEAPON ? ("В руки") : ("Надеть"), "ok"', card)
+        self.assertIn('INV_CEF_ACT_WEAR, "Снять", ""', card)
         self.assertIn('gInvSelected[playerid] == gInvWorn[playerid] ? ("TAKE OFF") : ("WEAR")', INV)
 
     def test_admin_commands(self):

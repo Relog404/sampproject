@@ -625,6 +625,73 @@ stock RW_InvRender(playerid)
     PlayerTextDrawSetString(playerid, gInvTD[playerid][153], text);
     return RW_InvContextRender(playerid);
 }
+/*  Общие действия с выбранной вещью: их зовут и тексдрав-меню, и карточка
+ *  в браузере, поэтому поведение не расходится.                              */
+
+/* Надеть, взять в руки, снять броню. */
+stock RW_InvWearSelected(playerid)
+{
+    if (gInvFromGround[playerid]) return 1;
+    new slot = RW_InvFind(playerid, gInvSelected[playerid]);
+    if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_BACKPACK) return RW_InvEquip(playerid);
+    if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_WEAPON) return RW_WpEquip(playerid, gInv[playerid][slot][iiUid]);
+    if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_ARMOUR) return RW_ArmourWear(playerid, slot);
+    if (gInvSelected[playerid] == gInvWorn[playerid]) return RW_ArmourRemove(playerid);
+    return 1;
+}
+/* Главное действие: зарядить, использовать, открыть — что вещь умеет. */
+stock RW_InvUseSelected(playerid)
+{
+    if (gInvFromGround[playerid]) return 1;
+    if (gWpActive[playerid] > 0 && gInvSelected[playerid] == gWpActive[playerid]) return RW_WpUnequip(playerid);
+    new slot = RW_InvFind(playerid, gInvSelected[playerid]);
+    if (slot < 0) return 1;
+    new type = gInv[playerid][slot][iiType];
+    if (type == ITEM_AMMO) return RW_WpReloadFrom(playerid, slot);
+    if (type == ITEM_BANDAGE) return RW_UseBandage(playerid, slot);
+    if (type == ITEM_SYRINGE) return RW_UseSyringe(playerid, slot);
+    if (type == ITEM_PHONE) return RW_PhoneOpen(playerid);
+    if (type == ITEM_SIM) return RW_PhoneInsertSim(playerid);
+    if (type == ITEM_CUFFS) return RW_PoliceCuffCommand(playerid, "");
+    if (type == ITEM_TASER || type == ITEM_BATON) return RW_PoliceStunCommand(playerid);
+    if (type == ITEM_BADGE) return RW_MdtOpen(playerid);
+    if (type == ITEM_DEFIB) return RW_EmsReviveCommand(playerid, "");
+    if (type == ITEM_MEDKIT) return RW_EmsHealCommand(playerid, "");
+    if (type == ITEM_LOCKPICK) return RW_TransportRow(playerid, RW_TransportCar(playerid));
+    if (type == ITEM_TUNING) return RW_TuneInstall(playerid, RW_TransportCar(playerid));
+    if (type == ITEM_PHOTO) return RW_PhotoShow(playerid);
+    if (type == ITEM_CAR_KEY) {
+        new token = gInv[playerid][slot][iiData];
+        for (new v; v < VEHICLE_SLOTS; v++) if (gVeh[v][vsUsed] && gVehKeyUid[v] == token) {
+            RW_UI_Close(playerid);
+            return RW_ControlExecute(playerid, gVeh[v][vsVehicleId], 2);
+        }
+        return 1;
+    }
+    return RW_Info(playerid, "Рюкзак уже надет.");
+}
+/* Подпись главного действия для карточки. */
+stock RW_InvUseLabel(type, bool:weaponInHand, dest[], size = sizeof dest)
+{
+    if (weaponInHand) format(dest, size, "Убрать");
+    else if (type == ITEM_AMMO) format(dest, size, "Зарядить");
+    else if (type == ITEM_BANDAGE) format(dest, size, "Перевязаться");
+    else if (type == ITEM_SYRINGE) format(dest, size, "Уколоть");
+    else if (type == ITEM_PHONE) format(dest, size, "Открыть");
+    else if (type == ITEM_SIM) format(dest, size, "Вставить");
+    else if (type == ITEM_CUFFS) format(dest, size, "Наручники");
+    else if (type == ITEM_TASER || type == ITEM_BATON) format(dest, size, "Оглушить");
+    else if (type == ITEM_BADGE) format(dest, size, "Планшет");
+    else if (type == ITEM_DEFIB) format(dest, size, "Оживить");
+    else if (type == ITEM_MEDKIT) format(dest, size, "Вылечить");
+    else if (type == ITEM_LOCKPICK) format(dest, size, "Взломать");
+    else if (type == ITEM_TUNING) format(dest, size, "Установить");
+    else if (type == ITEM_PHOTO) format(dest, size, "Показать");
+    else if (type == ITEM_CAR_KEY) format(dest, size, "Открыть");
+    else format(dest, size, "Использовать");
+    return 1;
+}
+
 /*  ---------------------------------- CEF ---------------------------------- */
 /*  Инвентарь в браузере: сетка ячеек, по правой кнопке сервер присылает      *
  *  карточку вещи — название, описание, вес — и кнопки действий.              *
@@ -635,6 +702,8 @@ stock RW_InvRender(playerid)
 #define INV_CEF_ACT_DROP        1       /* выбросить                         */
 #define INV_CEF_ACT_MOVE        2       /* переложить: карманы <-> рюкзак    */
 #define INV_CEF_ACT_TAKE        3       /* поднять с земли                   */
+#define INV_CEF_ACT_WEAR        4       /* надеть, взять в руки, снять        */
+#define INV_CEF_ACT_USE         5       /* главное действие вещи              */
 
 /* Короткое название вещи: и в ячейке, и в шапке карточки. */
 stock RW_InvTitle(type, data, amount, dest[], size = sizeof dest)
@@ -729,9 +798,23 @@ stock RW_InvCefContext(playerid, slot)
     RW_CefInvInfo(playerid, slot, title, desc, stats);
     if (ground) RW_CefInvAction(playerid, INV_CEF_ACT_TAKE, "Поднять", "ok");
     else {
-        if (RW_InvCanRemove(playerid, slot)) RW_CefInvAction(playerid, INV_CEF_ACT_DROP, "Выбросить", "danger");
+        new bool:inHand = gWpActive[playerid] > 0 && gInvSelected[playerid] == gWpActive[playerid];
+        if (slot < INV_SLOTS && RW_InvCanRemove(playerid, slot)) RW_CefInvAction(playerid, INV_CEF_ACT_DROP, "Выбросить", "danger");
         if (RW_InvPack(playerid) >= 0 && slot < INV_SLOTS)
             RW_CefInvAction(playerid, INV_CEF_ACT_MOVE, slot < INV_MAIN ? ("В рюкзак") : ("В карманы"), "");
+        if (gInvSelected[playerid] == gInvWorn[playerid] && type == ITEM_ARMOUR)
+            RW_CefInvAction(playerid, INV_CEF_ACT_WEAR, "Снять", "");
+        else if (type == ITEM_BACKPACK || type == ITEM_ARMOUR || (type == ITEM_WEAPON && !inHand))
+            RW_CefInvAction(playerid, INV_CEF_ACT_WEAR, type == ITEM_WEAPON ? ("В руки") : ("Надеть"), "ok");
+        new bool:usable = inHand || type == ITEM_AMMO || type == ITEM_BANDAGE || type == ITEM_SYRINGE
+            || type == ITEM_PHONE || type == ITEM_SIM || type == ITEM_CUFFS || type == ITEM_TASER
+            || type == ITEM_BATON || type == ITEM_BADGE || type == ITEM_DEFIB || type == ITEM_MEDKIT
+            || type == ITEM_LOCKPICK || type == ITEM_TUNING || type == ITEM_PHOTO || type == ITEM_CAR_KEY;
+        if (usable && slot < INV_SLOTS) {
+            new label[16];
+            RW_InvUseLabel(type, inHand, label, sizeof label);
+            RW_CefInvAction(playerid, INV_CEF_ACT_USE, label, "ok");
+        }
     }
     return RW_CefInvEnd(playerid);
 }
@@ -744,6 +827,8 @@ stock RW_InvCefClick(playerid, id)
         if (action == INV_CEF_ACT_DROP) { RW_InvDrop(playerid); return RW_InvCef(playerid); }
         if (action == INV_CEF_ACT_TAKE) { RW_GroundTake(playerid); return RW_InvCef(playerid); }
         if (action == INV_CEF_ACT_MOVE) { RW_InvTransfer(playerid, gInvFromGround[playerid] ? 0 : RW_InvSectionOf(playerid)); return RW_InvCef(playerid); }
+        if (action == INV_CEF_ACT_WEAR) { RW_InvWearSelected(playerid); return RW_InvCef(playerid); }
+        if (action == INV_CEF_ACT_USE) { RW_UI_Close(playerid); return RW_InvUseSelected(playerid); }
         return 1;
     }
     if (id >= INV_CEF_CONTEXT) return RW_InvCefContext(playerid, id - INV_CEF_CONTEXT);
@@ -814,40 +899,11 @@ stock RW_InvClick(playerid, PlayerText:clicked)
     if (GetTickCount()-gInvTick[playerid] < 250) return 1;
     gInvTick[playerid] = GetTickCount();
     if (!gInvSelected[playerid] || !gInvContext[playerid]) return 1;
-    if (clicked == gInvTD[playerid][160] && !gInvFromGround[playerid]) {
-        new slot=RW_InvFind(playerid,gInvSelected[playerid]);
-        if(slot>=0 && gInv[playerid][slot][iiType]==ITEM_BACKPACK) return RW_InvEquip(playerid);
-        if(slot>=0 && gInv[playerid][slot][iiType]==ITEM_WEAPON) return RW_WpEquip(playerid, gInv[playerid][slot][iiUid]);
-        if(slot>=0 && gInv[playerid][slot][iiType]==ITEM_ARMOUR) return RW_ArmourWear(playerid, slot);
-        if(gInvSelected[playerid]==gInvWorn[playerid]) return RW_ArmourRemove(playerid);
-    }
+    if (clicked == gInvTD[playerid][160] && !gInvFromGround[playerid]) return RW_InvWearSelected(playerid);
     if (clicked == gInvTD[playerid][162]) return RW_InvTransfer(playerid, 0);
     if (clicked == gInvTD[playerid][161]) return RW_InvTransfer(playerid, 1);
     if (clicked == gInvTD[playerid][159]) return RW_InvDrop(playerid);
-    if (clicked == gInvTD[playerid][163] && !gInvFromGround[playerid]) {
-        if (gWpActive[playerid] > 0 && gInvSelected[playerid] == gWpActive[playerid]) return RW_WpUnequip(playerid);
-        new slot = RW_InvFind(playerid, gInvSelected[playerid]);
-        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_AMMO) return RW_WpReloadFrom(playerid, slot);
-        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_BANDAGE) return RW_UseBandage(playerid, slot);
-        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_SYRINGE) return RW_UseSyringe(playerid, slot);
-        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_PHONE) return RW_PhoneOpen(playerid);
-        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_SIM) return RW_PhoneInsertSim(playerid);
-        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_CUFFS) return RW_PoliceCuffCommand(playerid, "");
-        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_TASER) return RW_PoliceStunCommand(playerid);
-        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_BATON) return RW_PoliceStunCommand(playerid);
-        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_BADGE) return RW_MdtOpen(playerid);
-        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_DEFIB) return RW_EmsReviveCommand(playerid, "");
-        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_MEDKIT) return RW_EmsHealCommand(playerid, "");
-        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_LOCKPICK) return RW_TransportRow(playerid, RW_TransportCar(playerid));
-        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_TUNING) return RW_TuneInstall(playerid, RW_TransportCar(playerid));
-        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_PHOTO) return RW_PhotoShow(playerid);
-        if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_CAR_KEY) {
-            new token = gInv[playerid][slot][iiData];
-            for (new v; v < VEHICLE_SLOTS; v++) if (gVeh[v][vsUsed] && gVehKeyUid[v] == token) {
-                RW_UI_Close(playerid); return RW_ControlExecute(playerid, gVeh[v][vsVehicleId], 2);
-            }
-        } else if (slot >= 0) return RW_Info(playerid, "Backpack already equipped.");
-    }
+    if (clicked == gInvTD[playerid][163] && !gInvFromGround[playerid]) return RW_InvUseSelected(playerid);
     return 1;
 }
 public RW_InvPulse()

@@ -121,8 +121,9 @@ class PhoneItemTest(unittest.TestCase):
         self.assertIn('else if (type == ITEM_PHONE) format(action, sizeof action, "%s", "OPEN");', render)
         self.assertIn('else if (type == ITEM_SIM) format(action, sizeof action, "%s", "INSERT");', render)
         click = block(INV, 'stock RW_InvClick(playerid, PlayerText:clicked)', '\npublic ')
-        self.assertIn('if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_PHONE) return RW_PhoneOpen(playerid);', click)
-        self.assertIn('if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_SIM) return RW_PhoneInsertSim(playerid);', click)
+        use = block(INV, 'stock RW_InvUseSelected(playerid)', '\nstock ')
+        self.assertIn('if (type == ITEM_PHONE) return RW_PhoneOpen(playerid);', use)
+        self.assertIn('if (type == ITEM_SIM) return RW_PhoneInsertSim(playerid);', use)
 
     def test_inserting_a_sim_removes_it_from_the_bag(self):
         insert = block(PHONE, 'stock RW_PhoneInsertSim(playerid)')

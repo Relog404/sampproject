@@ -155,8 +155,9 @@ class PoliceItemTest(unittest.TestCase):
                      'else if (type == ITEM_BADGE) format(action, sizeof action, "%s", "MDT");'):
             self.assertIn(line, render)
         click = block(INV, 'stock RW_InvClick(playerid, PlayerText:clicked)', '\npublic ')
-        self.assertIn('if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_CUFFS) return RW_PoliceCuffCommand(playerid, "");', click)
-        self.assertIn('if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_BADGE) return RW_MdtOpen(playerid);', click)
+        use = block(INV, 'stock RW_InvUseSelected(playerid)', '\nstock ')
+        self.assertIn('if (type == ITEM_CUFFS) return RW_PoliceCuffCommand(playerid, "");', use)
+        self.assertIn('if (type == ITEM_BADGE) return RW_MdtOpen(playerid);', use)
 
     def test_item_names(self):
         naming = block(POLICE, 'stock RW_PoliceItemName(type, data, dest[], size = sizeof dest)')
@@ -218,7 +219,8 @@ class PoliceMechanicsTest(unittest.TestCase):
         self.assertIn('new target = RW_PlayerTarget(playerid);', command)
         self.assertIn('if (target < 0) return RW_Error(playerid, "Stand closer to the player.");', command)
         click = block(INV, 'stock RW_InvClick(playerid, PlayerText:clicked)', '\npublic ')
-        self.assertIn('if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_TASER) return RW_PoliceStunCommand(playerid);', click)
+        use = block(INV, 'stock RW_InvUseSelected(playerid)', '\nstock ')
+        self.assertIn('if (type == ITEM_TASER || type == ITEM_BATON) return RW_PoliceStunCommand(playerid);', use)
 
     def test_death_clears_the_cuffs_but_not_the_sentence(self):
         death = block(POLICE, 'stock RW_PoliceOnDeath(playerid)')

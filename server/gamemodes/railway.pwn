@@ -17,7 +17,7 @@
 
 /* Browser interface on the omp-cef plugin. Set to 0 to build a gamemode that
    needs no plugin at all - the TextDraw interface is then the only one. */
-#define RAILWAY_CEF             (1)
+#define RAILWAY_CEF             (0)
 
 #include <railway/core>
 #include <railway/ui>

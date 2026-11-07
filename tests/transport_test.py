@@ -147,8 +147,12 @@ class TransportItemTest(unittest.TestCase):
         self.assertIn('if (amount < 1 || amount > TUNE_MAX_LEVEL) return RW_Error(playerid, "Level must be 1 to 5.");', INV)
 
     def test_the_inventory_button_fits_or_picks(self):
-        self.assertIn('if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_LOCKPICK) return RW_TransportRow(playerid, RW_TransportCar(playerid));', INV)
-        self.assertIn('if (slot >= 0 && gInv[playerid][slot][iiType] == ITEM_TUNING) return RW_TuneInstall(playerid, RW_TransportCar(playerid));', INV)
+        # главное действие вынесено в общую функцию: её зовут тексдрав-меню и карточка
+        use = block(INV, 'stock RW_InvUseSelected(playerid)', '\nstock ')
+        self.assertIn('if (type == ITEM_LOCKPICK) return RW_TransportRow(playerid, RW_TransportCar(playerid));', use)
+        self.assertIn('if (type == ITEM_TUNING) return RW_TuneInstall(playerid, RW_TransportCar(playerid));', use)
+        card = block(INV, 'stock RW_InvCefContext(playerid, slot)', '\nstock ')
+        self.assertIn('type == ITEM_LOCKPICK || type == ITEM_TUNING', card)
         self.assertIn('else if (type == ITEM_LOCKPICK) format(action, sizeof action, "%s", "PICK");', INV)
         self.assertIn('else if (type == ITEM_TUNING) format(action, sizeof action, "%s", "FIT");', INV)
 
