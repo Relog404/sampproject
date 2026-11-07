@@ -17,7 +17,7 @@
 
 /* Browser interface on the omp-cef plugin. Set to 0 to build a gamemode that
    needs no plugin at all - menus then open as native SA-MP dialogs. */
-#define RAILWAY_CEF             (0)
+#define RAILWAY_CEF             (1)
 
 #include <railway/core>
 #include <railway/ui>
