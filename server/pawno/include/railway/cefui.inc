@@ -326,6 +326,10 @@ public RW_CefClick(playerid, browserid, id)
     if (gCefMode[playerid] == CEF_MODE_GARAGE) return RW_GarageCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_KEYS) return RW_KeyMenuCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_DOWNED) return RW_MedCefClick(playerid, id);
+    /* Настройки, бинды и карта: панель общая, поэтому клик разбирает
+       тот же RW_UI_Click, что и раньше — по gUIMode. */
+    if (gCefMode[playerid] == CEF_MODE_SETTINGS || gCefMode[playerid] == CEF_MODE_BIND
+        || gCefMode[playerid] == CEF_MODE_MAP) return RW_UI_Click(playerid, id);
     return 1;
 }
 

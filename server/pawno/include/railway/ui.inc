@@ -262,6 +262,9 @@ stock RW_UI_CefMode(mode)
     if (mode == UI_GARAGE) return CEF_MODE_GARAGE;
     if (mode == UI_KEYMENU) return CEF_MODE_KEYS;
     if (mode == UI_DOWNED) return CEF_MODE_DOWNED;
+    if (mode == UI_SETTINGS) return CEF_MODE_SETTINGS;
+    if (mode == UI_BIND) return CEF_MODE_BIND;
+    if (mode == UI_MAP) return CEF_MODE_MAP;
     return CEF_MODE_NONE;                   /* своей страницы нет: диалог */
 }
 stock RW_UI_Panel(playerid, mode, const title[], const subtitle[])

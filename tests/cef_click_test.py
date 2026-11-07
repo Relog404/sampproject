@@ -39,18 +39,23 @@ MEDICAL = pawn('medical')
 class ClickabilityTest(unittest.TestCase):
     def test_every_browser_mode_answers_a_click(self):
         """Страница без обработчика — кнопка, которая ничего не делает."""
-        modes = re.findall(r'#define (CEF_MODE_[A-Z_]+)\s+\((\d+)\)', CORE)
+        modes = re.findall(r'#define (CEF_MODE_[A-Z_]+)\s+\(\d+\)', CORE)
         self.assertTrue(modes)
-        for name, number in modes:
+        dispatch = CEF.split('public RW_CefClick(playerid, browserid, id)', 1)[1].split('\n}', 1)[0]
+        for name in modes:
             if name == 'CEF_MODE_NONE':
                 continue
-            self.assertIn('if (gCefMode[playerid] == %s) return RW_' % name, CEF)
+            # обработчик может быть один на несколько режимов (настройки,
+            # бинды и карта разбираются общим RW_UI_Click), главное — чтобы
+            # режим вообще встречался в разборе клика
+            self.assertIn(name, dispatch)
 
     def test_every_panel_mode_is_known_to_the_bridge(self):
         """UI-режим панели знает, какую страницу открыть, — или честно
         остаётся на нативном диалоге."""
         bridge = block(UI, 'stock RW_UI_CefMode(mode)')
-        for mode in ('UI_GARAGE', 'UI_INVENTORY', 'UI_BANK', 'UI_SHOP', 'UI_JOB'):
+        for mode in ('UI_GARAGE', 'UI_KEYMENU', 'UI_DOWNED', 'UI_INVENTORY',
+                     'UI_SETTINGS', 'UI_BIND', 'UI_MAP', 'UI_BANK', 'UI_SHOP', 'UI_JOB'):
             self.assertIn('if (mode == %s)' % mode, bridge)
         self.assertIn('return CEF_MODE_NONE;', bridge)
 
@@ -58,6 +63,7 @@ class ClickabilityTest(unittest.TestCase):
         """Строки копятся на странице и рисуются один раз по команде «конец»:
         у гаража это RW_CefEnd, у инвентаря — RW_CefInvEnd."""
         self.assertIn('return RW_CefEnd(playerid);', block(GARAGE, 'stock RW_GarageCef(playerid)'))
+        self.assertIn('return RW_CefEnd(playerid);', block(GARAGE, 'stock RW_KeyMenuCef(playerid)'))
         self.assertIn('return RW_CefInvEnd(playerid);', block(pawn('inventory'), 'stock RW_InvCef(playerid)'))
 
 
@@ -122,6 +128,34 @@ class DownedScreenTest(unittest.TestCase):
         td = block(MEDICAL, 'stock RW_MedClick(playerid, PlayerText:clicked)')
         self.assertIn('return RW_MedCall(playerid);', td)
         self.assertIn('return RW_MedWait(playerid);', td)
+
+
+class SettingsScreenTest(unittest.TestCase):
+    """Настройки, бинды и карта телепорта: общая панель, общий клик."""
+
+    def setUp(self):
+        self.interaction = pawn('interaction')
+
+    def test_the_modes_are_mapped(self):
+        bridge = block(UI, 'stock RW_UI_CefMode(mode)')
+        self.assertIn('if (mode == UI_SETTINGS) return CEF_MODE_SETTINGS;', bridge)
+        self.assertIn('if (mode == UI_BIND) return CEF_MODE_BIND;', bridge)
+        self.assertIn('if (mode == UI_MAP) return CEF_MODE_MAP;', bridge)
+
+    def test_clicks_go_to_the_same_handler(self):
+        """Клик с тексдрава и клик в браузере попадают в RW_UI_Click,
+        который разбирает строку по gUIMode: расхождений быть не должно."""
+        dispatch = CEF.split('public RW_CefClick(playerid, browserid, id)', 1)[1].split('\n}', 1)[0]
+        self.assertIn('return RW_UI_Click(playerid, id);', dispatch)
+        click = block(self.interaction, 'stock RW_UI_Click(playerid, row)')
+        self.assertIn('if (mode == UI_SETTINGS)', click)
+        self.assertIn('} else if (mode == UI_BIND) {', click)
+        self.assertIn('} else if (mode == UI_MAP) {', click)
+
+    def test_binding_lists_the_keys(self):
+        settings = block(self.interaction, 'stock RW_UI_Settings(playerid)')
+        self.assertIn('RW_UI_Row(playerid, i, label);', settings)
+        self.assertIn('RW_UI_Row(playerid, 6, "Reset: H / N / Y");', settings)
 
 
 class GarageScreenTest(unittest.TestCase):
