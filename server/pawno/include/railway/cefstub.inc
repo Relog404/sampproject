@@ -109,11 +109,6 @@ stock RW_CefHudHint(playerid, const hints[])
     #pragma unused playerid, hints
     return 0;
 }
-stock RW_CefHudBonus(playerid, const key[], amount, day)
-{
-    #pragma unused playerid, key, amount, day
-    return 0;
-}
 stock RW_CefHudShow(playerid, on)
 {
     #pragma unused playerid, on

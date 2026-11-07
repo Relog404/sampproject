@@ -41,26 +41,6 @@ def block(source, start, end='\nstock '):
     return source.split(start, 1)[1].split(end, 1)[0]
 
 
-class HudTableTest(unittest.TestCase):
-    """The bonuses table, executed for real."""
-
-    def setUp(self):
-        self.db = sqlite3.connect(':memory:')
-        self.db.executescript(sql(HUD, 'CREATE TABLE IF NOT EXISTS bonuses') + ';')
-
-    def test_a_player_row_holds_the_whole_progress(self):
-        self.db.execute('INSERT INTO bonuses (player_id,day,daily,online,hidden) VALUES (7,2,100,200,0)')
-        row = self.db.execute('SELECT day,daily,online,hidden FROM bonuses WHERE player_id=7').fetchone()
-        self.assertEqual(row, (2, 100, 200, 0))
-
-    def test_the_save_query_replaces_the_row(self):
-        save = sql(HUD, 'INSERT OR REPLACE INTO bonuses')
-        self.db.execute(save.replace('%d,%d,%d,%d,%d', '7,1,1,1,1'))
-        self.db.execute(save.replace('%d,%d,%d,%d,%d', '7,2,2,2,0'))
-        rows = self.db.execute('SELECT day,hidden FROM bonuses WHERE player_id=7').fetchall()
-        self.assertEqual(rows, [(2, 0)])
-
-
 class HudRadarTest(unittest.TestCase):
     """The radar is gone: the game has its own, and the HUD stays quiet."""
 
@@ -69,60 +49,17 @@ class HudRadarTest(unittest.TestCase):
         self.assertNotIn('gHudZone', HUD)
         self.assertNotIn('hud:radar', HUD)
         self.assertNotIn('id="radar"', PAGE)
-        self.assertIn('id="bonusArt"', PAGE)
+        self.assertNotIn('id="bonus"', PAGE)
         self.assertNotIn('.radar {', CSS)
+        self.assertNotIn('.bonus {', CSS)
         self.assertNotIn('hud:radar', SCRIPT)
 
-    def test_the_pulse_still_updates_hints_and_the_card(self):
+    def test_the_pulse_updates_the_hints(self):
         self.assertIn('SetTimer("RW_HudPulse", 500, true);', MAIN)
         self.assertIn('forward RW_HudPulse();', CORE)
         pulse = block(HUD, 'public RW_HudPulse()')
         self.assertIn('RW_HudHints(playerid);', pulse)
-        self.assertIn('RW_HudBonusCard(playerid);', pulse)
-
-
-class HudBonusTest(unittest.TestCase):
-    """Free bonuses: every half hour and once a day for three days."""
-
-    def test_the_online_bonus_comes_every_thirty_minutes(self):
-        self.assertIn('#define HUD_ONLINE_SECONDS  1800', HUD)
-        self.assertIn('#define HUD_ONLINE_BONUS    500', HUD)
-        self.assertIn('gettime() - gHudOnline[playerid] >= HUD_ONLINE_SECONDS', HUD)
-
-    def test_the_starter_bonus_grows_for_three_days(self):
-        self.assertIn('#define HUD_DAILY_SECONDS   86400', HUD)
-        self.assertIn('#define HUD_DAILY_LIMIT     3', HUD)
-        bonus = block(HUD, 'stock RW_HudDailyBonus(day)')
-        self.assertIn('return HUD_DAILY_BONUS * day;', bonus)
-        self.assertIn('if (day > HUD_DAILY_LIMIT) day = HUD_DAILY_LIMIT;', bonus)
-
-    def test_the_card_offers_the_daily_bonus_first(self):
-        card = block(HUD, 'stock RW_HudBonusCard(playerid)')
-        self.assertIn('"online"', card)
-        self.assertIn('"starter"', card)
-        self.assertTrue(card.index('"starter"') < card.index('"online"'))
-        self.assertIn('RW_HudBonusEmit(playerid, "", 0, 0)', card)
-
-    def test_a_hidden_card_goes_away_until_the_next_bonus(self):
-        hide = block(HUD, 'stock RW_HudBonusHide(playerid)')
-        self.assertIn('gHudHidden[playerid] = true;', hide)
-        self.assertIn('RW_HudSave(playerid);', hide)
-        claim = block(HUD, 'stock RW_HudBonusClaim(playerid)')
-        self.assertIn('gHudHidden[playerid] = false;', claim)
-
-    def test_the_claim_is_paid_by_the_server(self):
-        claim = block(HUD, 'stock RW_HudBonusClaim(playerid)')
-        self.assertIn('RW_AddMoney(playerid, HUD_ONLINE_BONUS);', claim)
-        self.assertIn('RW_BankAdd(playerid, amount);', claim)
-        self.assertTrue(claim.index('RW_BankAdd(playerid, amount);') < claim.index('RW_AddMoney(playerid, HUD_ONLINE_BONUS);'))
-        self.assertIn('Balance: %d.', claim)
-        self.assertIn('RW_Error(playerid, "Nothing to claim yet:', claim)
-
-    def test_the_page_prints_the_card_in_russian(self):
-        self.assertIn('RW.on(\'hud:bonus\'', SCRIPT)
-        self.assertIn("title: 'Стартовый бонус'", SCRIPT)
-        self.assertIn("title: 'Бонус за игру'", SCRIPT)
-        self.assertIn('bonusClose.addEventListener', SCRIPT)
+        self.assertNotIn('RW_HudBonusCard', pulse)
 
 
 class HudKeysTest(unittest.TestCase):
@@ -139,12 +76,10 @@ class HudKeysTest(unittest.TestCase):
         self.assertIn("donate: 'Донат'", SCRIPT)
         self.assertIn("engine: 'Двигатель'", SCRIPT)
 
-    def test_hints_and_card_are_on_the_page(self):
+    def test_hints_are_on_the_page(self):
         self.assertIn('id="hints"', PAGE)
-        self.assertIn('id="bonus"', PAGE)
-        self.assertIn('id="bonusClose"', PAGE)
         self.assertNotIn('id="radar"', PAGE)
-        self.assertIn('id="bonusArt"', PAGE)
+        self.assertNotIn('id="bonus"', PAGE)
 
     def test_the_browser_menu_of_the_page_is_disabled(self):
         self.assertIn("document.addEventListener('contextmenu'", SCRIPT)
@@ -171,7 +106,7 @@ class HudKeysTest(unittest.TestCase):
 
     def test_the_style_is_transparent_and_minimal(self):
         self.assertIn('.hint {', CSS)
-        self.assertIn('.bonus {', CSS)
+        self.assertIn('.hints {', CSS)
         self.assertIn('backdrop-filter', CSS)
         for colour in ('rgba(255,255,255,.05)', 'rgba(14,18,26,.45)'):
             self.assertIn(colour, CSS)
@@ -297,16 +232,39 @@ class CityTest(unittest.TestCase):
 
     def test_the_tables_and_people_are_created_on_start(self):
         self.assertIn('RW_CityInit();', MAIN)
-        self.assertIn('RW_HudSchema()', MAIN)
         self.assertIn('RW_DonateSchema()', MAIN)
         self.assertIn('RW_HudLoad(playerid);', ACCOUNTS)
         self.assertIn('RW_DonateLoad(playerid);', ACCOUNTS)
-        self.assertIn('RW_HudSave(playerid);', MAIN)
         self.assertIn('RW_DonateSave(playerid);', MAIN)
+        self.assertNotIn('RW_HudSchema', HUD + MAIN)
+        self.assertNotIn('RW_HudSave', HUD + MAIN)
 
     def test_every_command_reaches_the_server(self):
-        for command in ('hud', 'bonus', 'donate', 'points', 'givedonate', 'talk'):
+        for command in ('hud', 'donate', 'points', 'givedonate', 'talk'):
             self.assertIn('"%s", true' % command, CMDS)
+
+
+class NoStarterBonusTest(unittest.TestCase):
+    """Стартового бонуса больше нет: ни таблицы, ни карточки, ни команды."""
+
+    def test_the_bonus_table_is_gone(self):
+        self.assertNotIn('CREATE TABLE IF NOT EXISTS bonuses', HUD)
+        self.assertNotIn('gHudDay', HUD)
+        self.assertNotIn('gHudDaily', HUD)
+        self.assertNotIn('gHudOnline', HUD)
+        self.assertNotIn('gHudHidden', HUD)
+
+    def test_no_bonus_money_is_paid(self):
+        for marker in ('HUD_ONLINE_BONUS', 'HUD_DAILY_BONUS', 'RW_HudBonusClaim',
+                       'RW_BonusCommand', 'RW_CefHudBonus'):
+            self.assertNotIn(marker, HUD)
+            self.assertNotIn(marker, MAIN)
+        self.assertNotIn('"bonus", true', CMDS)
+
+    def test_the_page_forgot_the_card(self):
+        self.assertNotIn('hud:bonus', SCRIPT)
+        self.assertNotIn('id="bonus"', PAGE)
+        self.assertNotIn('.bonus {', CSS)
 
 
 class InterfaceLanguageTest(unittest.TestCase):
@@ -325,7 +283,7 @@ class InterfaceLanguageTest(unittest.TestCase):
         self.assertIn('Здравствуйте, {F5B04C}%s{FFFFFF}!', ACCOUNTS)
 
     def test_the_pages_are_russian(self):
-        self.assertIn('Бонус', PAGE)
+        self.assertIn('hud-body', PAGE)
         self.assertIn('Взаимодействие', SCRIPT)
         self.assertIn('Железная дорога', (CEF / 'auth.html').read_text(encoding='utf-8'))
 

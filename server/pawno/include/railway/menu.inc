@@ -73,8 +73,8 @@ stock RW_SettingsApply(playerid)
 /*  --------------------------------- меню -------------------------------- */
 stock RW_MenuSubtitle(playerid, dest[], size = sizeof dest)
 {
-    return format(dest, size, "Настройки: %d из 7 включено. Разделы - кнопки выше.",
-        RW_SettingsOn(playerid, SET_HUD) + RW_SettingsOn(playerid, SET_HINTS) + RW_SettingsOn(playerid, SET_BONUS)
+    return format(dest, size, "Настройки: %d из 6 включено. Разделы - кнопки выше.",
+        RW_SettingsOn(playerid, SET_HUD) + RW_SettingsOn(playerid, SET_HINTS)
         + RW_SettingsOn(playerid, SET_SPEEDO) + RW_SettingsOn(playerid, SET_NAMES) + RW_SettingsOn(playerid, SET_MARKERS)
         + RW_SettingsOn(playerid, SET_WELCOME));
 }
@@ -102,7 +102,6 @@ stock RW_MenuRows(playerid)
     if (gMenuSection[playerid] == MENU_SETTINGS) {
         RW_MenuRowOut(playerid, RW_SettingsOn(playerid, SET_HUD) ? "Экранный интерфейс: включён" : "Экранный интерфейс: выключен", "set:1", RW_SettingsOn(playerid, SET_HUD));
         RW_MenuRowOut(playerid, RW_SettingsOn(playerid, SET_HINTS) ? "Подсказки клавиш: включены" : "Подсказки клавиш: выключены", "set:2", RW_SettingsOn(playerid, SET_HINTS));
-        RW_MenuRowOut(playerid, RW_SettingsOn(playerid, SET_BONUS) ? "Карточка бонуса: включена" : "Карточка бонуса: выключена", "set:4", RW_SettingsOn(playerid, SET_BONUS));
         RW_MenuRowOut(playerid, RW_SettingsOn(playerid, SET_SPEEDO) ? "Спидометр: включён" : "Спидометр: выключен", "set:8", RW_SettingsOn(playerid, SET_SPEEDO));
         RW_MenuRowOut(playerid, RW_SettingsOn(playerid, SET_NAMES) ? "Имена игроков: включены" : "Имена игроков: выключены", "set:16", RW_SettingsOn(playerid, SET_NAMES));
         RW_MenuRowOut(playerid, RW_SettingsOn(playerid, SET_MARKERS) ? "Маркеры игроков: включены" : "Маркеры игроков: выключены", "set:32", RW_SettingsOn(playerid, SET_MARKERS));
@@ -223,12 +222,11 @@ stock RW_SetCommand(playerid, const params[])
     if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
     if (!strcmp(params, "hud", true)) return RW_SettingsFlip(playerid, SET_HUD);
     if (!strcmp(params, "hints", true)) return RW_SettingsFlip(playerid, SET_HINTS);
-    if (!strcmp(params, "bonus", true)) return RW_SettingsFlip(playerid, SET_BONUS);
     if (!strcmp(params, "speedo", true)) return RW_SettingsFlip(playerid, SET_SPEEDO);
     if (!strcmp(params, "names", true)) return RW_SettingsFlip(playerid, SET_NAMES);
     if (!strcmp(params, "markers", true)) return RW_SettingsFlip(playerid, SET_MARKERS);
     if (!strcmp(params, "welcome", true)) return RW_SettingsFlip(playerid, SET_WELCOME);
-    return RW_Error(playerid, "Настройка: /set <hud|hints|bonus|speedo|names|markers|welcome>.");
+    return RW_Error(playerid, "Настройка: /set <hud|hints|speedo|names|markers|welcome>.");
 }
 /* /key <0|1|2>: двери, двигатель, взаимодействие - без мыши. */
 stock RW_KeyCommand(playerid, const params[])

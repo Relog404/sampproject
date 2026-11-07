@@ -114,7 +114,6 @@ public OnGameModeInit()
     if (!RW_EconomySchema()) print("[economy] Economy tables unavailable; jobs, shops and bank accounts disabled.");
     if (!RW_PropSchema()) print("[property] Property table unavailable; houses and businesses are disabled.");
     if (!RW_PropAucSchema()) print("[property] Auction table unavailable; seized property will not be sold.");
-    if (!RW_HudSchema()) print("[hud] Bonus table unavailable; starter bonuses are disabled.");
     if (!RW_DonateSchema()) print("[donate] Donate table unavailable; points are not kept.");
     RW_CityInit();
     if (!RW_StorySchema()) print("[story] Story table unavailable; progress is not kept.");
@@ -192,7 +191,6 @@ public OnPlayerConnect(playerid)
     RW_TransportReset(playerid);
     RW_EconomySave(playerid);
     RW_EconomyReset(playerid);
-    RW_HudSave(playerid);
     RW_HudReset(playerid);
     RW_DonateSave(playerid);
     RW_DonateReset(playerid);
@@ -260,7 +258,6 @@ public OnPlayerDisconnect(playerid, reason)
     RW_CefReset(playerid);
     RW_PhoneReset(playerid);
     RW_PoliceReset(playerid);
-    RW_HudSave(playerid);
     RW_DonateSave(playerid);
     RW_StorySave(playerid);
     RW_HudReset(playerid);

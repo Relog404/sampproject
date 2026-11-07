@@ -139,12 +139,11 @@ forward RW_LawyerCallFor(playerid, target);
 /* Настройки интерфейса: их читают модули, подключённые раньше menu.inc. */
 #define SET_HUD             (1)         /* экранный интерфейс              */
 #define SET_HINTS           (2)         /* подсказки клавиш                */
-#define SET_BONUS           (4)         /* карточка бонуса                 */
 #define SET_SPEEDO          (8)         /* спидометр                       */
 #define SET_NAMES           (16)        /* имена над игроками              */
 #define SET_MARKERS         (32)        /* маркеры игроков                 */
 #define SET_WELCOME         (64)        /* приветствие при появлении       */
-#define SET_DEFAULT         (127)
+#define SET_DEFAULT         (123)
 /* События сюжетной линии: их шлют все модули, поэтому они лежат здесь. */
 #define STORY_EV_JOB        (1)         /* устроился на работу              */
 #define STORY_EV_TASK       (2)         /* закрыл рабочее задание           */

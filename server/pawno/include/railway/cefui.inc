@@ -74,8 +74,6 @@ stock RW_CefInit()
     CEF_RegisterEvent("phone:set", "RW_CefPhoneSet", Argument_String, Argument_String, Argument_Integer);
     CEF_RegisterEvent("phone:911", "RW_CefPhone911", Argument_Integer);
     CEF_RegisterEvent("phone:close", "RW_CefPhoneClosed");
-    CEF_RegisterEvent("hud:bonusclaim", "RW_HudBonusClick", Argument_Integer);
-    CEF_RegisterEvent("hud:bonushide", "RW_HudBonusHideEvent", Argument_Integer);
     CEF_RegisterEvent("hud:mousetoggle", "RW_HudMouseEvent", Argument_Integer);
     CEF_RegisterEvent("hud:menu", "RW_HudMenuEvent", Argument_Integer);
     CEF_RegisterEvent("hud:donate", "RW_HudDonateEvent", Argument_Integer);
@@ -423,12 +421,6 @@ stock RW_CefHudHint(playerid, const hints[])
 {
     if (!RW_CefOn(playerid)) return 0;
     CEF_EmitEvent(playerid, CEF_UI_HUD, "hud:hint", CEF_STR(hints));
-    return 1;
-}
-stock RW_CefHudBonus(playerid, const key[], amount, day)
-{
-    if (!RW_CefOn(playerid)) return 0;
-    CEF_EmitEvent(playerid, CEF_UI_HUD, "hud:bonus", CEF_STR(key), CEF_INT(amount), CEF_INT(day));
     return 1;
 }
 stock RW_CefHudShow(playerid, on)

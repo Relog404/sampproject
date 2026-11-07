@@ -1,4 +1,4 @@
-"""The full-screen menu on F3, its settings and the fixed bonus card.
+"""The full-screen menu on F3 and its settings.
 
 Every setting here really changes something on the server: a component is
 switched off, a key is rebound, a name tag is hidden. Nothing is drawn just
@@ -114,7 +114,7 @@ class MenuPageTest(unittest.TestCase):
         for command in ('set', 'key', 'menu', 'settings'):
             self.assertIn('"%s", true' % command, CMDS)
         set_block = block(MENU, 'stock RW_SetCommand(playerid, const params[])')
-        for name in ('hud', 'hints', 'bonus', 'speedo', 'names', 'markers', 'welcome'):
+        for name in ('hud', 'hints', 'speedo', 'names', 'markers', 'welcome'):
             self.assertIn('"%s", true' % name, set_block)
         self.assertIn('RW_MenuKeyFlip(playerid, slot)', block(MENU, 'stock RW_KeyCommand(playerid, const params[])'))
 
@@ -159,12 +159,11 @@ class MenuServerTest(unittest.TestCase):
         self.assertIn('ShowPlayerNameTagForPlayer(playerid, i, RW_SettingsOn(playerid, SET_NAMES));', apply_block)
         self.assertIn('SetPlayerMarkerForPlayer(playerid, i, 0x00000000);', apply_block)
         self.assertIn('if (!RW_SettingsOn(playerid, SET_HINTS))', HUD)
-        self.assertIn('if (!RW_SettingsOn(playerid, SET_BONUS))', HUD)
         self.assertIn('if (!RW_SettingsOn(playerid, SET_SPEEDO)) return 0;', UI)
         self.assertIn('if (RW_SettingsOn(playerid, SET_WELCOME)) RW_CityWelcome(playerid);', CITY)
 
     def test_the_flags_are_defined_before_the_modules_that_read_them(self):
-        for flag in ('SET_HUD', 'SET_HINTS', 'SET_BONUS', 'SET_SPEEDO', 'SET_NAMES', 'SET_MARKERS', 'SET_WELCOME', 'SET_DEFAULT'):
+        for flag in ('SET_HUD', 'SET_HINTS', 'SET_SPEEDO', 'SET_NAMES', 'SET_MARKERS', 'SET_WELCOME', 'SET_DEFAULT'):
             self.assertIn('#define %s' % flag, CORE)
             self.assertNotIn('#define %s ' % flag, MENU)
 
@@ -175,45 +174,25 @@ class MenuServerTest(unittest.TestCase):
         self.assertIn('gControlKeys[playerid][slot] = next;', flip)
 
 
-class BonusCardTest(unittest.TestCase):
-    """The card is bigger, collapses and its button really clicks."""
-
-    def test_the_claim_sends_its_own_event(self):
-        self.assertIn("RW.emit('hud:bonusclaim', 1)", HUDJS)
-        self.assertIn('CEF_RegisterEvent("hud:bonusclaim", "RW_HudBonusClick", Argument_Integer);', CEFUI)
-        self.assertNotIn("RW.emit('hud:bonus', 1)", HUDJS)
-
-    def test_after_the_claim_the_button_shows_the_countdown(self):
-        self.assertIn('"next"', HUD)
-        self.assertIn('RW_HudNextSeconds(playerid)', HUD)
-        self.assertIn("next: function ()", HUDJS)
-        self.assertIn("bonusGo.textContent = 'Всё'", HUDJS)
-        self.assertIn("bonusGo.disabled = true;", HUDJS)
-        self.assertIn("startTimer(day, card.text);", HUDJS)
-        self.assertIn('.bonus-go.done', CSS)
+class HudMouseTest(unittest.TestCase):
+    """Мышь включается клавишей и с самой страницы: курсор нужен для клика."""
 
     def test_the_player_freezes_while_the_cursor_is_on(self):
         self.assertIn('TogglePlayerControllable(playerid, !gHudMouse[playerid]);', HUD)
-
-    def test_the_card_collapses_and_comes_back(self):
-        self.assertIn('function setMin(on)', HUDJS)
-        self.assertIn("bonus.classList.toggle('min', on)", HUDJS)
-        self.assertIn("setMin(false)", HUDJS)
-        self.assertNotIn('bonusClose.addEventListener(\'click\', function () {\n    bonus.classList.add(\'off\');', HUDJS)
-        self.assertIn('.bonus.min .bonus-body { display: none; }', CSS)
-
-    def test_the_card_grew_and_got_an_image(self):
-        self.assertIn('id="bonusArt"', HUDPAGE)
-        self.assertIn('img/bonus.png', HUDPAGE)
-        self.assertIn('.bonus-art {', CSS)
-        self.assertIn('width: 300px', CSS)
-        self.assertTrue((CEF / 'img' / 'bonus.png').exists())
-        self.assertTrue((CEF / 'img' / 'logo.png').exists())
 
     def test_the_mouse_toggles_from_the_page_too(self):
         self.assertIn("RW.emit('hud:mousetoggle'", HUDJS)
         self.assertIn('CEF_RegisterEvent("hud:mousetoggle", "RW_HudMouseEvent", Argument_Integer);', CEFUI)
         self.assertIn('public RW_HudMouseEvent(playerid, browserid, on)', HUD)
+
+    def test_the_bonus_card_is_gone(self):
+        """Карточки больше нет: ни события, ни картинки, ни стилей."""
+        self.assertNotIn('hud:bonusclaim', HUDJS)
+        self.assertNotIn('hud:bonusclaim', CEFUI)
+        self.assertNotIn('RW_HudNextSeconds', HUD)
+        self.assertNotIn('id="bonusArt"', HUDPAGE)
+        self.assertNotIn('.bonus-art {', CSS)
+        self.assertNotIn('.bonus-go.done', CSS)
 
 
 if __name__ == '__main__':

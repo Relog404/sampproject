@@ -89,7 +89,6 @@ stock RW_CitySpawn(playerid)
     RW_CityIntro(playerid);
     if (RW_SettingsOn(playerid, SET_WELCOME)) RW_CityWelcome(playerid);
     RW_HudShow(playerid, true);
-    RW_HudBonusCard(playerid);
     return 1;
 }
 stock RW_CityIntro(playerid)
@@ -114,7 +113,7 @@ stock RW_CityWelcome(playerid)
     RW_Accent(playerid, "--- Добро пожаловать на Unity Station ---");
     RW_Info(playerid, "Это ролевой сервер: играйте роль, говорите от лица персонажа, а /b - для разговора вне роли.");
     RW_Info(playerid, "Начало: /job во дворе Эль-Корона, затем /work - задание. Деньги приходят на /payday.");
-    RW_Info(playerid, "Карточка в углу даёт бесплатные деньги: нажмите её или /bonus. F2 или /donate - донат-меню.");
+    RW_Info(playerid, "Донат-меню: /donate. Экранный интерфейс: /hud, /set и /key.");
     if (gMoney[playerid] <= 0 && gBank[playerid] <= 0) {
         RW_AddMoney(playerid, CITY_START_CASH);
         RW_BankAdd(playerid, CITY_START_BANK);

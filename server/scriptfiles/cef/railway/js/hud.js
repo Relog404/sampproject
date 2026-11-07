@@ -1,4 +1,4 @@
-/* HUD: радар, подсказки клавиш и карточка бонуса.
+/* HUD: подсказки клавиш, спидометр, деньги и время.
    Все подписи на русском живут здесь, на клиенте: сервер шлёт короткие
    английские ключи, а страница переводит их. Так один и тот же сервер
    работает и с браузером, и с текстовым интерфейсом. */
@@ -36,31 +36,8 @@
     rodeo: 'Родео'
   };
 
-  /* Карточки бонусов: сервер шлёт только ключ и сумму. */
-  function money(n) {
-    return String(Math.max(0, n | 0)).replace(/(\d)(?=(\d{3})+$)/g, '$1 ');
-  }
-  var CARDS = {
-    starter: function (amount, day) {
-      return { title: 'Стартовый бонус', text: 'День ' + day + ' из 3. Награда: ' + money(amount) + ' $.' };
-    },
-    online: function (amount) {
-      return { title: 'Бонус за игру', text: 'Каждые 30 минут в игре: ' + money(amount) + ' $.' };
-    },
-    next: function () {
-      return { title: 'Следующий бонус', text: 'Всё получено.' };
-    }
-  };
-
   var hud = document.getElementById('hud');
   var hints = document.getElementById('hints');
-  var bonus = document.getElementById('bonus');
-  var bonusTitle = document.getElementById('bonusTitle');
-  var bonusText = document.getElementById('bonusText');
-  var bonusGo = document.getElementById('bonusGo');
-  var bonusClose = document.getElementById('bonusClose');
-  var head = document.getElementById('bonusHead');
-
   function translate(key) {
     return WORDS[key] || key;
   }
@@ -77,48 +54,6 @@
     hints.innerHTML = html;
   });
 
-  /* Карточка бонуса. Пустой заголовок прячет её целиком. */
-  var nextLeft = 0, nextTimer = 0;
-
-  function clock(sec) {
-    var m = Math.floor(sec / 60), s = sec % 60;
-    return m + ':' + (s < 10 ? '0' : '') + s;
-  }
-  function stopTimer() {
-    if (nextTimer) { window.clearInterval(nextTimer); nextTimer = 0; }
-  }
-  function startTimer(sec, base) {
-    nextLeft = Math.max(0, sec | 0);
-    bonusText.textContent = base + ' Через ' + clock(nextLeft) + '.';
-    stopTimer();
-    nextTimer = window.setInterval(function () {
-      nextLeft = Math.max(0, nextLeft - 1);
-      bonusText.textContent = base + ' Через ' + clock(nextLeft) + '.';
-      if (!nextLeft) stopTimer();
-    }, 1000);
-  }
-
-  RW.on('hud:bonus', function (key, amount, day) {
-    stopTimer();
-    var card = CARDS[key];
-    if (!card) { bonus.classList.add('off'); return; }
-    card = card(amount, day);
-    bonusTitle.textContent = card.title;
-    bonusText.textContent = card.text;
-    head.textContent = card.title;
-    bonus.classList.remove('off');
-    if (key === 'next') {
-      bonusGo.textContent = 'Всё';
-      bonusGo.disabled = true;
-      bonusGo.classList.add('done');
-      startTimer(day, card.text);
-    } else {
-      bonusGo.textContent = 'Забрать';
-      bonusGo.disabled = false;
-      bonusGo.classList.remove('done');
-    }
-  });
-
   /* Показ и скрытие всего HUD. */
   RW.on('hud:show', function (on) {
     hud.classList.toggle('off', !on);
@@ -127,23 +62,6 @@
   /* Никакого контекстного меню браузера поверх игры. */
   document.addEventListener('contextmenu', function (e) { e.preventDefault(); return false; });
   document.addEventListener('selectstart', function (e) { e.preventDefault(); });
-
-  /* Кнопка «Забрать»: своё имя события, чтобы не склеиваться с пакетом,
-     который сервер шлёт этой же странице. */
-  bonusGo.addEventListener('click', function () { RW.emit('hud:bonusclaim', 1); });
-
-  /* Свернуть и развернуть: крестика больше нет. */
-  function setMin(on) {
-    bonus.classList.toggle('min', on);
-    head.textContent = on ? 'Бонус (свёрнут)' : (bonusTitle.textContent || 'Бонус');
-  }
-  bonusClose.addEventListener('click', function (e) {
-    e.stopPropagation();
-    setMin(!bonus.classList.contains('min'));
-  });
-  bonus.addEventListener('click', function () {
-    if (bonus.classList.contains('min')) setMin(false);
-  });
 
   /* Режим мыши: включается командой /mouse, иначе курсор не мешает играть. */
   /* Спидометр: сервер шлёт имя машины, скорость, передачу, обороты и флаги

@@ -276,12 +276,6 @@ html, body { background: transparent; }
 .hint b { min-width: 22px; text-align: center; font-size: 11px; font-weight: 600; color: #F5B04C; }
 .hint span { font-size: 12px; color: rgba(242,244,248,.88); }
 
-.bonus { position: absolute; right: 26px; top: 24px; width: 300px; padding: 16px 18px 18px;
-         border-radius: 16px; background: rgba(14,18,26,.45);
-         box-shadow: inset 0 0 0 1px rgba(245,176,76,.30), 0 14px 34px rgba(0,0,0,.34);
-         backdrop-filter: blur(4px); pointer-events: auto; cursor: pointer;
-         transition: opacity .18s ease, transform .18s ease; }
-.bonus.off { opacity: 0; transform: translateY(-8px); pointer-events: none; }
 .ground { position: absolute; left: 50%; top: 58%; transform: translate(-50%, 8px);
   min-width: 190px; max-width: 380px; padding: 9px 14px 10px; text-align: center;
   border-radius: 10px; background: rgba(14,17,23,.74);
@@ -309,26 +303,6 @@ html, body { background: transparent; }
 .speedo-rpm-fill { width: 1%; height: 100%; border-radius: 3px; background: #F5B04C;
                    transition: width .12s linear; }
 
-.bonus-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.bonus-head-title { font-size: 13px; font-weight: 600; letter-spacing: .02em; color: #F5B04C; }
-.bonus-min { width: 24px; height: 24px; padding: 0; border: 0; border-radius: 8px; cursor: pointer;
-             font: 600 16px/22px sans-serif; color: rgba(242,244,248,.75); background: rgba(255,255,255,.08); }
-.bonus-min:hover { color: #FFFFFF; background: rgba(255,255,255,.16); }
-.bonus-body { margin-top: 12px; }
-.bonus.min .bonus-body { display: none; }
-.bonus-art { display: block; background: transparent; width: 100%; height: 92px; margin-bottom: 12px; border-radius: 12px;
-             object-fit: cover; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
-.bonus-title { font-size: 15px; font-weight: 600; color: #F5B04C; letter-spacing: .02em; }
-.bonus-text { margin: 7px 0 12px; font-size: 13px; line-height: 1.4; color: rgba(242,244,248,.84); }
-.bonus-go.done, .bonus-go:disabled { color: rgba(242,244,248,.55); background: rgba(255,255,255,.08);
-              cursor: default; filter: none; }
-.bonus-go { width: 100%; padding: 10px; border: 0; border-radius: 11px; cursor: pointer;
-            font: inherit; font-size: 14px; font-weight: 600; color: #16191F;
-            background: linear-gradient(180deg, #F7C77E, #E9A44A); }
-.bonus-close { position: absolute; right: 8px; top: 6px; width: 20px; height: 20px; padding: 0;
-               border: 0; border-radius: 50%; cursor: pointer; font: 600 14px/18px sans-serif;
-               color: rgba(242,244,248,.7); background: rgba(255,255,255,.08); }
-.bonus-close:hover { color: #FFFFFF; background: rgba(255,255,255,.16); }
 
 /* ------------------------------ авторизация ----------------------------- */
 .auth-body { background: transparent; overflow: hidden; }
