@@ -60,6 +60,9 @@ forward RW_FamilyPulse();
 forward RW_FamilyTick(playerid);
 forward RW_FamilyClick(playerid, row);
 forward RW_FamilyCefClick(playerid, id);
+forward RW_GovClick(playerid, row);
+forward RW_GovCefClick(playerid, id);
+forward RW_ContractCall(client);
 forward RW_DonateOpen(playerid);
 forward RW_DonateClick(playerid, row);
 forward RW_DonateCefClick(playerid, id);
@@ -114,6 +117,7 @@ forward RW_LawyerCallFor(playerid, target);
 #define CEF_MODE_MARKET             (16)
 #define CEF_MODE_CRIME              (17)
 #define CEF_MODE_FAMILY             (18)
+#define CEF_MODE_GOV                (19)
 /* Настройки интерфейса: их читают модули, подключённые раньше menu.inc. */
 #define SET_HUD             (1)         /* экранный интерфейс              */
 #define SET_HINTS           (2)         /* подсказки клавиш                */

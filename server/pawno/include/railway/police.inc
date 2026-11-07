@@ -561,6 +561,7 @@ stock RW_PoliceJail(playerid, target, seconds, bail, reason, bool:fresh)
     SetPlayerFacingAngle(who, 90.0);
     SetCameraBehindPlayer(who);
     if (fresh) RW_PoliceSave(who);
+    RW_ContractCall(who);
     new message[200];
     if (target >= 0 && playerid >= 0) {
         new tnick[MAX_PLAYER_NAME];

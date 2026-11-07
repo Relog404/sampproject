@@ -57,7 +57,7 @@ stock RW_CommandHelp(playerid)
     SendClientMessage(playerid, COLOR_GREY, "Деньги: /shop, /bank, /balance, /deposit, /withdraw, /transfer <id> <сумма>, /job, /work, /quitjob, /payday.");
     SendClientMessage(playerid, COLOR_GREY, "Недвижимость: /property, /doors, /enter, /exit, /paytax, /till put|take <сумма>, /bid <сумма>, /rob (12:00-01:00).");
     SendClientMessage(playerid, COLOR_GREY, "Сюжет: /story - восемь глав с опытом и деньгами; /profile - уровень, опыт и вся статистика.");
-    SendClientMessage(playerid, COLOR_GREY, "Интерфейс: /hud - экранный интерфейс, /bonus - бесплатный бонус, F2 или /donate - донат, /set <hud|hints|bonus|speedo|names|markers|welcome>, /key <0|1|2>, Alt + Y - курсор мыши, C - донат, Alt + H - настройки, F3 (Alt + N) - меню, / - телефон, /talk - непись.  Маркетплейс: /market, /sell <слот> <цена> [часы], /buy <лот>, /stavka <лот> <сумма>, /unsell <лот>, /claim Криминал: /crime, /heist, /craft, /green, /selldrugs, /wanted. Семья: /family, /fcreate, /finvite, /fjoin, /fleave, /fkick, /frank, /fgive, /fstore, /ftake, /fcap, /fzones, /fcash..");
+    SendClientMessage(playerid, COLOR_GREY, "Интерфейс: /hud - экранный интерфейс, /bonus - бесплатный бонус, F2 или /donate - донат, /set <hud|hints|bonus|speedo|names|markers|welcome>, /key <0|1|2>, Alt + Y - курсор мыши, C - донат, Alt + H - настройки, F3 (Alt + N) - меню, / - телефон, /talk - непись.  Маркетплейс: /market, /sell <слот> <цена> [часы], /buy <лот>, /stavka <лот> <сумма>, /unsell <лот>, /claim Криминал: /crime, /heist, /craft, /green, /selldrugs, /wanted. Семья: /family, /fcreate, /finvite, /fjoin, /fleave, /fkick, /frank, /fgive, /fstore, /ftake, /fcap, /fzones, /fcash. Мэрия: /cityhall, /licence — лицензия адвоката, /record — справка о несудимости, /contract — договор с адвокатом..");
     SendClientMessage(playerid, COLOR_GREY, "Приложения: /apps, /weather, /group, /g <текст>, /ginvite, /taxi, /uber, /news, /ad, /auto, /deliver, /snap, /photo, /lawcall, /radio.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/spcar <id>{FFFFFF} - временная машина (400-611). /garage - гараж вокзала.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} - открыть/закрыть машину под прицелом; ключ должен быть в /inv.");
@@ -443,6 +443,10 @@ stock RW_CommandProcess(playerid, cmdtext[])
     if (!strcmp(cmd, "fcap", true)) return RW_FamilyCapture(playerid);
     if (!strcmp(cmd, "fzones", true)) return RW_FamilyZonesCommand(playerid);
     if (!strcmp(cmd, "fcash", true)) return RW_FamilyCashCommand(playerid, params);
+    if (!strcmp(cmd, "cityhall", true) || !strcmp(cmd, "gov", true)) return RW_GovPanel(playerid);
+    if (!strcmp(cmd, "licence", true)) return RW_GovLicence(playerid);
+    if (!strcmp(cmd, "record", true)) return RW_GovRecord(playerid);
+    if (!strcmp(cmd, "contract", true)) return RW_ContractCommand(playerid);
     if (!strcmp(cmd, "donate", true)) return RW_DonateCommand(playerid);
     if (!strcmp(cmd, "points", true)) return RW_PointsCommand(playerid);
     if (!strcmp(cmd, "givedonate", true)) return RW_GiveDonateCommand(playerid, params);

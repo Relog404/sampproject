@@ -51,6 +51,7 @@
 #include <railway/market>
 #include <railway/crime>
 #include <railway/family>
+#include <railway/government>
 #include <railway/city>
 #include <railway/story>
 #include <railway/menu>
@@ -121,6 +122,7 @@ public OnGameModeInit()
     if (!RW_MarketSchema()) print("[market] Marketplace unavailable; lots are not kept.");
     if (!RW_CrimeSchema()) print("[crime] Wanted table unavailable; the heat is not kept.");
     if (!RW_FamilySchema()) print("[family] Families unavailable; the crew is not kept.");
+    if (!RW_GovSchema()) print("[gov] Contracts table unavailable; lawyer contracts are not kept.");
     if (!RW_PhoneAppsSchema()) print("[phoneapps] News table unavailable; the Weazel News app is disabled.");
     RW_WeatherSet(1);
     RW_EconomyInit();

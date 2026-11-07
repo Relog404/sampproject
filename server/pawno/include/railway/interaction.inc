@@ -41,6 +41,7 @@ stock RW_ControlOpen(playerid, bool:settings)
 }
 stock RW_SelfMenu(playerid)
 {
+    if (RW_GovNear(playerid)) return RW_GovOpen(playerid);
     /* На службе Y на себя открывает планшет, а не телефон. */
     if (RW_PoliceOnDuty(playerid) && RW_PoliceBadge(playerid) > 0) return RW_MdtOpen(playerid);
     if (RW_EmsOnDuty(playerid) && RW_EmsItem(playerid, ITEM_MEDKIT) >= 0) return RW_MdtOpen(playerid);
@@ -76,6 +77,8 @@ stock RW_PlayerMenu(playerid, target)
     if (RW_IsLawyer(playerid) && gJailTime[target] > 0) return RW_PoliceCaseStart(playerid, target);
     /* Y на задержанном: вызвать ему адвоката. */
     if (gJailTime[target] > 0) return RW_LawyerCallFor(playerid, target);
+    /* Y на свободном игроке: адвокат заключает договор на случай ареста. */
+    if (RW_IsLawyer(playerid) && gJailTime[target] <= 0) return RW_ContractOffer(playerid, target);
     /* Упавшего игрока лечат; медик на службе лечит и просто прохожих. */
     if (gDowned[target] || (RW_EmsOnDuty(playerid) && RW_EmsItem(playerid, ITEM_MEDKIT) >= 0)) return RW_EmsMenuOpen(playerid, target);
     if (gPhoneNum[playerid] <= 0) return RW_Error(playerid, "You need a phone with a SIM card.");
@@ -242,6 +245,8 @@ stock RW_UI_Click(playerid, row)
         return RW_CrimeClick(playerid, row);
     } else if (mode == UI_FAMILY) {
         return RW_FamilyClick(playerid, row);
+    } else if (mode == UI_GOV) {
+        return RW_GovClick(playerid, row);
     } else if (mode == UI_DONATE) {
         return RW_DonateClick(playerid, row);
     } else if (mode == UI_STORY) {

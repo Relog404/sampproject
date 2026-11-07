@@ -321,6 +321,7 @@ public RW_CefClick(playerid, browserid, id)
     if (gCefMode[playerid] == CEF_MODE_MARKET) return RW_MarketCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_CRIME) return RW_CrimeCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_FAMILY) return RW_FamilyCefClick(playerid, id);
+    if (gCefMode[playerid] == CEF_MODE_GOV) return RW_GovCefClick(playerid, id);
     return 1;
 }
 
