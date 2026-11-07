@@ -155,6 +155,28 @@ class NativeInterfaceTest(unittest.TestCase):
         self.assertIn("speedo.className = 'speedo on'", page)
         self.assertIn("speedo.className = 'speedo'", page)
 
+    def test_the_ground_hint_lives_on_the_hud_page(self):
+        """Метку предмета на земле рисует HUD-страница: сервер шлёт только текст."""
+        ground = pawn('ground')
+        show = body(ground, 'stock RW_GroundShow', 'stock RW_GroundTake')
+        self.assertIn('RW_CefHudGround(playerid, true, label);', show)
+        self.assertIn('gGroundAim[playerid] = gGround[index][igUid];', show)
+        self.assertNotIn('PlayerTextDraw', show)
+        reset = body(ground, 'stock RW_GroundHide', 'stock RW_GroundTarget')
+        self.assertIn('RW_CefHudGround(playerid, false, "");', reset)
+        self.assertIn('gGroundAim[playerid]=0;', reset)
+        for marker in ('gGroundHint', 'gGroundHintCreated', 'PlayerTextDraw'):
+            self.assertNotIn(marker, ground)
+        # подсказку показывает и скрывает та же страница, что и спидометр
+        markup = (ROOT / 'server/scriptfiles/cef/railway/hud.html').read_text(encoding='utf-8')
+        self.assertIn('class="ground" id="ground"', markup)
+        page = (ROOT / 'server/scriptfiles/cef/railway/js/hud.js').read_text(encoding='utf-8')
+        self.assertIn("RW.on('hud:ground'", page)
+        self.assertIn("ground.className = 'ground on'", page)
+        self.assertIn("ground.className = 'ground'", page)
+        css = (ROOT / 'server/scriptfiles/cef/railway/css/app.css').read_text(encoding='utf-8')
+        self.assertIn('.ground { position: absolute;', css)
+
     def test_notifications_never_touch_a_textdraw(self):
         """Уведомления рисует браузер; тексдравов-всплывашек больше нет.
         RW_UITick оставлен пустым на случай старых сборок."""

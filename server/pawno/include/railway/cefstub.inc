@@ -79,6 +79,11 @@ stock RW_CefEnd(playerid)
     #pragma unused playerid
     return 0;
 }
+stock RW_CefHudGround(playerid, bool:on, const text[])
+{
+    #pragma unused playerid, on, text
+    return 0;
+}
 stock RW_CefHudSpeedo(playerid, bool:on, const name[], speed, gear, rpm, flags)
 {
     #pragma unused playerid, on, name, speed, gear, rpm, flags

@@ -155,6 +155,19 @@
   var speedoFlags = document.getElementById('speedoFlags');
   var speedoRpm = document.getElementById('speedoRpm');
 
+  var ground = document.getElementById('ground');
+  if (ground) {
+    RW.on('hud:ground', function (on, text) {
+      if (!on) {
+        ground.className = 'ground';
+        ground.textContent = '';
+        return;
+      }
+      ground.innerHTML = text || '';
+      ground.className = 'ground on';
+    });
+  }
+
   RW.on('hud:speedo', function (on, name, speed, gear, rpm, flags) {
     if (!speedo) return;
     if (!on) { speedo.className = 'speedo'; return; }

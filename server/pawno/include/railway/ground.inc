@@ -2,21 +2,21 @@
     #endinput
 #endif
 #define _railway_ground_included
-new PlayerText:gGroundHint[MAX_PLAYERS][2];
-new bool:gGroundHintCreated[MAX_PLAYERS];
+/* Тексдрав-подсказка удалена: её рисует HUD-страница. */
+
 new gGroundAim[MAX_PLAYERS];
 forward RW_GroundPulse();
 
 stock RW_GroundHide(playerid)
 {
-    if(gGroundHintCreated[playerid]) for(new i;i<2;i++) PlayerTextDrawHide(playerid,gGroundHint[playerid][i]);
+    RW_CefHudGround(playerid, false, "");
     gGroundAim[playerid]=0;
     return 1;
 }
 stock RW_GroundReset(playerid)
 {
-    if(gGroundHintCreated[playerid]) for(new i;i<2;i++) PlayerTextDrawDestroy(playerid,gGroundHint[playerid][i]);
-    gGroundHintCreated[playerid]=false; gGroundAim[playerid]=0;
+    RW_CefHudGround(playerid, false, "");
+    gGroundAim[playerid]=0;
     return 1;
 }
 stock RW_GroundTarget(playerid)
@@ -39,21 +39,15 @@ stock RW_GroundTarget(playerid)
     }
     return target;
 }
+/* Подсказку над предметом рисует HUD-страница: сервер шлёт только текст. */
 stock RW_GroundShow(playerid, index)
 {
-    if(!gGroundHintCreated[playerid]) {
-        gGroundHint[playerid][0]=CreatePlayerTextDraw(playerid,244.0,277.0,"LD_SPAC:white");
-        PlayerTextDrawFont(playerid,gGroundHint[playerid][0],4); PlayerTextDrawTextSize(playerid,gGroundHint[playerid][0],152.0,32.0);
-        PlayerTextDrawColor(playerid,gGroundHint[playerid][0],0x141920E8);
-        gGroundHint[playerid][1]=CreatePlayerTextDraw(playerid,254.0,282.0,"_");
-        PlayerTextDrawFont(playerid,gGroundHint[playerid][1],1); PlayerTextDrawLetterSize(playerid,gGroundHint[playerid][1],0.19,0.95);
-        PlayerTextDrawSetShadow(playerid,gGroundHint[playerid][1],0); PlayerTextDrawColor(playerid,gGroundHint[playerid][1],0xD8C39BFF);
-        gGroundHintCreated[playerid]=true;
-    }
-    new label[128]; format(label,sizeof label,"%s~n~[F / ENTER] TAKE / /take",gGround[index][igType]==ITEM_BACKPACK ? ("BACKPACK / 1kg") : ("CAR KEY / 0.1kg"));
-    PlayerTextDrawSetString(playerid,gGroundHint[playerid][1],label);
-    for(new i;i<2;i++) PlayerTextDrawShow(playerid,gGroundHint[playerid][i]);
-    gGroundAim[playerid]=gGround[index][igUid];
+    new label[128], name[32];
+    if (gGround[index][igType] == ITEM_BACKPACK) format(name, sizeof name, "Рюкзак / 1 кг");
+    else format(name, sizeof name, "Ключ от машины / 0.1 кг");
+    format(label, sizeof label, "%s<br>[F / ENTER] — поднять, /take", name);
+    RW_CefHudGround(playerid, true, label);
+    gGroundAim[playerid] = gGround[index][igUid];
     return 1;
 }
 stock RW_GroundTake(playerid)
