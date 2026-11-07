@@ -36,6 +36,7 @@ CORE = pawn('core')
 UI = pawn('ui')
 INV = pawn('inventory')
 MARKET = pawn('market')
+PHONEAPPS = pawn('phoneapps')
 PROP = pawn('property')
 ECON = pawn('economy')
 MAIN = (ROOT / 'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
@@ -232,6 +233,44 @@ class BankByClickTest(unittest.TestCase):
         self.assertIn('return RW_BankRender(playerid);', apply_block)
         self.assertIn('return RW_MarketOpen(playerid);', apply_block)
         self.assertIn('return RW_PropRender(playerid);', apply_block)
+
+
+class PhoneByClickTest(unittest.TestCase):
+    """Телефон: строка приложения спрашивает, а не отсылает в чат."""
+
+    def apply_block(self):
+        return block(INPUT, 'stock RW_InputApply(playerid, kind, arg, arg2, const text[])')
+
+    def test_the_transfer_asks_for_the_player_first(self):
+        apply_block = self.apply_block()
+        self.assertIn('if (kind == INPUT_TRANSFER_ID) {', apply_block)
+        self.assertIn('if (target == playerid || !IsPlayerConnected(target) || !gLogged[target])', apply_block)
+        self.assertIn('gInputArg2[playerid] = target;', apply_block)
+        self.assertIn('RW_InputOpen(playerid, INPUT_TRANSFER_SUM, arg, title,', apply_block)
+        self.assertIn('format(title, sizeof title, "Перевод: %s", nick);', apply_block)
+        self.assertIn('"Transfer"', PHONEAPPS)
+
+    def test_the_transfer_sum_goes_to_the_same_function_as_the_atm(self):
+        apply_block = self.apply_block()
+        self.assertIn('return RW_BankTransfer(playerid, arg2, amount);', apply_block)
+        self.assertIn('if (amount < 1) return RW_Error(playerid, "Сумма — числом, больше нуля.");', apply_block)
+
+    def test_the_group_invite_and_the_group_chat_are_fields(self):
+        apply_block = self.apply_block()
+        self.assertIn('return RW_GroupInvite(playerid, target);', apply_block)
+        self.assertIn('return RW_GroupSay(playerid, line);', apply_block)
+        self.assertIn('if (!RW_InputText(copy, line, sizeof line))', apply_block)
+
+    def test_the_advert_is_written_in_a_field(self):
+        apply_block = self.apply_block()
+        self.assertIn('if (kind == INPUT_NEWS_TEXT) {', apply_block)
+        self.assertIn('return RW_NewsPost(playerid, line);', apply_block)
+
+    def test_the_new_kinds_have_their_numbers(self):
+        for name, value in (('INPUT_LAW_PRICE', 12), ('INPUT_TRANSFER_ID', 13),
+                            ('INPUT_TRANSFER_SUM', 14), ('INPUT_GROUP_ID', 15),
+                            ('INPUT_GROUP_TEXT', 16), ('INPUT_NEWS_TEXT', 17)):
+            self.assertRegex(CORE, r'#define %s\s+\(%d\)' % (name, value))
 
 
 class PropertyByClickTest(unittest.TestCase):

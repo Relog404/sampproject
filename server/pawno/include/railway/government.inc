@@ -210,7 +210,8 @@ stock RW_GovRows(playerid)
     format(arg, sizeof arg, "с ней лицензию не дадут");
     RW_GovRowOut(playerid, 2, row, arg, "alert");
     format(row, sizeof row, "Цена за дело: %d", gLawyerPrice[playerid]);
-    format(arg, sizeof arg, "менять: /lawprice <сумма>");
+    if (RW_IsLawyer(playerid)) format(arg, sizeof arg, "нажмите: сумму спросит поле ввода");
+    else format(arg, sizeof arg, "сначала лицензия адвоката");
     RW_GovRowOut(playerid, 3, row, arg, "wallet");
     format(row, sizeof row, "Договор с адвокатом");
     format(arg, sizeof arg, "Y на адвокате или /contract");
@@ -243,6 +244,11 @@ stock RW_GovAction(playerid, row, bool:cef)
     if (row == 0 || row == 6) return RW_GovLicence(playerid);
     if (row == 1) return RW_GovRecord(playerid);
     if (row == 4) return RW_ContractCommand(playerid);
+    if (row == 3) {
+        if (!RW_IsLawyer(playerid)) return RW_Error(playerid, "Сначала лицензия адвоката: строка выше.");
+        return RW_InputOpen(playerid, INPUT_LAW_PRICE, 0, "Цена за дело",
+            "Сколько берёте за защиту: от 0 до 50 000", "Например: 3000");
+    }
     return RW_GovOpen(playerid);
 }
 stock RW_GovClick(playerid, row) { return RW_GovAction(playerid, row, false); }

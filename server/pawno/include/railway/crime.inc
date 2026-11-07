@@ -554,11 +554,12 @@ stock RW_CrimeOpen(playerid)
     if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
     new subtitle[120], heat[24];
     RW_CrimeWantedText(gWantedStars[playerid], heat, sizeof heat);
-    format(subtitle, sizeof subtitle, "Розыск: %s. /heist, /craft, /green, /selldrugs", heat);
+    format(subtitle, sizeof subtitle, "Розыск: %s. Цель, варка и сбыт — по строкам ниже", heat);
     #if RAILWAY_CEF
         if (RW_CefOpen(playerid, CEF_MODE_CRIME, "Криминал", subtitle)) {
             RW_CrimeRows(playerid);
             RW_CefAction(playerid, 6, "Начать дело", "");
+            if (RW_CrimeCount(playerid, ITEM_GREEN) > 0) RW_CefAction(playerid, 7, "Принять дозу", "ok");
             RW_CefAction(playerid, 8, "Закрыть", "danger");
             return RW_CefEnd(playerid);
         }
@@ -572,9 +573,15 @@ stock RW_CrimeOpen(playerid)
 stock RW_CrimeAction(playerid, row, bool:cef)
 {
     if (row == (cef ? 8 : 7)) return RW_UI_Close(playerid);
+    if (row == 0) {
+        new kind, index;
+        if (RW_CrimeNear(playerid, kind, index) < 0) return RW_Error(playerid, "Рядом нет цели: магазин 24/7, пакгауз в порту или банковский терминал.");
+        return RW_CrimeHeist(playerid);
+    }
     if (row == 6) return RW_CrimeHeist(playerid);
     if (row == 4) return RW_CraftCommand(playerid);
     if (row == 3) return RW_SellDrugsCommand(playerid);
+    if (cef && row == 7) return RW_GreenCommand(playerid);
     if (row == 2) return RW_CraftCommand(playerid);
     if (row == 1) return RW_WantedCommand(playerid, "");
     return RW_CrimeOpen(playerid);

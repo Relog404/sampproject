@@ -332,6 +332,118 @@ class PhoneAppWiringTest(unittest.TestCase):
             line = line.split('//', 1)[0]
             self.assertNotRegex(line, r'[А-Яа-я]')
 
+class AppClickTest(unittest.TestCase):
+    """Строка приложения — кнопка: либо делает, либо открывает поле."""
+
+    INFO_ROWS = {
+        'PHONE_APP_WEATHER': {0, 1, 2, 3, 4},   # сводка погоды
+        'PHONE_APP_BANK': {0},                  # баланс счёта
+        'PHONE_APP_GROUP': {4},                 # метка лидера
+        'PHONE_APP_LAWYER': {3},                # доля от залога
+        'PHONE_APP_UBER': {2},                  # кто может взять заказ
+        'PHONE_APP_NEWS': {1},                  # чужие объявления
+        'PHONE_APP_AUTO': {0},                  # машин нет
+        'PHONE_APP_CAMERA': {2},                # цена снимка
+    }
+
+    def app_rows(self):
+        """app -> [(row, text, arg)] из RW_AppRows."""
+        src = APPS.split('stock RW_AppRows(playerid)', 1)[1].split('\nstock ', 1)[0]
+        parts = re.split(r'\n\s*case (PHONE_APP_\w+): \{', src)
+        out = {}
+        for i in range(1, len(parts), 2):
+            rows = [(int(m.group(1)), m.group(2), m.group(3))
+                    for m in re.finditer(r'RW_AppRow\(playerid, (\d+), (.+), "([^"]*)", "[^"]*"\);', parts[i + 1])]
+            out[parts[i]] = rows
+        return out
+
+    def action_block(self):
+        return APPS.split('stock RW_PhoneAppAction(playerid, row, bool:cef)', 1)[1].split('\nstock ', 1)[0]
+
+    def app_action(self, app):
+        action = self.action_block()
+        parts = re.split(r'\n\s*case (PHONE_APP_\w+): \{', action)
+        blocks = {parts[i]: parts[i + 1] for i in range(1, len(parts), 2)}
+        return blocks.get(app, '')
+
+    def test_no_row_advertises_a_command(self):
+        seen = 0
+        for app, rows in self.app_rows().items():
+            for row, text, arg in rows:
+                seen += 1
+                self.assertNotRegex(text, r'/[A-Za-z]',
+                    '%s, строка %d: подсказка с командой вместо кнопки' % (app, row))
+        self.assertGreaterEqual(seen, 20, 'строк приложений: %d' % seen)
+
+    def test_a_tagged_row_answers_the_click(self):
+        checked = 0
+        for app, rows in self.app_rows().items():
+            body = self.app_action(app)
+            for row, text, arg in rows:
+                if not arg:
+                    continue
+                checked += 1
+                self.assertRegex(body, r'if \(row == %d\)' % row,
+                    '%s, строка %d (%s) молчит' % (app, row, arg))
+        self.assertGreaterEqual(checked, 8, 'кнопок с тегом: %d' % checked)
+
+    def test_an_untagged_row_is_really_informational(self):
+        deaf = {}
+        for app, rows in self.app_rows().items():
+            body = self.app_action(app)
+            for row, text, arg in rows:
+                if arg or re.search(r'if \(row == %d\)' % row, body):
+                    continue
+                deaf.setdefault(app, set()).add(row)
+        for app, rows in deaf.items():
+            self.assertTrue(rows <= self.INFO_ROWS.get(app, set()),
+                '%s: немые строки %s' % (app, sorted(rows)))
+
+    def test_the_bank_sends_money_by_click(self):
+        body = self.app_action('PHONE_APP_BANK')
+        self.assertIn('if (row == 3) return RW_InputOpen(playerid, INPUT_TRANSFER_ID, 0,', body)
+        self.assertIn('if (row == 4) return RW_PaydayCommand(playerid);', body)
+        rows = dict((r, t) for r, t, a in self.app_rows()['PHONE_APP_BANK'])
+        self.assertEqual(rows[3], '"Transfer to a player"')
+        self.assertEqual(rows[4], '"Salary and interest"')
+
+    def test_the_group_invites_and_writes_by_click(self):
+        body = self.app_action('PHONE_APP_GROUP')
+        self.assertIn('if (row == 2) return RW_InputOpen(playerid, INPUT_GROUP_ID, 0,', body)
+        self.assertIn('if (row == 3) return RW_InputOpen(playerid, INPUT_GROUP_TEXT, 0,', body)
+        self.assertIn('if (row == 0) return RW_GroupInfo(playerid);', body)
+
+    def test_the_lawyer_app_shows_who_is_on_duty(self):
+        body = self.app_action('PHONE_APP_LAWYER')
+        self.assertIn('if (row == 1) return RW_AppLawyerList(playerid);', body)
+        self.assertIn('if (row == 2) return RW_LawyerCommand(playerid);', body)
+        self.assertIn('if (!RW_IsLawyer(playerid)) return RW_Error(playerid, "You have no lawyer license.");', body)
+        self.assertIn('return RW_InputOpen(playerid, INPUT_LAW_PRICE, 0, "Price for a case",', body)
+        roster = block(APPS, 'stock RW_AppLawyerList(playerid)')
+        self.assertIn('RW_Accent(playerid, "Lawyers on duty:");', roster)
+        self.assertIn('"No lawyer is on duty. Wait for one or ask in chat."', roster)
+
+    def test_the_advert_is_posted_by_click(self):
+        body = self.app_action('PHONE_APP_NEWS')
+        self.assertIn('if (row == 0) return RW_InputOpen(playerid, INPUT_NEWS_TEXT, 0,', body)
+        rows = dict((r, t) for r, t, a in self.app_rows()['PHONE_APP_NEWS'])
+        self.assertEqual(rows[0], '"Post an advert"')
+
+    def test_the_photo_row_is_a_button(self):
+        body = self.app_action('PHONE_APP_CAMERA')
+        self.assertIn('if (row == 1) return RW_PhotoShow(playerid);', body)
+        rows = dict((r, t) for r, t, a in self.app_rows()['PHONE_APP_CAMERA'])
+        self.assertEqual(rows[1], '"Look at a photo"')
+
+    def test_the_old_command_hints_are_gone(self):
+        action = self.action_block()
+        rows = APPS.split('stock RW_AppRows(playerid)', 1)[1].split('\nstock ', 1)[0]
+        for hint in ('Use: /transfer', 'Use: /ginvite', 'Use: /g <text>',
+                     'Use: /lawprice', 'Use: /ad <text>', '/group in chat'):
+            self.assertNotIn(hint, action)
+            self.assertNotIn(hint, rows)
+
+
 class RadioTest(unittest.TestCase):
     """Радио: станции лежат в базе, поток включает сервер."""
 

@@ -1506,13 +1506,10 @@ stock RW_LawyerLicenseCommand(playerid, const params[])
     if (!b[0] || !RW_IsNumeric(b)) return RW_Error(playerid, "Use: /setlawyer <playerid> <days>. 0 revokes the license.");
     return RW_PoliceLicense(playerid, target, strval(b));
 }
-stock RW_LawyerPriceCommand(playerid, const params[])
+/* Цена за дело: и /lawprice <сумма>, и строка в мэрии. */
+stock RW_LawyerPriceSet(playerid, price)
 {
-    new a[32], rest[144];
-    RW_ParseCommand(params, a, sizeof a, rest, sizeof rest);
     if (!RW_IsLawyer(playerid)) return RW_Error(playerid, "You have no lawyer license.");
-    if (!a[0] || !RW_IsNumeric(a)) return RW_Error(playerid, "Use: /lawprice <amount>");
-    new price = strval(a);
     if (price < 0 || price > 50000) return RW_Error(playerid, "Price must be 0 to 50000.");
     gLawyerPrice[playerid] = price;
     new query[200];
@@ -1521,4 +1518,11 @@ stock RW_LawyerPriceCommand(playerid, const params[])
     new message[96];
     format(message, sizeof message, "Your fee is %d.", price);
     return RW_Ok(playerid, message);
+}
+stock RW_LawyerPriceCommand(playerid, const params[])
+{
+    new a[32], rest[144];
+    RW_ParseCommand(params, a, sizeof a, rest, sizeof rest);
+    if (!a[0] || !RW_IsNumeric(a)) return RW_Error(playerid, "Use: /lawprice <amount>");
+    return RW_LawyerPriceSet(playerid, strval(a));
 }

@@ -157,6 +157,12 @@ forward RW_LawyerCallFor(playerid, target);
 #define INPUT_BANK_PUT      (7)     /* положить на счЄт                 */
 #define INPUT_BANK_TAKE     (8)     /* сн€ть наличными                  */
 #define INPUT_BANK_SUM      (9)     /* перевод игроку: сумма            */
+#define INPUT_LAW_PRICE     (12)    /* цена адвоката за дело            */
+#define INPUT_TRANSFER_ID   (13)    /* перевод: кому                    */
+#define INPUT_TRANSFER_SUM  (14)    /* перевод: сколько                 */
+#define INPUT_GROUP_ID      (15)    /* позвать в группу                 */
+#define INPUT_GROUP_TEXT    (16)    /* сказать группе                   */
+#define INPUT_NEWS_TEXT     (17)    /* объ€вление в новости             */
 #define INPUT_FAMILY_NAME   (10)    /* название новой семьи             */
 #define INPUT_FAMILY_CASH   (11)    /* сн€ть из кассы семьи             */
 

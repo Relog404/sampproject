@@ -660,6 +660,33 @@ stock bool:RW_FamilyCanStore(playerid)
     return gFamilyRank[playerid] >= FAMILY_RANK_SENIOR;
 }
 
+/* Состав семьи в чат: строка «Бойцов» отвечает списком, а не молчанием. */
+stock RW_FamilyList(playerid)
+{
+    new family = gFamily[playerid];
+    if (family == FAMILY_NONE) return RW_Error(playerid, "Вы не в семье.");
+    new query[220];
+    format(query, sizeof query,
+        "SELECT m.player_id, m.rank, a.name FROM family_members m LEFT JOIN accounts a ON a.id=m.player_id WHERE m.family=%d ORDER BY m.rank DESC, a.name", family);
+    new DBResult:r = db_query(gDB, query);
+    if (r == DBResult:0) return RW_Info(playerid, "Состав семьи пуст.");
+    new rows = db_num_rows(r), name[MAX_PLAYER_NAME], line[120], rank[16];
+    if (!rows) { db_free_result(r); return RW_Info(playerid, "Состав семьи пуст."); }
+    RW_Accent(playerid, "Состав семьи:");
+    for (new i; i < rows; i++) {
+        db_get_field_assoc(r, "name", name, sizeof name);
+        new value = db_get_field_assoc_int(r, "rank");
+        if (value < 0) value = 0;
+        if (value > FAMILY_RANK_LEADER) value = FAMILY_RANK_LEADER;
+        format(rank, sizeof rank, "%s", gFamilyRankName[value]);
+        format(line, sizeof line, "%s — %s%s", name, rank, RW_NameOnline(name, playerid) ? " (в игре)" : "");
+        SendClientMessage(playerid, COLOR_GREY, line);
+        db_next_row(r);
+    }
+    db_free_result(r);
+    return 1;
+}
+
 stock RW_FamilyAskName(playerid)
 {
     return RW_InputOpen(playerid, INPUT_FAMILY_NAME, 0, "Новая семья",
@@ -714,7 +741,7 @@ stock RW_FamilyRows(playerid)
     format(arg, sizeof arg, "захват: /fcap, список: /fzones");
     RW_FamilyRowOut(playerid, 3, row, arg, "target");
     format(row, sizeof row, "Бойцов: %d", RW_FamilyMembers(gFamily[playerid]));
-    format(arg, sizeof arg, "позвать: /finvite <id>");
+    format(arg, sizeof arg, "нажмите: покажет состав");
     RW_FamilyRowOut(playerid, 4, row, arg, "users");
     format(row, sizeof row, "Выйти из семьи");
     format(arg, sizeof arg, "лидер сначала передаёт пост: /frank <id> 2");
@@ -776,6 +803,7 @@ stock RW_FamilyAction(playerid, row, bool:cef)
     if (row == 6) return RW_FamilyCapture(playerid);
     if (row == 2 && gFamily[playerid] != FAMILY_NONE) return RW_FamilyOpenStorage(playerid);
     if (row == 3 && gFamily[playerid] != FAMILY_NONE) return RW_FamilyZonesCommand(playerid);
+    if (row == 4 && gFamily[playerid] != FAMILY_NONE) return RW_FamilyList(playerid);
     if (row == 0 && gFamily[playerid] == FAMILY_NONE) return RW_FamilyAskName(playerid);
     if (row == 1 && gFamily[playerid] != FAMILY_NONE && gFamilyRank[playerid] == FAMILY_RANK_LEADER)
         return RW_InputOpen(playerid, INPUT_FAMILY_CASH, 0, "Касса семьи",

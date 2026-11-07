@@ -178,6 +178,46 @@ stock RW_InputApply(playerid, kind, arg, arg2, const text[])
         RW_FamilyCashTake(playerid, amount);
         return RW_FamilyOpen(playerid);
     }
+    if (kind == INPUT_LAW_PRICE) {
+        new amount = RW_InputNumber(text);
+        if (amount < 0) return RW_Error(playerid, "÷ена Ч числом, от 0 до 50 000.");
+        RW_LawyerPriceSet(playerid, amount);
+        return RW_GovOpen(playerid);
+    }
+    if (kind == INPUT_TRANSFER_ID) {
+        new target = RW_InputNumber(text);
+        if (target < 0 || target >= MAX_PLAYERS) return RW_Error(playerid, "Ќет игрока с таким номером.");
+        if (target == playerid || !IsPlayerConnected(target) || !gLogged[target]) return RW_Error(playerid, "Ётот игрок не в сети.");
+        gInputArg2[playerid] = target;
+        new nick[MAX_PLAYER_NAME], title[64];
+        RW_GetNick(target, nick);
+        format(title, sizeof title, "ѕеревод: %s", nick);
+        return RW_InputOpen(playerid, INPUT_TRANSFER_SUM, arg, title,
+            "—колько перевести со счЄта", "Ќапример: 5000");
+    }
+    if (kind == INPUT_TRANSFER_SUM) {
+        new amount = RW_InputNumber(text);
+        if (amount < 1) return RW_Error(playerid, "—умма Ч числом, больше нул€.");
+        return RW_BankTransfer(playerid, arg2, amount);
+    }
+    if (kind == INPUT_GROUP_ID) {
+        new target = RW_InputNumber(text);
+        if (target < 0 || target >= MAX_PLAYERS) return RW_Error(playerid, "Ќет игрока с таким номером.");
+        if (!IsPlayerConnected(target) || !gLogged[target]) return RW_Error(playerid, "Ётот игрок не в сети.");
+        return RW_GroupInvite(playerid, target);
+    }
+    if (kind == INPUT_GROUP_TEXT) {
+        new line[INPUT_MAX_TEXT], copy[INPUT_MAX_TEXT];
+        format(copy, sizeof copy, "%s", text);
+        if (!RW_InputText(copy, line, sizeof line)) return RW_Error(playerid, "ѕустое сообщение.");
+        return RW_GroupSay(playerid, line);
+    }
+    if (kind == INPUT_NEWS_TEXT) {
+        new line[INPUT_MAX_TEXT], copy[INPUT_MAX_TEXT];
+        format(copy, sizeof copy, "%s", text);
+        if (!RW_InputText(copy, line, sizeof line)) return RW_Error(playerid, "ѕустое объ€вление.");
+        return RW_NewsPost(playerid, line);
+    }
     if (kind == INPUT_TILL_PUT || kind == INPUT_TILL_TAKE) {
         new amount = RW_InputNumber(text);
         if (amount < 1) return RW_Error(playerid, "—умма Ч числом, больше нул€.");

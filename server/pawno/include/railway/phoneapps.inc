@@ -470,6 +470,22 @@ stock bool:RW_LawyerLicensed(playerid)
 {
     return gLawyerLicense[playerid] && gLawyerExpire[playerid] > gettime();
 }
+/*  —писок дежурных адвокатов: строка 1 приложени€. */
+stock RW_AppLawyerList(playerid)
+{
+    new found, nick[MAX_PLAYER_NAME], line[120];
+    for (new i; i < MAX_PLAYERS; i++) {
+        if (!IsPlayerConnected(i) || !gLogged[i] || !RW_LawyerLicensed(i)) continue;
+        found++;
+        if (found == 1) RW_Accent(playerid, "Lawyers on duty:");
+        RW_GetNick(i, nick);
+        format(line, sizeof line, "%d. %s - %d for a case, rating %d",
+            i, nick, gLawyerPrice[i], gLawyerRating[i]);
+        SendClientMessage(playerid, COLOR_GREY, line);
+    }
+    if (!found) return RW_Info(playerid, "No lawyer is on duty. Wait for one or ask in chat.");
+    return 1;
+}
 stock RW_AppLawyerCall(playerid)
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
@@ -808,8 +824,8 @@ stock RW_AppRows(playerid)
             format(row, sizeof row, "Pay my fines: %s", fines > 0 ? (money) : ("none"));
             RW_AppRow(playerid, 1, row, "pay", "law");
             RW_AppRow(playerid, 2, "Cash terminal (only at an ATM)", "atm", "bank");
-            RW_AppRow(playerid, 3, "Transfer: /transfer <id> <sum>", "", "users");
-            RW_AppRow(playerid, 4, "Salary and interest: /payday", "", "signal");
+            RW_AppRow(playerid, 3, "Transfer to a player", "id", "users");
+            RW_AppRow(playerid, 4, "Salary and interest", "payday", "signal");
         }
         case PHONE_APP_WEATHER: {
             new weather[24];
@@ -825,10 +841,10 @@ stock RW_AppRows(playerid)
             RW_AppRow(playerid, 4, "Rain and fog cut the pay: -10% and -15%", "", "info");
         }
         case PHONE_APP_GROUP: {
-            RW_AppRow(playerid, 0, RW_GroupHas(playerid) ? ("Members: see /group in chat") : ("No group yet"), "", "group");
+            RW_AppRow(playerid, 0, RW_GroupHas(playerid) ? ("Members of the group") : ("No group yet"), "", "group");
             RW_AppRow(playerid, 1, RW_GroupHas(playerid) ? ("Leave the group") : ("Create a group"), "group", "group");
-            RW_AppRow(playerid, 2, "Invite: /ginvite <player id>", "", "users");
-            RW_AppRow(playerid, 3, "Write: /g <text>", "", "chat");
+            RW_AppRow(playerid, 2, "Invite a player", "id", "users");
+            RW_AppRow(playerid, 3, "Write to the group", "say", "chat");
             RW_AppRow(playerid, 4, "The leader's mark is on your map", "", "map");
         }
         case PHONE_APP_LAWYER: {
@@ -840,7 +856,7 @@ stock RW_AppRows(playerid)
             format(row, sizeof row, "My licence: %s", RW_LawyerLicensed(playerid) ? ("valid") : ("none"));
             RW_AppRow(playerid, 2, row, "", "law");
             RW_AppRow(playerid, 3, "Bail: 50% to the lawyer, 10% to the officer", "", "wallet");
-            RW_AppRow(playerid, 4, "Price for a case: /lawprice <sum>", "", "gear");
+            RW_AppRow(playerid, 4, "Price for a case", "price", "gear");
         }
         case PHONE_APP_UBER: {
             if (gUberDriver[playerid] > 0) {
@@ -874,7 +890,7 @@ stock RW_AppRows(playerid)
             }
         }
         case PHONE_APP_NEWS: {
-            RW_AppRow(playerid, 0, "Post an advert: /ad <text>", "", "news");
+            RW_AppRow(playerid, 0, "Post an advert", "ad", "news");
             new query[260], count;
             format(query, sizeof query, "SELECT a.name AS who,n.body FROM news_ads n LEFT JOIN accounts a ON a.id=n.player_id ORDER BY n.id DESC LIMIT 5");
             new DBResult:r = db_query(gDB, query);
@@ -912,7 +928,7 @@ stock RW_AppRows(playerid)
         }
         case PHONE_APP_CAMERA: {
             RW_AppRow(playerid, 0, "Take a shot", "shot", "camera");
-            RW_AppRow(playerid, 1, "Look at a photo: /photo", "", "camera");
+            RW_AppRow(playerid, 1, "Look at a photo", "show", "camera");
             RW_AppRow(playerid, 2, "One shot costs one SMS", "", "wallet");
         }
         case PHONE_APP_RADIO: RW_RadioRows(playerid);
@@ -989,7 +1005,8 @@ stock RW_PhoneAppAction(playerid, row, bool:cef)
         case PHONE_APP_BANK: {
             if (row == 1) return RW_AppPayFines(playerid);
             if (row == 2) return RW_BankOpen(playerid);
-            if (row == 3) return RW_Info(playerid, "Use: /transfer <player id> <sum>.");
+            if (row == 3) return RW_InputOpen(playerid, INPUT_TRANSFER_ID, 0, "Transfer",
+                "Player number: as in the player list", "For example: 3");
             if (row == 4) return RW_PaydayCommand(playerid);
             return 1;
         }
@@ -998,13 +1015,21 @@ stock RW_PhoneAppAction(playerid, row, bool:cef)
         case PHONE_APP_GROUP: {
             if (row == 0) return RW_GroupInfo(playerid);
             if (row == 1) { if (RW_GroupHas(playerid)) return RW_GroupLeave(playerid); return RW_GroupCreate(playerid); }
-            if (row == 2) return RW_Info(playerid, "Use: /ginvite <player id>.");
-            if (row == 3) return RW_Info(playerid, "Use: /g <text>.");
+            if (row == 2) return RW_InputOpen(playerid, INPUT_GROUP_ID, 0, "Group",
+                "Player number of the one you invite", "For example: 3");
+            if (row == 3) return RW_InputOpen(playerid, INPUT_GROUP_TEXT, 0, "Group",
+                "What to say: one message", "For example: on my way");
             return 1;
         }
         case PHONE_APP_LAWYER: {
             if (row == 0) return RW_AppLawyerCall(playerid);
-            if (row == 4) return RW_Info(playerid, "Use: /lawprice <sum>.");
+            if (row == 1) return RW_AppLawyerList(playerid);
+            if (row == 2) return RW_LawyerCommand(playerid);
+            if (row == 4) {
+                if (!RW_IsLawyer(playerid)) return RW_Error(playerid, "You have no lawyer license.");
+                return RW_InputOpen(playerid, INPUT_LAW_PRICE, 0, "Price for a case",
+                    "How much you take for the defence: 0 to 50 000", "For example: 3000");
+            }
             return 1;
         }
         case PHONE_APP_UBER: {
@@ -1032,7 +1057,8 @@ stock RW_PhoneAppAction(playerid, row, bool:cef)
             return 1;
         }
         case PHONE_APP_NEWS: {
-            if (row == 0) return RW_Info(playerid, "Use: /ad <text>. It costs 100 in cash.");
+            if (row == 0) return RW_InputOpen(playerid, INPUT_NEWS_TEXT, 0, "Advert",
+                "Advert text: 100 in cash", "For example: selling keys");
             return RW_NewsList(playerid);
         }
         case PHONE_APP_AUTO: {
