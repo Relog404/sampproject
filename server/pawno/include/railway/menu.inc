@@ -138,19 +138,23 @@ stock RW_MenuOpen(playerid)
     else if (gMenuSection[playerid] == MENU_DONATE) format(title, sizeof title, "Донат");
     else format(title, sizeof title, "Меню");
     RW_MenuSubtitle(playerid, subtitle, sizeof subtitle);
+    TogglePlayerControllable(playerid, false);   /* клик должен дойти до страницы */
     #if RAILWAY_CEF
         if (RW_CefMenuOpen(playerid, title, subtitle)) {
             RW_MenuRows(playerid);
+            SetTimerEx("RW_MenuFocus", 300, false, "i", playerid);
             return RW_CefMenuEnd(playerid);
         }
     #endif
-    RW_Info(playerid, "Меню: здесь нужен браузерный интерфейс, поэтому список показан в чате.");
+    RW_Info(playerid, "Меню: команды работают всегда - /set <hud|hints|bonus|speedo|names|markers|welcome>, /key <0|1|2>, /donate, /menu.");
     return RW_MenuRows(playerid);
 }
 stock RW_MenuClose(playerid)
 {
     gMenuShown[playerid] = false;
     gMenuSection[playerid] = MENU_MAIN;
+    /* Управление возвращается, только если курсор мыши тоже выключен. */
+    if (!gHudMouse[playerid]) TogglePlayerControllable(playerid, true);
     #if RAILWAY_CEF
         RW_CefMenuClose(playerid);
     #endif
@@ -189,6 +193,10 @@ stock RW_MenuStartsWith(const text[], const prefix[])
     }
     return 1;
 }
+public RW_MenuFocus(playerid)
+{
+    return RW_CefMenuFocus(playerid);
+}
 public RW_MenuAction(playerid, browserid, const action[])
 {
     #pragma unused browserid
@@ -208,6 +216,27 @@ stock RW_MenuCommand(playerid)
     if (gMenuShown[playerid]) return RW_MenuClose(playerid);
     gMenuSection[playerid] = MENU_MAIN;
     return RW_MenuOpen(playerid);
+}
+/* /set <имя>: то же, что строка в меню, но без мыши. */
+stock RW_SetCommand(playerid, const params[])
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    if (!strcmp(params, "hud", true)) return RW_SettingsFlip(playerid, SET_HUD);
+    if (!strcmp(params, "hints", true)) return RW_SettingsFlip(playerid, SET_HINTS);
+    if (!strcmp(params, "bonus", true)) return RW_SettingsFlip(playerid, SET_BONUS);
+    if (!strcmp(params, "speedo", true)) return RW_SettingsFlip(playerid, SET_SPEEDO);
+    if (!strcmp(params, "names", true)) return RW_SettingsFlip(playerid, SET_NAMES);
+    if (!strcmp(params, "markers", true)) return RW_SettingsFlip(playerid, SET_MARKERS);
+    if (!strcmp(params, "welcome", true)) return RW_SettingsFlip(playerid, SET_WELCOME);
+    return RW_Error(playerid, "Настройка: /set <hud|hints|bonus|speedo|names|markers|welcome>.");
+}
+/* /key <0|1|2>: двери, двигатель, взаимодействие - без мыши. */
+stock RW_KeyCommand(playerid, const params[])
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    new slot = strval(params);
+    if (slot < 0 || slot > 2) return RW_Error(playerid, "Клавиши: /key 0 - двери, /key 1 - двигатель, /key 2 - взаимодействие.");
+    return RW_MenuKeyFlip(playerid, slot);
 }
 stock RW_SettingsCommand(playerid)
 {

@@ -404,6 +404,14 @@ stock RW_CefMenuEnd(playerid)
     CEF_EmitEvent(playerid, CEF_UI_BIGMENU, "menu:end");
     return 1;
 }
+/* Страница успевает прогрузиться: фокус повторяем через долю секунды,
+   иначе первый клик после открытия пропадает. */
+stock RW_CefMenuFocus(playerid)
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_FocusBrowser(playerid, CEF_UI_BIGMENU, true);
+    return 1;
+}
 stock RW_CefMenuClose(playerid)
 {
     if (!RW_CefOn(playerid)) return 0;

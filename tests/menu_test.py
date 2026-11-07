@@ -100,6 +100,24 @@ class MenuPageTest(unittest.TestCase):
         self.assertIn('return RW_SettingsCommand(playerid);', MAIN)
         self.assertIn('if (!strcmp(cmdtext, "/", true)) return RW_PhoneOpen(playerid);', CMDS)
 
+    def test_clicks_reach_the_page_and_not_the_game(self):
+        # Пока меню открыто, персонаж стоит: иначе клик уходит в игру.
+        self.assertIn('TogglePlayerControllable(playerid, false);', MENU)
+        self.assertIn('if (!gHudMouse[playerid]) TogglePlayerControllable(playerid, true);', MENU)
+        # Страница успевает прогрузиться: фокус повторяется.
+        self.assertIn('SetTimerEx("RW_MenuFocus", 300, false, "i", playerid);', MENU)
+        self.assertIn('public RW_MenuFocus(playerid)', MENU)
+        self.assertIn('CEF_FocusBrowser(playerid, CEF_UI_BIGMENU, true);', CEFUI)
+        self.assertIn('stock RW_CefMenuFocus(playerid)', STUB)
+
+    def test_every_setting_is_reachable_without_a_mouse(self):
+        for command in ('set', 'key', 'menu', 'settings'):
+            self.assertIn('"%s", true' % command, CMDS)
+        set_block = block(MENU, 'stock RW_SetCommand(playerid, const params[])')
+        for name in ('hud', 'hints', 'bonus', 'speedo', 'names', 'markers', 'welcome'):
+            self.assertIn('"%s", true' % name, set_block)
+        self.assertIn('RW_MenuKeyFlip(playerid, slot)', block(MENU, 'stock RW_KeyCommand(playerid, const params[])'))
+
     def test_the_rows_come_from_the_server(self):
         self.assertIn("RW.on('menu:open'", SCRIPT)
         self.assertIn("RW.on('menu:row'", SCRIPT)

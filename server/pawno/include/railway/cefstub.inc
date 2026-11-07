@@ -89,6 +89,11 @@ stock RW_CefMenuEnd(playerid)
     #pragma unused playerid
     return 0;
 }
+stock RW_CefMenuFocus(playerid)
+{
+    #pragma unused playerid
+    return 0;
+}
 stock RW_CefMenuClose(playerid)
 {
     #pragma unused playerid
