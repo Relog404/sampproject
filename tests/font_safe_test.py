@@ -11,13 +11,13 @@ class FontSafeInterfaceTest(unittest.TestCase):
         self.main = (ROOT/'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
 
     def test_raw_cyrillic_is_never_sent_to_gta_font(self):
-        encoder = self.ui.split('stock RW_TD_Encode', 1)[1].split('stock RW_UI_BuildPanel', 1)[0]
-        self.assertIn('if (c >= 192)', encoder)
-        self.assertIn('else if (c >= 127) strcat(out, "-", size)', encoder)
+        """Тексдравов больше нет: кириллица идёт в браузер и в нативные
+        диалоги напрямую, транслитерация RW_TD_Encode удалена."""
+        for marker in ('RW_TD_Encode', 'RW_TD_Label', 'RW_TD_Box', 'RW_UI_Text',
+                       'CreatePlayerTextDraw', 'PlayerTextDrawSetString'):
+            self.assertNotIn(marker, self.ui)
+            self.assertNotIn(marker, self.main)
         self.assertNotIn('gUILatin', self.ui + self.main)
-        for marker in ('stock PlayerText:RW_TD_Label', 'stock RW_UI_Text'):
-            body = self.ui.split(marker, 1)[1].split('\n}', 1)[0]
-            self.assertIn('RW_TD_Encode', body)
 
     def test_russian_default_uses_native_dialog_font_not_textdraw_font(self):
         self.assertIn('gUIRussianDialogs[playerid] = true', self.main)
@@ -38,7 +38,7 @@ class FontSafeInterfaceTest(unittest.TestCase):
 
     def test_native_sparse_rows_are_mapped_and_map_cancel_does_not_teleport(self):
         self.assertIn('gUINativeMap[playerid][gUINativeCount[playerid]++] = i', self.ui)
-        response = self.ui.split('stock RW_UI_NativeResponse',1)[1].split('stock RW_TD_Encode',1)[0]
+        response = self.ui.split('stock RW_UI_NativeResponse',1)[1].split('stock RW_UI_Init',1)[0]
         self.assertIn('listitem < 0 || listitem >= gUINativeCount[playerid]', response)
         self.assertIn('RW_UI_Click(playerid, response ? 0 : 1)', response)
         self.assertIn('RW_UI_Click(playerid, gUINativeMap[playerid][listitem])', response)

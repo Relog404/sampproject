@@ -4,7 +4,6 @@
 #define _railway_ui_included
 #include <railway/core>
 
-#define UI_COUNT 30
 #define UI_ROWS 10               /* строк в панели: 0..5 список, 6..9 кнопки */
 #define UI_AUTH 1
 #define UI_SETTINGS 2
@@ -36,8 +35,7 @@
 #define UI_FAMILY 28
 #define UI_GOV 29
 /* Тексдрав-превью удалено: машину в карточке рисует страница. */
-new PlayerText:gUI[MAX_PLAYERS][UI_COUNT];
-new bool:gUICreated[MAX_PLAYERS], bool:gUIInput[MAX_PLAYERS];
+new bool:gUIInput[MAX_PLAYERS];
 new bool:gUIRussianDialogs[MAX_PLAYERS];   /* старый переключатель, оставлен для совместимости */
 new bool:gUISelecting[MAX_PLAYERS];
 new gUIExpectedCancels[MAX_PLAYERS];
@@ -130,75 +128,18 @@ stock RW_UI_NativeResponse(playerid, response, listitem)
     return 1;
 }
 
-// Never send raw Cyrillic to GTA TextDraw fonts. Native SA-MP dialogs render
-// Russian independently; TextDraw mode/HUD use only safe ASCII glyphs.
-stock RW_TD_Encode(playerid, const text[], out[], size)
-{
-    static const map[][] = {"a","b","v","g","d","e","zh","z","i","y","k","l","m","n","o","p","r","s","t","u","f","h","ts","ch","sh","sch","","y","","e","yu","ya"};
-    out[0] = EOS;
-    new length = strlen(text);
-    for (new i; text[i] && strlen(out) < size-4; i++) {
-        new c = text[i] & 255;
-        // Remove chat colour codes; native TD colours are configured separately.
-        if (c == '{' && i+7 < length && text[i+7] == '}') {
-            new bool:hex = true;
-            for (new k = 1; k <= 6; k++) {
-                new h = text[i+k];
-                if (!((h >= '0' && h <= '9') || (h >= 'a' && h <= 'f') || (h >= 'A' && h <= 'F'))) hex = false;
-            }
-            if (hex) { i += 7; continue; }
-        }
-        if (c == '~' && i+2 < length && text[i+2] == '~' && text[i+1] == 'n') { strcat(out, "~n~", size); i += 2; continue; }
-        if (c >= 192) {
-            new latin[5]; format(latin, sizeof latin, "%s", map[(c-192)%32]);
-            if (c < 224) for (new k; latin[k]; k++) if (latin[k] >= 'a' && latin[k] <= 'z') latin[k] -= 32;
-            strcat(out, latin, size);
-        } else if ((c == 168 || c == 184)) strcat(out, c == 168 ? ("E") : ("e"), size);
-        else if (c >= 127) strcat(out, "-", size);
-        else if (c >= 32) { new ch[2]; ch[0] = c == '~' ? '-' : c; strcat(out, ch, size); }
-    }
-    return 1;
-}
-stock PlayerText:RW_TD_Label(playerid, Float:x, Float:y, const text[], Float:scale = 0.22)
-{
-    new buf[144]; RW_TD_Encode(playerid, text, buf, sizeof buf);
-    new PlayerText:t = CreatePlayerTextDraw(playerid, x, y, buf);
-    PlayerTextDrawFont(playerid, t, 1);
-    PlayerTextDrawLetterSize(playerid, t, scale, 1.15);
-    PlayerTextDrawColor(playerid, t, 0xEEECE7FF);
-    PlayerTextDrawSetShadow(playerid, t, 0);
-    PlayerTextDrawSetOutline(playerid, t, 0);
-    PlayerTextDrawSetProportional(playerid, t, 1);
-    return t;
-}
-stock PlayerText:RW_TD_Box(playerid, Float:x, Float:y, Float:w, Float:h, color)
-{
-    new PlayerText:t = CreatePlayerTextDraw(playerid, x, y, "LD_SPAC:white");
-    PlayerTextDrawFont(playerid, t, 4);
-    PlayerTextDrawTextSize(playerid, t, w, h);
-    PlayerTextDrawColor(playerid, t, color);
-    return t;
-}
 stock RW_UI_Init()
 {
     /* Тосты рисует браузер: тексдрав-уведомлений больше нет, таймер не нужен. */
     return 1;
 }
+/* Тексдрав-панель удалена: панель рисует браузер, а без него — диалог. */
 stock RW_UI_Create(playerid)
 {
-    if (gUICreated[playerid]) return 1;
-    /* 12..18 были тексдрав-спидометром: он переехал в HUD-страницу. */
-    /* 19..21 были тексдравом всплывашки: уведомления ушли в браузер. */
-    gUICreated[playerid] = true;
     gUIMode[playerid] = 0;
     gUIInput[playerid] = false;
     gToastActive[playerid] = false;
     return 1;
-}
-stock RW_UI_Text(playerid, index, const text[])
-{
-    new buf[144]; RW_TD_Encode(playerid, text, buf, sizeof buf);
-    PlayerTextDrawSetString(playerid, gUI[playerid][index], buf);
 }
 /*  Панель: браузер, а если его нет — нативный диалог. Тексдравов больше нет:
  *  клиент SA-MP не умеет кириллицу, поэтому запасной путь — диалог.          */
@@ -345,8 +286,6 @@ stock RW_UI_Reset(playerid)
     if (IsPlayerConnected(playerid)) ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
     gUIMode[playerid] = 0; gControlMode[playerid] = 0;
     gUIInput[playerid] = false; gToastActive[playerid] = false;
-    if (gUICreated[playerid]) for (new i; i < UI_COUNT; i++) PlayerTextDrawDestroy(playerid, gUI[playerid][i]);
-    gUICreated[playerid] = false;
     if (IsPlayerConnected(playerid)) RW_UI_SelectEnd(playerid);
     gUISelecting[playerid] = false;
     gUIExpectedCancels[playerid] = 0;

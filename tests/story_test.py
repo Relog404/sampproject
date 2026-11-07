@@ -162,7 +162,7 @@ class StoryWiringTest(unittest.TestCase):
     def test_the_menu_has_its_own_mode_in_both_interfaces(self):
         self.assertIn('#define CEF_MODE_STORY              (15)', CORE)
         self.assertIn('#define UI_STORY 25', UI)
-        self.assertRegex(UI, r'#define UI_COUNT (2[0-9]|3[0-9])')
+        self.assertRegex(UI, r'#define UI_GOV 29')
         self.assertIn('if (gCefMode[playerid] == CEF_MODE_STORY) return RW_StoryCefClick(playerid, id);', CEFUI)
         self.assertIn('else if (mode == UI_STORY) {', INTER)
         self.assertIn('return RW_StoryClick(playerid, row);', INTER)

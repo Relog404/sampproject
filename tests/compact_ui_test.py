@@ -34,15 +34,13 @@ class CompactRussianUiTest(unittest.TestCase):
         self.assertIn('format(gUINativeRows[playerid][row], 128, "%s", text);', row)
         self.assertNotIn('PlayerTextDraw', row)
 
-    def test_all_text_passes_through_per_player_encoder(self):
-        for marker in ('stock PlayerText:RW_TD_Label', 'stock RW_UI_Text'):
-            code = self.ui.split(marker, 1)[1].split('\n}', 1)[0]
-            self.assertIn('RW_TD_Encode', code)
-        self.assertIn('if (c >= 192)', self.ui)
+    def test_all_text_goes_to_the_browser_or_a_native_dialog(self):
+        """Транслитерация под тексдравы удалена: кириллицу читает браузер
+        и нативный диалог."""
+        for marker in ('RW_TD_Encode', 'RW_TD_Label', 'RW_TD_Box', 'RW_UI_Text',
+                       'CreatePlayerTextDraw'):
+            self.assertNotIn(marker, self.ui)
         self.assertNotIn('gUILatin', self.ui)
-        self.assertIn("new ch[2]; ch[0] = c == '~' ? '-' : c", self.ui)
-        self.assertIn('i+7 < length', self.ui)
-        self.assertIn('new bool:hex = true', self.ui)
         self.assertIn('gUIRussianDialogs[playerid] = true', self.main)
         commands = source('commands')
         self.assertIn('"tdlatin"', commands)
@@ -65,7 +63,7 @@ class CompactRussianUiTest(unittest.TestCase):
         self.assertIn('DIALOG_REGISTER_CONFIRM, DIALOG_STYLE_PASSWORD', account)
 
     def test_marker_is_saved_and_reusable_without_forced_teleport(self):
-        click = self.main.split('public OnPlayerClickMap', 1)[1].split('public OnPlayerClickPlayerTextDraw', 1)[0]
+        click = self.main.split('public OnPlayerClickMap', 1)[1].split('public OnPlayerClickTextDraw', 1)[0]
         self.assertIn('gMapHasPoint[playerid] = true', click)
         self.assertIn('SetPlayerMapIcon', click)
         self.assertNotIn('SetPlayerPos', click)

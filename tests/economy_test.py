@@ -393,8 +393,8 @@ class EconomyWiringTest(unittest.TestCase):
         self.assertRegex(UI, r'#define UI_SHOP 19')
         self.assertRegex(UI, r'#define UI_BANK 20')
         self.assertRegex(UI, r'#define UI_JOB 21')
-        count = int(re.search(r'#define UI_COUNT (\d+)', UI)[1])
-        self.assertLess(21, count)
+        # режимов панели больше, чем перечислено здесь: гараж, ключи и раненый
+        self.assertRegex(UI, r'#define UI_GOV 29')
         self.assertRegex(CORE, r'#define CEF_MODE_SHOP\s+\(9\)')
         self.assertRegex(CORE, r'#define CEF_MODE_BANK\s+\(10\)')
         self.assertRegex(CORE, r'#define CEF_MODE_JOB\s+\(11\)')

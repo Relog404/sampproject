@@ -108,15 +108,19 @@ class NativeInterfaceTest(unittest.TestCase):
         self.assertIn('SHA256_PassHash', accounts)
 
     def test_native_clicks_and_safe_cursor_cancellation(self):
-        self.assertIn('public OnPlayerClickPlayerTextDraw', self.main)
-        self.assertIn('playertextid == gUI[playerid][3+i]', self.main)
+        """Клик по тексдрав-панели удалён: панель рисует браузер, а без
+        него игрок отвечает в нативном диалоге."""
+        self.assertNotIn('public OnPlayerClickPlayerTextDraw', self.main)
+        self.assertNotIn('gUI[playerid]', self.main)
+        self.assertNotIn('gUI[playerid]', self.ui)
         close = body(self.ui, 'stock RW_UI_Close(playerid,', 'stock RW_UI_OpenAuth')
         self.assertLess(close.index('gUIMode[playerid] = 0'), close.index('RW_UI_SelectEnd'))
         cancel = body(self.main, 'public OnPlayerClickTextDraw', 'public OnPlayerKeyStateChange')
         self.assertIn('gUIInput[playerid]', cancel)
         reset = self.ui.split('stock RW_UI_Reset', 1)[1]
-        self.assertIn('PlayerTextDrawDestroy', reset)
-        self.assertIn('gUICreated[playerid] = false', reset)
+        self.assertNotIn('PlayerTextDrawDestroy', reset)
+        self.assertNotIn('gUICreated', reset)
+        self.assertIn('RW_UI_CancelNative(playerid)', reset)
         self.assertIn('RW_UI_Reset(playerid)', body(self.main, 'public OnPlayerDisconnect', 'public OnPlayerRequestClass'))
 
     def test_native_binding_defaults_and_swap(self):
@@ -219,13 +223,14 @@ class NativeInterfaceTest(unittest.TestCase):
                           'CEF_EmitEvent', 'CEF_FocusBrowser', 'CEF_PlayerHasPlugin',
                           'CEF_RegisterEvent', 'CEF_SetBrowserLayer', 'CEF_SetBrowserVisible'])
         self.assertIn('plugins cef', (ROOT/'server/server.cfg').read_text(encoding='cp1251'))
-        for name in ('PlayerTextDrawDestroy', 'ShowPlayerDialog', 'db_open', 'SHA256_PassHash'):
+        for name in ('ShowPlayerDialog', 'db_open', 'SHA256_PassHash'):
             self.assertIn(name, imported)
-        # панели рисуются в браузере: создавать тексдравы сборка больше не умеет
+        # панели рисуются в браузере: тексдравов в сборке не осталось
         for name in ('CreatePlayerTextDraw', 'PlayerTextDrawSetString', 'PlayerTextDrawShow',
-                     'PlayerTextDrawSetPreviewModel'):
+                     'PlayerTextDrawSetPreviewModel', 'PlayerTextDrawDestroy'):
             self.assertNotIn(name, imported)
-        for name in ('OnPlayerClickPlayerTextDraw', 'OnPlayerClickTextDraw', 'OnPlayerKeyStateChange'):
+        self.assertNotIn('OnPlayerClickPlayerTextDraw', exported)
+        for name in ('OnPlayerClickTextDraw', 'OnPlayerKeyStateChange'):
             self.assertIn(name, exported)
 
 if __name__ == '__main__':

@@ -534,17 +534,6 @@ public OnPlayerClickMap(playerid, Float:fX, Float:fY, Float:fZ)
 }
 
 
-public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
-{
-    if (!gUICreated[playerid] || gUIOnCef[playerid]) return 0;
-    if (playertextid == gUI[playerid][11]) {
-        if (!gLogged[playerid]) Kick(playerid);
-        else RW_UI_Close(playerid);
-        return 1;
-    }
-    for (new i; i < 8; i++) if (playertextid == gUI[playerid][3+i]) return RW_UI_Click(playerid, i);
-    return 0;
-}
 public OnPlayerClickTextDraw(playerid, Text:clickedid)
 {
     if (clickedid != Text:INVALID_TEXT_DRAW) return 0;
