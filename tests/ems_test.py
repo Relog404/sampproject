@@ -227,9 +227,9 @@ class EmsCallTest(unittest.TestCase):
         # вызов один для тексдрав-меню и для страницы раненого
         call = block(MED, 'stock RW_MedCall(playerid)')
         self.assertIn('RW_EmsCall(playerid, 3, gDownX[playerid], gDownY[playerid], gDownZ[playerid])', call)
-        click = block(MED, 'stock RW_MedClick(playerid, PlayerText:clicked)')
-        self.assertIn('if (clicked == gMedTD[playerid][4]) return RW_MedCall(playerid);', click)
-        self.assertIn('return RW_MedWait(playerid);', click)
+        # обе кнопки вызывают те же функции: тексдрав-меню удалено
+        self.assertNotIn('RW_MedClick', MED)
+        self.assertNotIn('gMedTD', MED)
         # страница: две кнопки и таймер кровотечения
         screen = block(MED, 'stock RW_MedCef(playerid)')
         self.assertIn('RW_UI_Panel(playerid, UI_DOWNED, "Вы ранены", subtitle);', screen)

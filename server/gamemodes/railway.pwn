@@ -538,7 +538,6 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
 {
     if (gUIMode[playerid] == UI_GARAGE) return RW_GarageClick(playerid, playertextid);
     if (gUIMode[playerid] == UI_KEYMENU) return RW_KeyMenuClick(playerid, playertextid);
-    if (gUIMode[playerid] == UI_DOWNED) return RW_MedClick(playerid, playertextid);
     if (!gUICreated[playerid] || gUIOnCef[playerid]) return 0;
     if (playertextid == gUI[playerid][11]) {
         if (!gLogged[playerid]) Kick(playerid);
@@ -558,7 +557,7 @@ public OnPlayerClickTextDraw(playerid, Text:clickedid)
     if (!gUISelecting[playerid]) return 1;
     gUISelecting[playerid] = false;
     if (gUIInput[playerid]) return 1;
-    if (gUIMode[playerid] == UI_INVENTORY || gUIMode[playerid] == UI_GARAGE || gUIMode[playerid] == UI_KEYMENU || gUIMode[playerid] == UI_DOWNED) return RW_UI_Close(playerid);
+    if (gUIMode[playerid] == UI_INVENTORY || gUIMode[playerid] == UI_GARAGE || gUIMode[playerid] == UI_KEYMENU) return RW_UI_Close(playerid);
     if (gUIOnCef[playerid]) return 1;
     if (gUIMode[playerid] == UI_AUTH && !gLogged[playerid]) RW_UI_SelectBegin(playerid);
     else if (gUIMode[playerid] != 0) RW_UI_Close(playerid);

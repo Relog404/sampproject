@@ -29,74 +29,27 @@ forward RW_MedSyringeDone(playerid, target);
 
 stock bool:RW_MedDowned(playerid) { return playerid >= 0 && playerid < MAX_PLAYERS && gDowned[playerid]; }
 
+/* Ёкран раненого рисует страница: скрывать больше нечего. */
 stock RW_MedHide(playerid)
 {
-    if (gMedCreated[playerid]) for (new i; i < 9; i++) PlayerTextDrawHide(playerid, gMedTD[playerid][i]);
+    #pragma unused playerid
     return 1;
 }
 stock RW_MedReset(playerid)
 {
     RW_MedHide(playerid);
-    if (gMedCreated[playerid]) for (new i; i < 9; i++) PlayerTextDrawDestroy(playerid, gMedTD[playerid][i]);
-    gMedCreated[playerid] = false; gDowned[playerid] = false; gDownEnd[playerid] = 0;
+    gDowned[playerid] = false; gDownEnd[playerid] = 0;
     gMedBusy[playerid] = false; gMedCooldown[playerid] = 0; gMedTick[playerid] = 0;
     return 1;
 }
-stock RW_MedLabel(playerid, index, Float:x, Float:y, const text[], Float:width, bool:button = false)
-{
-    new buf[144]; format(buf, sizeof buf, "%s", text);
-    gMedTD[playerid][index] = CreatePlayerTextDraw(playerid, x, y, buf);
-    PlayerTextDrawFont(playerid, gMedTD[playerid][index], 1);
-    PlayerTextDrawLetterSize(playerid, gMedTD[playerid][index], 0.20, 1.0);
-    PlayerTextDrawColor(playerid, gMedTD[playerid][index], 0xEEECE7FF);
-    PlayerTextDrawSetShadow(playerid, gMedTD[playerid][index], 0);
-    PlayerTextDrawTextSize(playerid, gMedTD[playerid][index], x+width, 14.0);
-    if (button) {
-        PlayerTextDrawUseBox(playerid, gMedTD[playerid][index], 1);
-        PlayerTextDrawBoxColor(playerid, gMedTD[playerid][index], 0xD8C39B22);
-        PlayerTextDrawSetSelectable(playerid, gMedTD[playerid][index], 1);
-    }
-    return 1;
-}
-stock RW_MedIcon(playerid, index, Float:x, Float:y, model)
-{
-    gMedTD[playerid][index] = CreatePlayerTextDraw(playerid, x, y, "_");
-    PlayerTextDrawFont(playerid, gMedTD[playerid][index], 5);
-    PlayerTextDrawTextSize(playerid, gMedTD[playerid][index], 22.0, 24.0);
-    PlayerTextDrawColor(playerid, gMedTD[playerid][index], 0xFFFFFFFF);
-    PlayerTextDrawBackgroundColor(playerid, gMedTD[playerid][index], 0x00000000);
-    PlayerTextDrawSetPreviewModel(playerid, gMedTD[playerid][index], model);
-    PlayerTextDrawSetPreviewRot(playerid, gMedTD[playerid][index], -10.0, 0.0, -20.0, 1.0);
-    return 1;
-}
+/* Ёкран раненого: обща€ панель Ч в браузере, без него нативный диалог. */
 stock RW_MedOpen(playerid)
 {
     if (!gDowned[playerid] || gMedBusy[playerid]) return 1;
     if (gUIInput[playerid] || gInvFitting[playerid]) return 1;
     RW_UI_Close(playerid, true);
-    if (!gMedCreated[playerid]) {
-        gMedTD[playerid][0] = CreatePlayerTextDraw(playerid, 226.0, 296.0, "LD_SPAC:white");
-        PlayerTextDrawFont(playerid, gMedTD[playerid][0], 4);
-        PlayerTextDrawTextSize(playerid, gMedTD[playerid][0], 188.0, 92.0);
-        PlayerTextDrawColor(playerid, gMedTD[playerid][0], 0x141920F2);
-        RW_MedLabel(playerid, 1, 238.0, 303.0, "YOU ARE DOWNED", 150.0);
-        RW_MedLabel(playerid, 2, 238.0, 318.0, "Bleeding out in 3:00", 160.0);
-        RW_MedIcon(playerid, 3, 238.0, 334.0, 1240);
-        RW_MedLabel(playerid, 4, 266.0, 338.0, "CALL AN AMBULANCE", 140.0, true);
-        RW_MedIcon(playerid, 5, 238.0, 360.0, 1242);
-        RW_MedLabel(playerid, 6, 266.0, 364.0, "WAIT +7 MIN", 140.0, true);
-        RW_MedLabel(playerid, 7, 238.0, 378.0, "Adrenaline or another player can revive you", 160.0);
-        PlayerTextDrawLetterSize(playerid, gMedTD[playerid][7], 0.14, 0.8);
-        gMedCreated[playerid] = true;
-    }
     gUIMode[playerid] = UI_DOWNED;
-    #if RAILWAY_CEF
-        if (RW_CefOn(playerid)) return RW_MedCef(playerid);
-    #endif
-    for (new i; i < 9; i++) if (i != 8) PlayerTextDrawShow(playerid, gMedTD[playerid][i]);
-    RW_MedRender(playerid);
-    RW_UI_SelectBegin(playerid);
-    return 1;
+    return RW_MedCef(playerid);
 }
 /* “екст таймера один дл€ тексдрав-меню и дл€ страницы. */
 stock RW_MedTimeLeft(playerid, dest[], size = sizeof dest)
@@ -124,7 +77,6 @@ stock RW_MedWait(playerid)
 /* —траница раненого: две кнопки и таймер кровотечени€. */
 stock RW_MedCef(playerid)
 {
-    if (!RW_CefOn(playerid)) return 0;
     new time[16], subtitle[64];
     RW_MedTimeLeft(playerid, time, sizeof time);
     format(subtitle, sizeof subtitle, " ровотечение: %s", time);
@@ -142,26 +94,14 @@ stock RW_MedCefClick(playerid, id)
     if (id == 1) return RW_MedWait(playerid);
     return 1;
 }
+/* “аймер кровотечени€ обновл€ем только на странице: нативный диалог
+   нельз€ перерисовывать каждую секунду Ч он перезапускалс€ бы. */
 stock RW_MedRender(playerid)
 {
     #if RAILWAY_CEF
         if (gUIMode[playerid] == UI_DOWNED && RW_CefOn(playerid)) return RW_MedCef(playerid);
     #endif
-    if (gUIMode[playerid] != UI_DOWNED || !gMedCreated[playerid]) return 1;
-    new time[16], text[64];
-    RW_MedTimeLeft(playerid, time, sizeof time);
-    format(text, sizeof text, "Bleeding out in %s", time);
-    PlayerTextDrawSetString(playerid, gMedTD[playerid][2], text);
     return 1;
-}
-stock RW_MedClick(playerid, PlayerText:clicked)
-{
-    if (gUIMode[playerid] != UI_DOWNED) return 0;
-    if (clicked != gMedTD[playerid][4] && clicked != gMedTD[playerid][6]) return 1;
-    if (GetTickCount()-gMedTick[playerid] < 400) return 1;
-    gMedTick[playerid] = GetTickCount();
-    if (clicked == gMedTD[playerid][4]) return RW_MedCall(playerid);
-    return RW_MedWait(playerid);
 }
 // Keeps the player lying at the place of death instead of respawning at once.
 stock RW_MedDown(playerid, Float:x, Float:y, Float:z)

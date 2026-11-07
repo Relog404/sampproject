@@ -295,8 +295,7 @@ new bool:gDowned[MAX_PLAYERS];
 new gDownEnd[MAX_PLAYERS], gDownStamp[MAX_PLAYERS];
 new Float:gDownX[MAX_PLAYERS], Float:gDownY[MAX_PLAYERS], Float:gDownZ[MAX_PLAYERS];
 new bool:gMedBusy[MAX_PLAYERS], gMedCooldown[MAX_PLAYERS], gMedTick[MAX_PLAYERS];
-new PlayerText:gMedTD[MAX_PLAYERS][9];
-new bool:gMedCreated[MAX_PLAYERS];
+/* Тексдрав-экран раненого удалён: его рисует страница. */
 
 new bool:gLogged[MAX_PLAYERS];         /* игрок авторизован                  */
 new gAccountId[MAX_PLAYERS];           /* id аккаунта в БД (-1 — гость)      */

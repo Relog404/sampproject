@@ -140,7 +140,7 @@ class MedicalSourceTest(unittest.TestCase):
     def test_downed_state_timers_and_the_ambulance_call(self):
         self.assertIn('#define DOWN_MS        (180000)',MED)
         self.assertIn('#define DOWN_EXTRA_MS  (420000)',MED)
-        self.assertIn('"CALL AN AMBULANCE"',MED)
+        self.assertIn('RW_UI_Row(playerid, 0, "Вызвать скорую");',MED)
         # кнопка больше не заглушка: она создаёт вызов 911 для скорой
         self.assertIn('RW_EmsCall(playerid, 3, gDownX[playerid], gDownY[playerid], gDownZ[playerid])',MED)
         self.assertIn('The ambulance is on its way',MED)

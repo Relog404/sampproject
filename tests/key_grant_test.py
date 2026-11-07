@@ -76,7 +76,7 @@ class KeyGrantInputTest(unittest.TestCase):
         self.assertIn('RW_KeyMenuReset(playerid)', ui.split('stock RW_UI_Reset',1)[1])
         main = (ROOT/'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
         self.assertIn('UI_KEYMENU) return RW_KeyMenuClick', main)
-        self.assertIn('gUIMode[playerid] == UI_KEYMENU || gUIMode[playerid] == UI_DOWNED) return RW_UI_Close(playerid)', main)
+        self.assertIn('gUIMode[playerid] == UI_KEYMENU) return RW_UI_Close(playerid)', main)
         self.assertIn('gKeyTarget[i] = -1', main)
         commands = pawn('commands')
         self.assertIn('"givekey"', commands)

@@ -106,7 +106,8 @@ class DownedScreenTest(unittest.TestCase):
 
     def test_the_screen_opens_a_page(self):
         open_ = block(MEDICAL, 'stock RW_MedOpen(playerid)')
-        self.assertIn('if (RW_CefOn(playerid)) return RW_MedCef(playerid);', open_)
+        self.assertIn('return RW_MedCef(playerid);', open_)
+        self.assertNotIn('PlayerTextDraw', open_)
         screen = block(MEDICAL, 'stock RW_MedCef(playerid)')
         self.assertIn('RW_UI_Panel(playerid, UI_DOWNED, "Вы ранены", subtitle);', screen)
         self.assertIn('RW_UI_Row(playerid, 0, "Вызвать скорую");', screen)
@@ -124,10 +125,12 @@ class DownedScreenTest(unittest.TestCase):
         self.assertIn('if (id == 1) return RW_MedWait(playerid);', click)
         self.assertIn('GetTickCount() - gMedTick[playerid] < 400', click)
 
-    def test_the_text_draw_screen_acts_the_same(self):
-        td = block(MEDICAL, 'stock RW_MedClick(playerid, PlayerText:clicked)')
-        self.assertIn('return RW_MedCall(playerid);', td)
-        self.assertIn('return RW_MedWait(playerid);', td)
+    def test_the_downed_screen_has_no_text_draw(self):
+        """Экран раненого один: общая панель, тексдравов больше нет."""
+        for marker in ('gMedTD', 'gMedCreated', 'PlayerTextDraw', 'RW_MedClick', 'RW_MedLabel', 'RW_MedIcon'):
+            self.assertNotIn(marker, MEDICAL)
+        main = (ROOT / 'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
+        self.assertNotIn('RW_MedClick', main)
 
 
 class SettingsScreenTest(unittest.TestCase):
