@@ -147,14 +147,12 @@ class PoliceItemTest(unittest.TestCase):
         self.assertIn('else if (type == ITEM_BATON) amount = 100;', give)
 
     def test_the_card_offers_the_right_buttons(self):
-        render = block(INV, 'stock RW_InvContextRender(playerid)', '\nstock ')
-        names = block(INV, 'stock RW_InvContextRender(playerid)', '\nstock ')
-        self.assertIn('RW_PoliceItemName(type, data, title, sizeof title);', names)
-        for line in ('else if (type == ITEM_CUFFS) format(action, sizeof action, "%s", "CUFF");',
-                     'else if (type == ITEM_TASER || type == ITEM_BATON) format(action, sizeof action, "%s", "STUN");',
-                     'else if (type == ITEM_BADGE) format(action, sizeof action, "%s", "MDT");'):
-            self.assertIn(line, render)
-        click = block(INV, 'stock RW_InvClick(playerid, PlayerText:clicked)', '\npublic ')
+        # названия вещей и подписи кнопок живут в общих функциях страницы
+        title = block(INV, 'stock RW_InvTitle(')
+        self.assertIn('RW_PoliceItemName(type, data, dest, size);', title)
+        label = block(INV, 'stock RW_InvUseLabel(')
+        for button in ('"Наручники"', '"Оглушить"', '"Планшет"'):
+            self.assertIn(button, label)
         use = block(INV, 'stock RW_InvUseSelected(playerid)', '\nstock ')
         self.assertIn('if (type == ITEM_CUFFS) return RW_PoliceCuffCommand(playerid, "");', use)
         self.assertIn('if (type == ITEM_BADGE) return RW_MdtOpen(playerid);', use)
@@ -218,7 +216,6 @@ class PoliceMechanicsTest(unittest.TestCase):
         command = block(POLICE, 'stock RW_PoliceStunCommand(playerid)')
         self.assertIn('new target = RW_PlayerTarget(playerid);', command)
         self.assertIn('if (target < 0) return RW_Error(playerid, "Stand closer to the player.");', command)
-        click = block(INV, 'stock RW_InvClick(playerid, PlayerText:clicked)', '\npublic ')
         use = block(INV, 'stock RW_InvUseSelected(playerid)', '\nstock ')
         self.assertIn('if (type == ITEM_TASER || type == ITEM_BATON) return RW_PoliceStunCommand(playerid);', use)
 

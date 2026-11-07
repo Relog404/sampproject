@@ -16,7 +16,7 @@ class SetSkinTest(unittest.TestCase):
         save = BODY.index('!gDBWritable || !RW_DB_Exec(query)')
         self.assertLess(save, BODY.index('gSkinId[target] = skin'))
         self.assertLess(save, BODY.index('SetPlayerSkin(target, skin)'))
-        self.assertIn('PlayerTextDrawSetPreviewModel(target, gInvTD[target][130], skin)', BODY)
+        self.assertIn('if (gUIMode[target] == UI_INVENTORY) RW_InvRender(target);', BODY)
         self.assertIn('RW_InvAttach(target,true)', BODY)
         self.assertIn('gAccountId[playerid], skin, gAccountId[target]', BODY)
 

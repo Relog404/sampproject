@@ -145,20 +145,24 @@ class InventorySourceTests(unittest.TestCase):
         self.assertIn('RW_InvNearGround(playerid, ground)', transfer)
         self.assertIn('owner IS NULL', transfer)
 
-    def test_textdraw_budget_preview_and_reserved_equipment(self):
-        count = int(re.search(r'#define INV_TDS\s+(\d+)', INV)[1])
-        self.assertLessEqual(count + 24, 256)
-        create = section('stock RW_InvCreate', 'stock RW_InvCell')
-        self.assertLess(create.index('RW_InvSprite(playerid, 139'), create.index('for (new i; i < 130; i++)'))
-        self.assertIn('for (new i; i < 8; i++)', create)
-        self.assertIn('PlayerTextDrawFont(playerid, gInvTD[playerid][130], 5)', create)
-        self.assertIn('GetPlayerSkin(playerid)', INV)
+    def test_the_page_shows_every_slot_and_the_equipment(self):
+        """Сетка в браузере: карманы с рюкзаком, три слота экипировки и то,
+        что лежит рядом. Тексдравов в инвентаре больше нет."""
+        self.assertNotIn('gInvTD', INV)
+        self.assertNotIn('RW_InvCreate', INV)
+        grid = section('stock RW_InvCef(playerid)', '\nstock ')
+        self.assertIn('for (new i; i < INV_SLOTS; i++)', grid)
+        self.assertIn('RW_InvCefCell(playerid, 131,', grid)
+        self.assertIn('RW_InvCefCell(playerid, 132,', grid)
+        self.assertIn('RW_InvCefCell(playerid, 133,', grid)
+        self.assertIn('RW_InvCefCell(playerid, 80 + i,', grid)
         self.assertIn('SetPlayerAttachedObject(playerid, INV_ATTACH, 3026', INV)
 
     def test_inventory_callbacks_run_before_the_dialog_guard(self):
         main = (ROOT/'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
         click = main.split('public OnPlayerClickPlayerTextDraw',1)[1].split('public OnPlayerClickTextDraw',1)[0]
-        self.assertLess(click.index('RW_InvClick'), click.index('gUIOnCef'))
+        self.assertNotIn('RW_InvClick', click)
+        self.assertIn('RW_GarageClick(playerid, playertextid)', click)
         cancel = main.split('public OnPlayerClickTextDraw',1)[1].split('public OnPlayerKeyStateChange',1)[0]
         self.assertLess(cancel.index('UI_INVENTORY'), cancel.index('gUIOnCef'))
         ui = pawn('ui')

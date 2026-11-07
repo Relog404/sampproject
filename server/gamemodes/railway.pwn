@@ -539,7 +539,6 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
     if (gUIMode[playerid] == UI_GARAGE) return RW_GarageClick(playerid, playertextid);
     if (gUIMode[playerid] == UI_KEYMENU) return RW_KeyMenuClick(playerid, playertextid);
     if (gUIMode[playerid] == UI_DOWNED) return RW_MedClick(playerid, playertextid);
-    if (gUIMode[playerid] == UI_INVENTORY) return RW_InvClick(playerid, playertextid);
     if (!gUICreated[playerid] || gUIOnCef[playerid]) return 0;
     if (playertextid == gUI[playerid][11]) {
         if (!gLogged[playerid]) Kick(playerid);

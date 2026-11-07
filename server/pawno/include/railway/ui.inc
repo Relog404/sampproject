@@ -196,11 +196,7 @@ stock RW_UI_Create(playerid)
     gUI[playerid][17] = RW_TD_Label(playerid, 518.0, 405.0, "Key -  Engine -", 0.14);
     PlayerTextDrawLetterSize(playerid, gUI[playerid][17], 0.14, 0.75);
     gUI[playerid][18] = RW_TD_Box(playerid, 518.0, 425.0, 1.0, 2.0, 0xD8C39BFF);
-    gUI[playerid][19] = RW_TD_Box(playerid, 250.0, 386.0, 160.0, 20.0, 0x171B23EF);
-    gUI[playerid][20] = RW_TD_Label(playerid, 258.0, 390.0, "_", 0.15);
-    PlayerTextDrawLetterSize(playerid, gUI[playerid][20], 0.15, 0.8);
-    PlayerTextDrawTextSize(playerid, gUI[playerid][20], 404.0, 0.0);
-    gUI[playerid][21] = RW_TD_Box(playerid, 250.0, 405.0, 160.0, 1.5, 0xD8C39BFF);
+    /* 19..21 были тексдравом всплывашки: уведомления ушли в браузер. */
     gUICreated[playerid] = true;
     gUIMode[playerid] = 0;
     gUIInput[playerid] = false;

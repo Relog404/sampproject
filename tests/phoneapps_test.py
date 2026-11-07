@@ -244,7 +244,7 @@ class CameraTest(unittest.TestCase):
         self.assertIn('if (type == ITEM_PHOTO) return 50;', INV)
         self.assertIn('!strcmp(word, "photo", true)', INV)
         self.assertIn('if (type==ITEM_PHOTO && (data<0 || data>=PHOTO_PLACES || amount<0 || amount>1439)) return 0;', INV)
-        self.assertIn('else if (type == ITEM_PHOTO) format(action, sizeof action, "%s", "SHOW");', INV)
+        self.assertIn('"Показать"', block(INV, 'stock RW_InvUseLabel('))
 
     def test_the_place_is_the_nearest_landmark(self):
         spots = APPS.split('static const Float:gPhotoSpots[][3] = {', 1)[1].split('};', 1)[0]

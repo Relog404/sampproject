@@ -14,7 +14,6 @@
 #define INV_TYPE_MAX 20
 #define INV_NEAR 50
 #define INV_WORLD 500
-#define INV_TDS 165
 #define ITEM_BACKPACK 1
 #define ITEM_CAR_KEY 2
 #define INV_ATTACH 9
@@ -25,8 +24,7 @@ enum E_INV_ITEM { iiUid, iiType, iiData, iiAmount };
 enum E_INV_GROUND { igUid, igType, igData, igAmount, igObject, Float:igX, Float:igY, Float:igZ };
 new gInv[MAX_PLAYERS][INV_SLOTS][E_INV_ITEM];
 new gGround[INV_WORLD][E_INV_GROUND];
-new PlayerText:gInvTD[MAX_PLAYERS][INV_TDS];
-new bool:gInvCreated[MAX_PLAYERS], bool:gInvLoaded[MAX_PLAYERS], bool:gInvReady;
+new bool:gInvLoaded[MAX_PLAYERS], bool:gInvReady;
 new gInvNear[MAX_PLAYERS][INV_NEAR], gInvSelected[MAX_PLAYERS], bool:gInvFromGround[MAX_PLAYERS];
 new gInvTick[MAX_PLAYERS];
 new bool:gInvContext[MAX_PLAYERS];
@@ -232,25 +230,20 @@ stock RW_InvLoad(playerid)
     gInvLoaded[playerid] = true;
     return 1;
 }
+/* “ексдрав-сетки больше нет: инвентарь живЄт в браузере. */
 stock RW_InvHide(playerid)
 {
-    if (gInvCreated[playerid]) for (new i; i < INV_TDS; i++) PlayerTextDrawHide(playerid, gInvTD[playerid][i]);
-    gInvSelected[playerid] = 0; gInvContext[playerid] = false;
+    #pragma unused playerid
     return 1;
 }
 stock RW_InvReset(playerid)
 {
-    if (gInvCreated[playerid]) for (new i; i < INV_TDS; i++) PlayerTextDrawDestroy(playerid, gInvTD[playerid][i]);
-    gInvEquipped[playerid] = 0; gInvFitting[playerid] = false;
-    RW_ArmourReset(playerid);
-    gInvContext[playerid] = false;
-    gInvCreated[playerid] = false; gInvLoaded[playerid] = false; gInvSelected[playerid] = 0; gInvTick[playerid] = 0;
-    for (new i; i < INV_SLOTS; i++) for (new E_INV_ITEM:j; j < E_INV_ITEM; j++) gInv[playerid][i][j] = 0;
+    gInvSelected[playerid] = 0; gInvFromGround[playerid] = false; gInvContext[playerid] = false;
     for (new i; i < INV_NEAR; i++) gInvNear[playerid][i] = 0;
-    if (IsPlayerConnected(playerid) && IsPlayerAttachedObjectSlotUsed(playerid, INV_ATTACH)) RemovePlayerAttachedObject(playerid, INV_ATTACH);
+    gInvLoaded[playerid] = false;
     return 1;
 }
-// Returns a durable item UID, or zero; no in-memory grant before COMMIT.
+
 stock RW_InvGrant(playerid, type, data = 0, amount = 1)
 {
     if (!gLogged[playerid] || !gInvLoaded[playerid] || type <= 0 || type > INV_TYPE_MAX) return 0;
@@ -385,245 +378,13 @@ stock RW_InvDrop(playerid)
     RW_InvAttach(playerid);
     return RW_InvRender(playerid);
 }
-stock RW_InvLabel(playerid, index, Float:x, Float:y, const text[], Float:width, bool:button = false)
-{
-    new label[144]; format(label, sizeof label, "%s", text);
-    gInvTD[playerid][index] = CreatePlayerTextDraw(playerid, x, y, label);
-    PlayerTextDrawFont(playerid, gInvTD[playerid][index], 1);
-    PlayerTextDrawLetterSize(playerid, gInvTD[playerid][index], 0.16, 0.85);
-    PlayerTextDrawColor(playerid, gInvTD[playerid][index], 0xEEECE7FF);
-    PlayerTextDrawSetShadow(playerid, gInvTD[playerid][index], 0);
-    PlayerTextDrawTextSize(playerid, gInvTD[playerid][index], x+width, 14.0);
-    if (button) { PlayerTextDrawUseBox(playerid, gInvTD[playerid][index], 1); PlayerTextDrawBoxColor(playerid, gInvTD[playerid][index], 0xD8C39B30); PlayerTextDrawSetSelectable(playerid, gInvTD[playerid][index], 1); }
-    return 1;
-}
-stock RW_InvSprite(playerid, index, Float:x, Float:y, Float:w, Float:h, color, bool:selectable = false)
-{
-    gInvTD[playerid][index] = CreatePlayerTextDraw(playerid, x, y, "LD_SPAC:white");
-    PlayerTextDrawFont(playerid, gInvTD[playerid][index], 4);
-    PlayerTextDrawTextSize(playerid, gInvTD[playerid][index], w, h);
-    PlayerTextDrawColor(playerid, gInvTD[playerid][index], color);
-    PlayerTextDrawSetSelectable(playerid, gInvTD[playerid][index], selectable);
-    return 1;
-}
-stock RW_InvCreate(playerid)
-{
-    if (gInvCreated[playerid]) return 1;
-    RW_InvSprite(playerid, 139, 14.0, 48.0, 592.0, 330.0, 0x11151DF5);
-    RW_InvSprite(playerid, 140, 14.0, 48.0, 592.0, 2.0, 0xD8C39BFF);
-    RW_InvSprite(playerid, 141, 215.0, 82.0, 1.0, 248.0, 0xFFFFFF12);
-    RW_InvSprite(playerid, 142, 409.0, 82.0, 1.0, 248.0, 0xFFFFFF12);
-    for (new i; i < 130; i++) {
-        new Float:x, Float:y;
-        if (i < 50) { x = 22.0+(i%10)*19.0; y = 84.0+(i/10)*24.0; }
-        else if (i < 80) { x = 22.0+((i-50)%10)*19.0; y = 232.0+((i-50)/10)*24.0; }
-        else { x = 416.0+((i-80)%10)*18.0; y = 84.0+((i-80)/10)*24.0; }
-        RW_InvSprite(playerid, i, x, y, 17.0, 22.0, 0xFFFFFF12, true);
-    }
-    RW_InvSprite(playerid, 130, 267.0, 100.0, 96.0, 170.0, 0xFFFFFFFF);
-    PlayerTextDrawFont(playerid, gInvTD[playerid][130], 5);
-    PlayerTextDrawBackgroundColor(playerid, gInvTD[playerid][130], 0x14192000);
-    PlayerTextDrawSetPreviewRot(playerid, gInvTD[playerid][130], 0.0, 0.0, 15.0, 1.0);
-    for (new i; i < 8; i++) RW_InvSprite(playerid, 131+i, i < 4 ? 240.0 : 376.0, 100.0+float(i%4)*44.0, 22.0, 28.0, 0xD8C39B22);
-    RW_InvLabel(playerid, 143, 22.0, 56.0, "INVENTORY", 190.0);
-    RW_InvLabel(playerid, 144, 22.0, 214.0, "BACKPACK", 190.0);
-    RW_InvLabel(playerid, 145, 420.0, 56.0, "NEARBY / 3m", 190.0);
-    RW_InvLabel(playerid, 146, 265.0, 56.0, "CHARACTER", 130.0);
-    RW_InvLabel(playerid, 147, 250.0, 276.0, "BACK / ACTIVE / 6 SOON", 140.0);
-    PlayerTextDrawSetSelectable(playerid,gInvTD[playerid][131],1);
-    PlayerTextDrawSetSelectable(playerid,gInvTD[playerid][133],1);
-    RW_InvLabel(playerid, 148, 578.0, 358.0, "X", 22.0, true);
-    RW_InvLabel(playerid, 149, 285.0, 358.0, "MAIN", 62.0, true);
-    RW_InvLabel(playerid, 150, 360.0, 358.0, "BAG", 62.0, true);
-    RW_InvLabel(playerid, 151, 435.0, 358.0, "DROP", 62.0, true);
-    RW_InvLabel(playerid, 152, 510.0, 358.0, "USE", 62.0, true);
-    RW_InvLabel(playerid, 153, 22.0, 358.0, "SELECT ITEM", 250.0);
-    RW_InvLabel(playerid, 154, 420.0, 214.0, "CLICK ITEM / ACTIONS", 190.0);
-    RW_InvSprite(playerid, 155, 420.0, 226.0, 190.0, 104.0, 0x171F2CFF);
-    RW_InvLabel(playerid, 156, 428.0, 230.0, "ITEM", 170.0);
-    RW_InvLabel(playerid, 157, 428.0, 244.0, "DESCRIPTION", 170.0);
-    RW_InvLabel(playerid, 158, 428.0, 258.0, "STATS", 170.0);
-    RW_InvLabel(playerid, 159, 428.0, 276.0, "DROP", 76.0, true);
-    RW_InvLabel(playerid, 160, 522.0, 276.0, "WEAR", 76.0, true);
-    RW_InvLabel(playerid, 161, 428.0, 294.0, "TO BAG", 76.0, true);
-    RW_InvLabel(playerid, 162, 522.0, 294.0, "TO MAIN", 76.0, true);
-    RW_InvLabel(playerid, 163, 428.0, 312.0, "USE KEY", 76.0, true);
-    RW_InvLabel(playerid, 164, 522.0, 312.0, "CLOSE", 76.0, true);
-    gInvCreated[playerid] = true;
-    return 1;
-}
-stock RW_InvCell(playerid, index, type, bool:selected, data = 0)
-{
-    PlayerTextDrawHide(playerid, gInvTD[playerid][index]);
-    if (type) {
-        PlayerTextDrawFont(playerid, gInvTD[playerid][index], 5);
-        PlayerTextDrawColor(playerid, gInvTD[playerid][index], 0xFFFFFFFF);
-        PlayerTextDrawBackgroundColor(playerid, gInvTD[playerid][index], selected ? 0xD8C39B99 : 0x232A36FF);
-        PlayerTextDrawSetPreviewModel(playerid, gInvTD[playerid][index], RW_InvModel(type, data));
-        PlayerTextDrawSetPreviewRot(playerid, gInvTD[playerid][index], type == ITEM_CAR_KEY ? 90.0 : 0.0, 0.0, 25.0, 1.0);
-    } else {
-        PlayerTextDrawFont(playerid, gInvTD[playerid][index], 4);
-        PlayerTextDrawSetString(playerid, gInvTD[playerid][index], "LD_SPAC:white");
-        PlayerTextDrawColor(playerid, gInvTD[playerid][index], 0xFFFFFF12);
-    }
-    PlayerTextDrawShow(playerid, gInvTD[playerid][index]);
-    return 1;
-}
-stock RW_InvContextRender(playerid)
-{
-    for (new i = 155; i < INV_TDS; i++) PlayerTextDrawHide(playerid, gInvTD[playerid][i]);
-    if (!gInvContext[playerid] || !gInvSelected[playerid]) return 1;
-    new slot = RW_InvFind(playerid, gInvSelected[playerid]), ground = RW_InvGroundFind(gInvSelected[playerid]), type, data, amount;
-    if (gInvFromGround[playerid]) { if (!RW_InvNearGround(playerid, ground)) return 1; type=gGround[ground][igType]; data=gGround[ground][igData]; }
-    else { if(slot<0) {
-            if(gWpActive[playerid]>0 && gInvSelected[playerid]==gWpActive[playerid]) { type=ITEM_WEAPON; data=gWpWeapon[playerid]; amount=gWpAmmo[playerid]; }
-            else if(gInvSelected[playerid]==gInvEquipped[playerid]) type=ITEM_BACKPACK;
-            else if(gInvSelected[playerid]==gInvWorn[playerid]) { type=ITEM_ARMOUR; data=gArmourData[playerid]; }
-            else return 1;
-        } else { type=gInv[playerid][slot][iiType]; data=gInv[playerid][slot][iiData]; amount=gInv[playerid][slot][iiAmount]; } }
-    if (gInvFromGround[playerid]) amount = gGround[ground][igAmount];
-    new title[32];
-    if (type == ITEM_BACKPACK) format(title, sizeof title, "%s", "BACKPACK");
-    else if (type == ITEM_WEAPON) RW_WeaponName(data, title, sizeof title);
-    else if (type == ITEM_AMMO) { new cname[16]; RW_CaliberName(data, cname, sizeof cname); format(title, sizeof title, "%s AMMO", cname); }
-    else if (type == ITEM_BANDAGE) format(title, sizeof title, "%s", "BANDAGE");
-    else if (type == ITEM_SYRINGE) format(title, sizeof title, "%s", "ADRENALINE");
-    else if (type == ITEM_ARMOUR) RW_ArmourName(data, title, sizeof title);
-    else if (type == ITEM_SIM) { new tname[32]; RW_PhoneTariffName(data, tname, sizeof tname); format(title, sizeof title, "SIM %s", tname); }
-    else if (type == ITEM_PHONE) RW_PhoneName(data, title, sizeof title);
-    else if (type == ITEM_CUFFS || type == ITEM_TASER || type == ITEM_BATON || type == ITEM_BADGE) RW_PoliceItemName(type, data, title, sizeof title);
-    else if (type == ITEM_DEFIB) format(title, sizeof title, "%s", "DEFIBRILLATOR");
-    else if (type == ITEM_MEDKIT) format(title, sizeof title, "%s", "MEDKIT");
-    else if (type == ITEM_LOCKPICK) format(title, sizeof title, "%s", "LOCKPICK");
-    else if (type == ITEM_TUNING) { new pname[24]; RW_TuneName(data, pname, sizeof pname); format(title, sizeof title, "%s L%d", pname, amount); }
-    else if (type == ITEM_PHOTO) { new pname[24]; RW_PhotoPlaceName(data, pname, sizeof pname); format(title, sizeof title, "PHOTO %s", pname); }
-    else format(title, sizeof title, "%s", "CAR KEY");
-    PlayerTextDrawSetString(playerid, gInvTD[playerid][156], title);
-    new stats[128], desc[128];
-    if (type == ITEM_BACKPACK) { format(desc,sizeof desc,"%s",gInvSelected[playerid]==gInvEquipped[playerid] ? ("Equipped / BACK slot") : ("Equip in BACK slot")); format(stats,sizeof stats,"1kg / +30 slots / 40kg"); }
-    else if (type == ITEM_WEAPON) {
-        new cal = RW_WpCaliber(data);
-        if (!cal) { format(desc, sizeof desc, "Melee or thrown / no ammo"); format(stats, sizeof stats, "%.1fkg", float(RW_WeaponGrams(data))/1000.0); }
-        else { new cname[16]; RW_CaliberName(cal, cname, sizeof cname); format(desc, sizeof desc, "Uses %s / magazine %d", cname, RW_WpMag(data)); format(stats, sizeof stats, "%.1fkg / %d / %d", float(RW_WeaponGrams(data))/1000.0, amount, RW_WpMag(data)); }
-    }
-    else if (type == ITEM_AMMO) { format(desc, sizeof desc, "%d rounds, max %d per stack", amount, RW_CaliberMax(data)); format(stats, sizeof stats, "%.1fkg / %dg per round", float(amount*RW_CaliberGrams(data))/1000.0, RW_CaliberGrams(data)); }
-    else if (type == ITEM_BANDAGE) { format(desc, sizeof desc, "Heals 15 HP over 3 seconds"); format(stats, sizeof stats, "0.2kg / 1s cooldown"); }
-    else if (type == ITEM_SYRINGE) { format(desc, sizeof desc, "Revives a downed player in 3s"); format(stats, sizeof stats, "0.3kg / single use"); }
-    else if (type == ITEM_ARMOUR) {
-        new bool:worn = gInvSelected[playerid] == gInvWorn[playerid];
-        if (RW_SkinBoundItem(type, data)) format(desc, sizeof desc, "%s / bound to this account", worn ? ("Worn") : ("Personal armour"));
-        else format(desc, sizeof desc, worn ? ("Worn / absorbs %d%% of damage") : ("Wear it to absorb damage"), RW_ArmourAbsorb(data));
-        format(stats, sizeof stats, "%.1fkg / %d / %d points", float(RW_ArmourGrams(data))/1000.0, worn ? (gArmourHp[playerid]) : (RW_ArmourHpOf(data)), RW_ArmourHpOf(data));
-    }
-    else if (type == ITEM_SIM) {
-        new tname[32]; RW_PhoneTariffName(data, tname, sizeof tname);
-        format(desc, sizeof desc, "Insert it into a phone with /sim");
-        format(stats, sizeof stats, "0.01kg / tariff %s", tname);
-    }
-    else if (type == ITEM_PHONE) {
-        format(desc, sizeof desc, "%s", "Open it with /phone or Y on yourself");
-        format(stats, sizeof stats, "0.3kg / calls, SMS, 911");
-    }
-    else if (type == ITEM_CUFFS) { format(desc, sizeof desc, "%s", "Y on a player, then Cuff"); format(stats, sizeof stats, "0.2kg / reusable"); }
-    else if (type == ITEM_TASER) { format(desc, sizeof desc, "%s", "Stuns for 3 s: Y on a player, then Stun"); format(stats, sizeof stats, "0.4kg / %d charges left", amount); }
-    else if (type == ITEM_BATON) { format(desc, sizeof desc, "%s", "Stuns and hurts: Y on a player, then Stun"); format(stats, sizeof stats, "0.9kg / %d of 100 left", amount); }
-    else if (type == ITEM_BADGE) { format(desc, sizeof desc, "%s", "Police badge: opens the tablet and the actions"); format(stats, sizeof stats, "0.05kg / /mdt, /duty"); }
-    else if (type == ITEM_DEFIB) { format(desc, sizeof desc, "%s", "Revives a downed player in 10 s to 60 HP"); format(stats, sizeof stats, "1.5kg / %d of %d charges", amount, EMS_DEFIB_CHARGES); }
-    else if (type == ITEM_MEDKIT) { format(desc, sizeof desc, "%s", "Heals you or another player to 100 HP in 3 s"); format(stats, sizeof stats, "0.8kg / single use, /heal"); }
-    else if (type == ITEM_LOCKPICK) { format(desc, sizeof desc, "%s", "Opens somebody else's car: a three-step mini-game"); format(stats, sizeof stats, "0.1kg / breaks on a mistake"); }
-    else if (type == ITEM_TUNING) { new pname[24]; RW_TuneName(data, pname, sizeof pname); format(desc, sizeof desc, "Fits at the tuning garage, level %d", amount); format(stats, sizeof stats, "%.0fkg / uid is written to the car", float(RW_TunePartGrams(data))/1000.0); }
-    else if (type == ITEM_PHOTO) { new pname[24]; RW_PhotoPlaceName(data, pname, sizeof pname); format(desc, sizeof desc, "A shot taken near %s; /photo looks at it", pname); format(stats, sizeof stats, "50g / souvenir"); }
-    else {
-        new model, bool:permanent = RW_GarageKeyModel(data, model);
-        format(desc,sizeof desc,"%s vehicle access", permanent ? ("Permanent") : ("Temporary"));
-        format(stats,sizeof stats,"0.1kg / model %d",model);
-    }
-    PlayerTextDrawSetString(playerid,gInvTD[playerid][157],desc);
-    PlayerTextDrawSetString(playerid,gInvTD[playerid][158],stats);
-    for(new i=155;i<=158;i++) PlayerTextDrawShow(playerid,gInvTD[playerid][i]);
-    PlayerTextDrawShow(playerid,gInvTD[playerid][164]);
-    new action[16]; format(action, sizeof action, "%s", "USE KEY");
-    if (type == ITEM_WEAPON) format(action, sizeof action, "%s", gWpActive[playerid] == gInvSelected[playerid] ? ("UNEQUIP") : ("EQUIP"));
-    else if (type == ITEM_AMMO) format(action, sizeof action, "%s", "LOAD");
-    else if (type == ITEM_BANDAGE || type == ITEM_SYRINGE) format(action, sizeof action, "%s", "USE");
-    else if (type == ITEM_ARMOUR) format(action, sizeof action, "%s", gInvSelected[playerid] == gInvWorn[playerid] ? ("TAKE OFF") : ("WEAR"));
-    else if (type == ITEM_PHONE) format(action, sizeof action, "%s", "OPEN");
-    else if (type == ITEM_SIM) format(action, sizeof action, "%s", "INSERT");
-    else if (type == ITEM_CUFFS) format(action, sizeof action, "%s", "CUFF");
-    else if (type == ITEM_TASER || type == ITEM_BATON) format(action, sizeof action, "%s", "STUN");
-    else if (type == ITEM_BADGE) format(action, sizeof action, "%s", "MDT");
-    else if (type == ITEM_DEFIB || type == ITEM_MEDKIT) format(action, sizeof action, "%s", "USE");
-    else if (type == ITEM_LOCKPICK) format(action, sizeof action, "%s", "PICK");
-    else if (type == ITEM_TUNING) format(action, sizeof action, "%s", "FIT");
-    else if (type == ITEM_PHOTO) format(action, sizeof action, "%s", "SHOW");
-    PlayerTextDrawSetString(playerid, gInvTD[playerid][163], action);
-    if (type == ITEM_WEAPON && !gInvFromGround[playerid]) PlayerTextDrawSetString(playerid, gInvTD[playerid][160], gWpActive[playerid] == gInvSelected[playerid] ? ("UNEQUIP") : ("EQUIP"));
-    else if (type == ITEM_ARMOUR && !gInvFromGround[playerid]) PlayerTextDrawSetString(playerid, gInvTD[playerid][160], gInvSelected[playerid] == gInvWorn[playerid] ? ("TAKE OFF") : ("WEAR"));
-    else PlayerTextDrawSetString(playerid, gInvTD[playerid][160], "WEAR");
-    if (!gInvFromGround[playerid] && gInvSelected[playerid]!=gInvEquipped[playerid]) {
-        if(!RW_SkinBoundItem(type,data)) PlayerTextDrawShow(playerid,gInvTD[playerid][159]);
-        if(type==ITEM_BACKPACK || type==ITEM_ARMOUR || (type==ITEM_WEAPON && gWpActive[playerid]!=gInvSelected[playerid])) PlayerTextDrawShow(playerid,gInvTD[playerid][160]);
-        if(type==ITEM_CAR_KEY || type==ITEM_AMMO || type==ITEM_BANDAGE || type==ITEM_SYRINGE || type==ITEM_PHONE || type==ITEM_SIM || type==ITEM_CUFFS || type==ITEM_TASER || type==ITEM_BATON || type==ITEM_BADGE || type==ITEM_DEFIB || type==ITEM_MEDKIT || type==ITEM_LOCKPICK || type==ITEM_TUNING || (type==ITEM_WEAPON && gWpActive[playerid]==gInvSelected[playerid])) PlayerTextDrawShow(playerid,gInvTD[playerid][163]);
-    }
-    if ((gInvFromGround[playerid] || slot<INV_MAIN) && RW_InvPack(playerid)>=0 && type!=ITEM_BACKPACK) PlayerTextDrawShow(playerid,gInvTD[playerid][161]);
-    if (gInvFromGround[playerid] || slot>=INV_MAIN || (gInvEquipped[playerid]>0 && gInvSelected[playerid]==gInvEquipped[playerid])) PlayerTextDrawShow(playerid,gInvTD[playerid][162]);
-    return 1;
-}
+/*  ќткрытый инвентарь Ч страница в браузере: обновить значит перерисовать. */
 stock RW_InvRender(playerid)
 {
-    if (gUIMode[playerid] != UI_INVENTORY || !gInvCreated[playerid]) return 1;
-    new hasBag = RW_InvPack(playerid) >= 0;
-    RW_InvCell(playerid,131,hasBag ? ITEM_BACKPACK : 0,gInvSelected[playerid]>0 && gInvSelected[playerid]==gInvEquipped[playerid]);
-    RW_InvCell(playerid,132,gWpActive[playerid]>0 ? ITEM_WEAPON : 0,gInvSelected[playerid]>0 && gInvSelected[playerid]==gWpActive[playerid],gWpWeapon[playerid]);
-    RW_InvCell(playerid,133,gInvWorn[playerid]>0 ? ITEM_ARMOUR : 0,gInvSelected[playerid]>0 && gInvSelected[playerid]==gInvWorn[playerid],gArmourData[playerid]);
-    for (new i; i < INV_SLOTS; i++) {
-        if (i >= INV_MAIN && !hasBag) { PlayerTextDrawHide(playerid, gInvTD[playerid][i]); continue; }
-        RW_InvCell(playerid, i, gInv[playerid][i][iiType], !gInvFromGround[playerid] && gInv[playerid][i][iiUid] > 0 && gInv[playerid][i][iiUid] == gInvSelected[playerid], gInv[playerid][i][iiData]);
-    }
-    new count;
-    for (new i; i < INV_WORLD && count < INV_NEAR; i++) if (RW_InvNearGround(playerid, i)) gInvNear[playerid][count++] = gGround[i][igUid];
-    for (new i = count; i < INV_NEAR; i++) gInvNear[playerid][i] = 0;
-    for (new i; i < INV_NEAR; i++) {
-        new ground = RW_InvGroundFind(gInvNear[playerid][i]);
-        RW_InvCell(playerid, 80+i, ground < 0 ? 0 : gGround[ground][igType], gInvFromGround[playerid] && gInvNear[playerid][i] > 0 && gInvNear[playerid][i] == gInvSelected[playerid], ground < 0 ? 0 : gGround[ground][igData]);
-    }
-    new text[128];
-    format(text, sizeof text, "INVENTORY  %.1f / 50kg", float(RW_InvWeight(playerid, 0))/1000.0);
-    PlayerTextDrawSetString(playerid, gInvTD[playerid][143], text);
-    if (hasBag) format(text, sizeof text, "BACKPACK  %.1f / 40kg", float(RW_InvWeight(playerid, 1))/1000.0);
-    else format(text, sizeof text, "BACKPACK / LOCKED");
-    PlayerTextDrawSetString(playerid, gInvTD[playerid][144], text);
-    format(text, sizeof text, "NEARBY  %d / 50  / 3m", count);
-    PlayerTextDrawSetString(playerid, gInvTD[playerid][145], text);
-    new type, data, amountShown;
-    if (gInvFromGround[playerid]) {
-        new ground = RW_InvGroundFind(gInvSelected[playerid]);
-        if (RW_InvNearGround(playerid, ground)) { type = gGround[ground][igType]; data = gGround[ground][igData]; amountShown = gGround[ground][igAmount]; }
-    } else {
-        new slot = RW_InvFind(playerid, gInvSelected[playerid]);
-        if (slot >= 0) { type = gInv[playerid][slot][iiType]; data = gInv[playerid][slot][iiData]; amountShown = gInv[playerid][slot][iiAmount]; }
-        else if(gInvEquipped[playerid]>0 && gInvSelected[playerid]==gInvEquipped[playerid]) type=ITEM_BACKPACK;
-        else if(gWpActive[playerid]>0 && gInvSelected[playerid]==gWpActive[playerid]) { type=ITEM_WEAPON; data=gWpWeapon[playerid]; amountShown=gWpAmmo[playerid]; }
-    }
-    if (!type) { gInvSelected[playerid] = 0; format(text, sizeof text, "SELECT ITEM"); }
-    else if (type == ITEM_BACKPACK) format(text, sizeof text, "BACKPACK / 1kg / +30");
-    else if (type == ITEM_WEAPON) {
-        new wname[32], cal = RW_WpCaliber(data);
-        RW_WeaponName(data, wname, sizeof wname);
-        if (!cal) format(text, sizeof text, "%s / no ammo", wname);
-        else format(text, sizeof text, "%s / %d rnd / cal %d", wname, amountShown, cal);
-    }
-    else if (type == ITEM_AMMO) { new cname[16]; RW_CaliberName(data, cname, sizeof cname); format(text, sizeof text, "%s ammo / %d rnd", cname, amountShown); }
-    else if (type == ITEM_BANDAGE) format(text, sizeof text, "BANDAGE / +15 HP / 3s");
-    else if (type == ITEM_SYRINGE) format(text, sizeof text, "ADRENALINE / revive / 3s");
-    else {
-        new vehicle = -1;
-        for (new v; v < VEHICLE_SLOTS; v++) if (gVeh[v][vsUsed] && gVehKeyUid[v] == data) vehicle = gVeh[v][vsVehicleId];
-        if (vehicle < 0) format(text, sizeof text, "KEY / GARAGED / 0.1kg");
-        else format(text, sizeof text, "KEY / CAR %d / 0.1kg", vehicle);
-    }
-    PlayerTextDrawSetString(playerid, gInvTD[playerid][153], text);
-    return RW_InvContextRender(playerid);
+    #if RAILWAY_CEF
+        if (gUIMode[playerid] == UI_INVENTORY && RW_CefOn(playerid)) return RW_InvCef(playerid);
+    #endif
+    return 1;
 }
 /*  ќбщие действи€ с выбранной вещью: их зовут и тексдрав-меню, и карточка
  *  в браузере, поэтому поведение не расходитс€.                              */
@@ -856,56 +617,15 @@ stock RW_InvOpen(playerid)
     new pstate = GetPlayerState(playerid);
     if (pstate != PLAYER_STATE_ONFOOT && pstate != PLAYER_STATE_DRIVER && pstate != PLAYER_STATE_PASSENGER) return 1;
     if (gUIInput[playerid] || gInvFitting[playerid]) return 1;
-    #if RAILWAY_CEF
-        if (RW_CefOn(playerid)) { RW_UI_Close(playerid, true); return RW_InvCef(playerid); }
-    #endif
     RW_UI_Close(playerid, true);
-    for (new i = 12; i <= 18; i++) PlayerTextDrawHide(playerid, gUI[playerid][i]);
-    RW_InvCreate(playerid);
-    gUIMode[playerid] = UI_INVENTORY;
-    // Backgrounds are also CREATED first: SA-MP renders by pool ID.
-    for (new i = 139; i <= 142; i++) PlayerTextDrawShow(playerid, gInvTD[playerid][i]);
-    PlayerTextDrawSetPreviewModel(playerid, gInvTD[playerid][130], GetPlayerSkin(playerid));
-    for (new i = 130; i < 139; i++) PlayerTextDrawShow(playerid, gInvTD[playerid][i]);
-    for (new i = 143; i < 155; i++) if (i<149 || i>152) PlayerTextDrawShow(playerid, gInvTD[playerid][i]);
-    RW_InvRender(playerid);
-    RW_UI_SelectBegin(playerid);
-    return 1;
+    #if RAILWAY_CEF
+        if (RW_CefOn(playerid)) { gUIMode[playerid] = UI_INVENTORY; return RW_InvCef(playerid); }
+    #endif
+    /* »нвентарь Ч страница в браузере; без браузера вещи выдаютс€ и
+       забираютс€ командами: /inv, /give, /take. */
+    return RW_Error(playerid, "»нвентарь открываетс€ в браузере: подождите, пока он загрузитс€.");
 }
-stock RW_InvClick(playerid, PlayerText:clicked)
-{
-    if (gUIMode[playerid] != UI_INVENTORY || !gLogged[playerid] || !gInvLoaded[playerid]) return 0;
-    for (new i; i < 130; i++) if (clicked == gInvTD[playerid][i]) {
-        if (i >= 50 && i < 80 && RW_InvPack(playerid) < 0) return 1;
-        gInvContext[playerid] = true;
-        gInvFromGround[playerid] = i >= 80;
-        gInvSelected[playerid] = i < 80 ? gInv[playerid][i][iiUid] : gInvNear[playerid][i-80];
-        return RW_InvRender(playerid);
-    }
-    if (clicked == gInvTD[playerid][133]) {
-        if(gInvWorn[playerid]>0) { gInvSelected[playerid]=gInvWorn[playerid]; gInvFromGround[playerid]=false; gInvContext[playerid]=true; return RW_InvRender(playerid); }
-        return RW_Info(playerid, "Put body armour here: select it in MAIN and press WEAR.");
-    }
-    if (clicked == gInvTD[playerid][132]) {
-        if(gWpActive[playerid]>0) { gInvSelected[playerid]=gWpActive[playerid]; gInvFromGround[playerid]=false; gInvContext[playerid]=true; return RW_InvRender(playerid); }
-        return RW_Info(playerid, "Put a weapon here: select it in MAIN and press EQUIP.");
-    }
-    if (clicked == gInvTD[playerid][131]) {
-        if(gInvEquipped[playerid]>0) { gInvSelected[playerid]=gInvEquipped[playerid]; gInvFromGround[playerid]=false; gInvContext[playerid]=true; return RW_InvRender(playerid); }
-        return RW_InvEquip(playerid);
-    }
-    if (clicked == gInvTD[playerid][164]) { gInvContext[playerid] = false; return RW_InvRender(playerid); }
-    if (clicked == gInvTD[playerid][148]) return RW_UI_Close(playerid);
-    if (GetTickCount()-gInvTick[playerid] < 250) return 1;
-    gInvTick[playerid] = GetTickCount();
-    if (!gInvSelected[playerid] || !gInvContext[playerid]) return 1;
-    if (clicked == gInvTD[playerid][160] && !gInvFromGround[playerid]) return RW_InvWearSelected(playerid);
-    if (clicked == gInvTD[playerid][162]) return RW_InvTransfer(playerid, 0);
-    if (clicked == gInvTD[playerid][161]) return RW_InvTransfer(playerid, 1);
-    if (clicked == gInvTD[playerid][159]) return RW_InvDrop(playerid);
-    if (clicked == gInvTD[playerid][163] && !gInvFromGround[playerid]) return RW_InvUseSelected(playerid);
-    return 1;
-}
+
 public RW_InvPulse()
 {
     RW_GaragePulse();

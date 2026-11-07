@@ -58,7 +58,9 @@ class InventoryModeTest(unittest.TestCase):
 class InventoryGridTest(unittest.TestCase):
     def test_opening_prefers_the_browser(self):
         open_ = block(INV, 'stock RW_InvOpen(playerid)')
-        self.assertIn('if (RW_CefOn(playerid)) { RW_UI_Close(playerid, true); return RW_InvCef(playerid); }', open_)
+        self.assertIn('if (RW_CefOn(playerid)) { gUIMode[playerid] = UI_INVENTORY; return RW_InvCef(playerid); }', open_)
+        # без браузера игроку честно говорят, что инвентарь — страница
+        self.assertIn('Инвентарь открывается в браузере', open_)
 
     def test_the_grid_shows_equipment_pockets_bag_and_the_ground(self):
         grid = block(INV, 'stock RW_InvCef(playerid)')

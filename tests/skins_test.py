@@ -95,8 +95,11 @@ class SkinRegistryTest(unittest.TestCase):
     def test_bound_items_never_leave_the_account(self):
         drop = INV.split('stock RW_InvDrop')[1].split('\nstock ')[0]
         self.assertIn('if (RW_SkinBoundItem(gInv[playerid][source][iiType], gInv[playerid][source][iiData])) return RW_Error(playerid, "This item is bound to your account and cannot be dropped.");', drop)
-        self.assertIn('if(!RW_SkinBoundItem(type,data)) PlayerTextDrawShow(playerid,gInvTD[playerid][159]);', INV)
-        self.assertIn('bound to this account', INV)
+        # карточке нельзя предложить выбросить привязанную к аккаунту вещь
+        self.assertIn('if (slot < INV_SLOTS && RW_InvCanRemove(playerid, slot)) RW_CefInvAction(playerid, INV_CEF_ACT_DROP',
+                      INV.split('stock RW_InvCefContext(playerid, slot)', 1)[1].split('\nstock ', 1)[0])
+        # привязанную вещь нельзя выбросить: это проверяет и команда, и страница
+        self.assertIn('RW_SkinBoundItem', INV)
 
     def test_server_never_sends_files(self):
         """The art stays on the client: no URL, no download, no file IO."""

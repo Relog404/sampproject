@@ -117,10 +117,10 @@ class PhoneItemTest(unittest.TestCase):
         self.assertIn('if ((type==ITEM_SIM || type==ITEM_PHONE) && (amount!=1 || data<0 || data>=PHONE_TARIFFS)) return 0;', grant)
 
     def test_the_card_offers_the_right_buttons(self):
-        render = block(INV, 'stock RW_InvContextRender(playerid)', '\nstock ')
-        self.assertIn('else if (type == ITEM_PHONE) format(action, sizeof action, "%s", "OPEN");', render)
-        self.assertIn('else if (type == ITEM_SIM) format(action, sizeof action, "%s", "INSERT");', render)
-        click = block(INV, 'stock RW_InvClick(playerid, PlayerText:clicked)', '\npublic ')
+        # подписи кнопок карточки: «Открыть» для телефона, «Вставить» для SIM
+        label = block(INV, 'stock RW_InvUseLabel(')
+        self.assertIn('"Открыть"', label)
+        self.assertIn('"Вставить"', label)
         use = block(INV, 'stock RW_InvUseSelected(playerid)', '\nstock ')
         self.assertIn('if (type == ITEM_PHONE) return RW_PhoneOpen(playerid);', use)
         self.assertIn('if (type == ITEM_SIM) return RW_PhoneInsertSim(playerid);', use)

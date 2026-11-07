@@ -111,16 +111,19 @@ class EmsItemTest(unittest.TestCase):
         self.assertIn('else amount = 1;', give)
 
     def test_the_card_offers_use(self):
-        render = block(INV, 'stock RW_InvContextRender(playerid)', '\nstock ')
-        self.assertIn('else if (type == ITEM_DEFIB || type == ITEM_MEDKIT) format(action, sizeof action, "%s", "USE");', render)
-        self.assertIn('format(stats, sizeof stats, "1.5kg / %d of %d charges", amount, EMS_DEFIB_CHARGES);', render)
+        # подпись кнопки и вес показывает карточка в браузере
+        label = block(INV, 'stock RW_InvUseLabel(')
+        self.assertIn('"Оживить"', label)
+        self.assertIn('"Вылечить"', label)
+        card = block(INV, 'stock RW_InvCefContext(playerid, slot)')
+        self.assertIn('RW_InvGrams(type, data, amount)', card)
         # Главное действие вынесено в общую функцию: тексдрав-меню и карточка
         # в браузере делают одно и то же.
         use = block(INV, 'stock RW_InvUseSelected(playerid)')
         self.assertIn('if (type == ITEM_DEFIB) return RW_EmsReviveCommand(playerid, "");', use)
         self.assertIn('if (type == ITEM_MEDKIT) return RW_EmsHealCommand(playerid, "");', use)
-        click = block(INV, 'stock RW_InvClick(playerid, PlayerText:clicked)', '\npublic ')
-        self.assertIn('if (clicked == gInvTD[playerid][163] && !gInvFromGround[playerid]) return RW_InvUseSelected(playerid);', click)
+        self.assertIn('if (action == INV_CEF_ACT_USE) { RW_UI_Close(playerid); return RW_InvUseSelected(playerid); }',
+                      block(INV, 'stock RW_InvCefClick(playerid, id)'))
 
 
 class EmsMechanicsTest(unittest.TestCase):

@@ -18,6 +18,7 @@ GARAGE = pawn('garage')
 WEP = pawn('weapons')
 VEH = pawn('vehicles')
 INTER = pawn('interaction')
+PAGE = (ROOT / 'server/scriptfiles/cef/railway/js/inventory.js').read_text(encoding='utf-8')
 CMDS = pawn('commands')
 MAIN = (ROOT / 'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
 
@@ -90,36 +91,27 @@ class CabinSourceTest(unittest.TestCase):
 
 
 class CompactGridTest(unittest.TestCase):
-    def create_block(self): return INV.split('stock RW_InvCreate')[1].split('gInvCreated[playerid] = true')[0]
+    """Сетка инвентаря рисуется страницей: геометрия живёт в CSS."""
 
-    def test_panel_is_smaller_than_before(self):
-        self.assertIn('RW_InvSprite(playerid, 139, 14.0, 48.0, 592.0, 330.0, 0x11151DF5);', self.create_block())
-        self.assertNotIn('620.0, 365.0', self.create_block())
+    def test_the_grid_is_ten_columns_of_square_cells(self):
+        self.assertIn('grid-template-columns:repeat(10,1fr)', PAGE)
+        self.assertIn('aspect-ratio:1/1', PAGE)
 
-    def test_cells_are_smaller(self):
-        self.assertIn('RW_InvSprite(playerid, i, x, y, 17.0, 22.0, 0xFFFFFF12, true);', self.create_block())
+    def test_the_page_fits_the_screen(self):
+        self.assertIn('max-width:96vw', PAGE)
+        self.assertIn('max-height:88vh', PAGE)
+        self.assertIn('overflow-y:auto', PAGE)
 
-    def test_every_column_stays_inside_the_panel(self):
-        panel_left, panel_width = 14.0, 592.0
-        right = panel_left + panel_width
-        block = self.create_block()
-        def numbers(line): return [float(n) for n in re.findall(r'(\d+\.\d+)', line)]
-        main_x, main_w = numbers([l for l in block.splitlines() if 'i < 50' in l][0])[0], 17.0
-        self.assertLess(22.0 + 9*19.0 + main_w, 215.0)          # main column ends before the separator
-        self.assertEqual(main_x, 22.0)
-        near = [l for l in block.splitlines() if '(i-80)' in l][0]
-        nx, pitch = numbers(near)[0], numbers(near)[1]
-        self.assertLess(nx + 9*pitch + 17.0, right)             # nearby column fits the panel
+    def test_the_card_sits_next_to_the_grid(self):
+        self.assertIn('.inv-card{width:250px', PAGE)
+        self.assertIn('inv-card on', PAGE)
 
-    def test_separator_positions(self):
-        block = self.create_block()
-        self.assertIn('RW_InvSprite(playerid, 141, 215.0, 82.0, 1.0, 248.0, 0xFFFFFF12);', block)
-        self.assertIn('RW_InvSprite(playerid, 142, 409.0, 82.0, 1.0, 248.0, 0xFFFFFF12);', block)
-
-    def test_bottom_notice_is_smaller(self):
-        self.assertIn('RW_TD_Box(playerid, 250.0, 386.0, 160.0, 20.0, 0x171B23EF)', UI)
-        self.assertIn('PlayerTextDrawLetterSize(playerid, gUI[playerid][20], 0.15, 0.8);', UI)
-        self.assertIn('RW_TD_Box(playerid, 250.0, 405.0, 160.0, 1.5, 0xD8C39BFF)', UI)
+    def test_the_server_sends_the_whole_grid(self):
+        """80 ячеек карманов и рюкзака плюс то, что лежит рядом."""
+        grid = INV.split('stock RW_InvCef(playerid)', 1)[1].split('\nstock ', 1)[0]
+        self.assertIn('for (new i; i < INV_SLOTS; i++)', grid)
+        self.assertIn('RW_InvCefCell(playerid, 80 + i,', grid)
+        self.assertNotIn('gInvTD', INV)
 
     def test_car_preview_helpers(self):
         self.assertIn('stock RW_UI_PreviewShow(playerid, model, Float:x, Float:y, Float:w, Float:h)', UI)

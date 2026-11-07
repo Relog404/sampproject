@@ -90,12 +90,15 @@ class EquipmentSourceTest(unittest.TestCase):
         self.assertLess(UNEQUIP.index('RELEASE unequip_backpack'),UNEQUIP.index('gInvEquipped[playerid]=0'))
         self.assertIn('gInvEquipped[playerid]>0) weight +=',INV)
     def test_equipment_slot_is_selectable_and_uses_real_equip_action(self):
-        self.assertIn('gInvTD[playerid][131],1',INV)
-        click=section('stock RW_InvClick(', 'public RW_InvPulse(')
-        self.assertIn('clicked == gInvTD[playerid][131]',click)
-        self.assertIn('return RW_InvEquip(playerid)',click)
-        self.assertIn('gInvSelected[playerid]=gInvEquipped[playerid]',click)
-        self.assertIn('return RW_InvUnequip(playerid)',INV)
+        # слот рюкзака — ячейка 131 сетки; клик по ней выбирает вещь
+        grid = section('stock RW_InvCef(playerid)', '\nstock ')
+        self.assertIn('RW_InvCefCell(playerid, 131,', grid)
+        click = section('stock RW_InvCefClick(', '\nstock ')
+        self.assertIn('gInvSelected[playerid] = gInvEquipped[playerid]', click)
+        context = section('stock RW_InvCefContext(playerid, slot)', '\nstock ')
+        self.assertIn('uid = gInvEquipped[playerid]', context)
+        self.assertIn('return RW_InvEquip(playerid)', section('stock RW_InvWearSelected(playerid)', '\nstock '))
+        self.assertIn('return RW_WpUnequip(playerid)', section('stock RW_InvUseSelected(playerid)', '\nstock '))
     def test_backpack_fit_not_sideways_and_saved_per_skin_with_validation(self):
         attach=section('stock RW_InvAttach(', 'stock bool:RW_InvWrite(')
         self.assertIn('Float:rx,Float:ry,Float:rz',attach)

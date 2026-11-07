@@ -153,11 +153,13 @@ class TransportItemTest(unittest.TestCase):
         self.assertIn('if (type == ITEM_TUNING) return RW_TuneInstall(playerid, RW_TransportCar(playerid));', use)
         card = block(INV, 'stock RW_InvCefContext(playerid, slot)', '\nstock ')
         self.assertIn('type == ITEM_LOCKPICK || type == ITEM_TUNING', card)
-        self.assertIn('else if (type == ITEM_LOCKPICK) format(action, sizeof action, "%s", "PICK");', INV)
-        self.assertIn('else if (type == ITEM_TUNING) format(action, sizeof action, "%s", "FIT");', INV)
+        label = block(INV, 'stock RW_InvUseLabel(')
+        self.assertIn('"Взломать"', label)
+        self.assertIn('"Установить"', label)
 
     def test_titles_name_the_part_and_the_level(self):
-        self.assertIn('else if (type == ITEM_TUNING) { new pname[24]; RW_TuneName(data, pname, sizeof pname); format(title, sizeof title, "%s L%d", pname, amount); }', INV)
+        self.assertIn('else if (type == ITEM_TUNING) { new pname[24]; RW_TuneName(data, pname, sizeof pname); format(dest, size, "%s L%d", pname, amount); }',
+                      block(INV, 'stock RW_InvTitle('))
 
 
 class FuelTest(unittest.TestCase):

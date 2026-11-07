@@ -72,7 +72,7 @@ class CursorLifecycleTest(unittest.TestCase):
         self.assertLess(end.index('gUIExpectedCancels[playerid]++'), end.index('CancelSelectTextDraw'))
         close = ui.split('stock RW_UI_Close(',1)[1].split('stock RW_UI_OpenAuth',1)[0]
         self.assertIn('if (!keepSelection) RW_UI_SelectEnd(playerid)', close)
-        for module, marker in [('inventory','stock RW_InvOpen'),('garage','stock RW_GarageOpen')]:
+        for module, marker in [('garage','stock RW_GarageOpen')]:
             opening = source(module).split(marker,1)[1].split('\nstock ',1)[0]
             self.assertIn('RW_UI_Close(playerid, true)', opening)
             self.assertIn('RW_UI_SelectBegin(playerid)', opening)

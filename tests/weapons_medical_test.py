@@ -117,7 +117,7 @@ class WeaponSourceTest(unittest.TestCase):
         self.assertIn('ResetPlayerWeapons(playerid)',WEP)
         self.assertIn('GivePlayerWeapon(playerid, gWpWeapon[playerid], gWpAmmo[playerid])',WEP)
         self.assertIn('Unequip the current weapon first',WEP)
-        self.assertIn('gWpActive[playerid] == gInvSelected[playerid]',INV)
+        self.assertIn('gWpActive[playerid] > 0 && gInvSelected[playerid] == gWpActive[playerid]',INV)
         self.assertIn('Unequip the weapon first',INV)
         self.assertIn('RW_WpShot(playerid, weaponid)',MAIN)
         self.assertIn('SetPlayerAmmo(playerid, weaponid, gWpAmmo[playerid])',WEP)

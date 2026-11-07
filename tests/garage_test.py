@@ -126,16 +126,14 @@ class GarageSourceContractsTest(unittest.TestCase):
         self.assertIn('RW_UI_SelectBegin', GARAGE)
         self.assertNotIn('ShowPlayerDialog', GARAGE)
 
-    def test_context_menu_has_conditional_actions_and_stays_in_budget(self):
-        td_count = int(re.search(r'#define INV_TDS\s+(\d+)', INV)[1])
-        self.assertLessEqual(td_count+24+13+2, 256)
-        for label in ('"TO BAG"','"TO MAIN"','"DROP"','"WEAR"','"USE KEY"'):
-            self.assertIn(label, INV)
-        context = INV.split('stock RW_InvContextRender',1)[1].split('stock RW_InvRender',1)[0]
-        self.assertIn('RW_InvPack(playerid)>=0 && type!=ITEM_BACKPACK', context)
-        self.assertIn('gInvFromGround[playerid] || slot>=INV_MAIN', context)
-        self.assertIn('RW_GarageKeyModel', context)
-        self.assertIn('gInvContext[playerid] = true', INV)
+    def test_context_menu_has_conditional_actions(self):
+        """Кнопки в карточке зависят от вещи: с земли — только «Поднять»,
+        из карманов — «Выбросить» и перекладывание."""
+        for button in ('"Поднять"', '"Выбросить"', '"В рюкзак"', '"В карманы"'):
+            self.assertIn(button, INV)
+        card = INV.split('stock RW_InvCefContext(playerid, slot)', 1)[1].split('\nstock ', 1)[0]
+        self.assertIn('RW_InvPack(playerid) >= 0 && slot < INV_SLOTS', card)
+        self.assertIn('RW_InvGrams', card)
 
     def test_system_display_literals_are_english_ascii(self):
         paths = [ROOT/'server/gamemodes/railway.pwn', *list((ROOT/'server/pawno/include/railway').glob('*.inc'))]
