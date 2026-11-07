@@ -37,6 +37,7 @@ forward RW_HudPulse();
 forward RW_HudBonusClick(playerid, browserid, arg);
 forward RW_HudBonusHideEvent(playerid, browserid, arg);
 forward RW_HudDonateEvent(playerid, browserid, arg);
+forward RW_HudMouseToggle(playerid);
 forward RW_DonateOpen(playerid);
 forward RW_DonateClick(playerid, row);
 forward RW_DonateCefClick(playerid, id);

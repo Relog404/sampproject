@@ -143,6 +143,7 @@ stock RW_HudHints(playerid)
     hints[0] = 0;
     if (GetPlayerVehicleID(playerid) > 0) strcat(hints, "N:engine;H:doors;");
     else strcat(hints, "Y:interaction;");
+    strcat(hints, "AltY:mouse;");
     strcat(hints, "F2:donate;");
     return RW_CefHudHint(playerid, hints);
     return 1;
@@ -207,15 +208,16 @@ stock RW_HudCommand(playerid)
     }
     return RW_HudToggle(playerid);
 }
-/* Курсор: по умолчанию его нет, чтобы не мешал; /mouse включает его на время. */
-stock RW_HudMouseCommand(playerid)
+/* Курсор: по умолчанию его нет, чтобы не мешал. Включает его Alt + Y или /mouse. */
+stock RW_HudMouseToggle(playerid)
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
-    if (!RW_CefOn(playerid)) return RW_Info(playerid, "There is no browser interface: use /bonus and /donate instead of the mouse.");
+    if (!RW_CefOn(playerid)) return RW_Info(playerid, "Браузерного интерфейса нет: мышь не нужна, используйте /bonus и /donate.");
     gHudMouse[playerid] = !gHudMouse[playerid];
     RW_CefHudMouse(playerid, gHudMouse[playerid]);
-    return RW_Info(playerid, gHudMouse[playerid] ? "Mouse is on: click the bonus card, then /mouse again to hide it." : "Mouse is hidden.");
+    return RW_Info(playerid, gHudMouse[playerid] ? "Мышь включена: нажмите карточку бонуса. Alt + Y снова спрячет курсор." : "Мышь скрыта.");
 }
+stock RW_HudMouseCommand(playerid) { return RW_HudMouseToggle(playerid); }
 stock RW_BonusCommand(playerid)
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");

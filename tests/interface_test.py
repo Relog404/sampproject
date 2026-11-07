@@ -148,6 +148,16 @@ class HudKeysTest(unittest.TestCase):
         self.assertIn("document.addEventListener('contextmenu'", SCRIPT)
         self.assertIn('e.preventDefault()', SCRIPT)
 
+    def test_the_mouse_is_toggled_by_a_key(self):
+        self.assertIn('if ((newkeys & KEY_YES) && (newkeys & KEY_WALK) && !(oldkeys & KEY_YES))', MAIN)
+        self.assertIn('return RW_HudMouseToggle(playerid);', MAIN)
+        self.assertIn('forward RW_HudMouseToggle(playerid);', CORE)
+        self.assertIn('stock RW_HudMouseToggle(playerid)', HUD)
+        self.assertIn('stock RW_HudMouseCommand(playerid) { return RW_HudMouseToggle(playerid); }', HUD)
+        self.assertIn('"AltY:mouse;"', HUD)
+        self.assertIn("mouse: 'Мышь'", SCRIPT)
+        self.assertIn('Alt + Y - курсор мыши', CMDS)
+
     def test_the_mouse_is_hidden_until_the_player_asks_for_it(self):
         self.assertIn("RW.on('hud:mouse'", SCRIPT)
         self.assertIn('.hud.mouse {', CSS)

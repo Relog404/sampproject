@@ -550,6 +550,11 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 {
     if (!gLogged[playerid] || gUIMode[playerid] != 0 || gUIInput[playerid] || gInvFitting[playerid]) return 1;
     if ((newkeys & KEY_SECONDARY_ATTACK) && !(oldkeys & KEY_SECONDARY_ATTACK) && gGroundAim[playerid]>0) return RW_GroundTake(playerid);
+    /* Alt + Y: курсор мыши включается и выключается клавишей. */
+    if ((newkeys & KEY_YES) && (newkeys & KEY_WALK) && !(oldkeys & KEY_YES)) {
+        gControlTick[playerid] = GetTickCount();
+        return RW_HudMouseToggle(playerid);
+    }
     if (GetTickCount()-gControlTick[playerid] < 250) return 1;
     for (new i; i < 3; i++) {
         new key = gControlKeys[playerid][i];
