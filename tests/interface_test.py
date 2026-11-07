@@ -69,12 +69,13 @@ class HudKeysTest(unittest.TestCase):
         hints = block(HUD, 'stock RW_HudHints(playerid)')
         self.assertIn('"N:engine;H:doors;"', hints)
         self.assertIn('"Y:interaction;"', hints)
-        self.assertIn('"F2:donate;"', hints)
+        self.assertIn('"AltY:mouse;"', hints)
+        self.assertNotIn('F2', HUD)
 
     def test_the_page_shows_the_hints_in_russian(self):
         self.assertIn("interaction: 'Взаимодействие'", SCRIPT)
-        self.assertIn("donate: 'Донат'", SCRIPT)
         self.assertIn("engine: 'Двигатель'", SCRIPT)
+        self.assertIn("doors: 'Двери'", SCRIPT)
 
     def test_hints_are_on_the_page(self):
         self.assertIn('id="hints"', PAGE)
@@ -177,15 +178,17 @@ class DonateTest(unittest.TestCase):
         give = block(DONATE, 'stock RW_GiveDonateCommand(playerid, const params[])')
         self.assertIn('if (gAdminLevel[playerid] < 5) return RW_Error(playerid, "Admins only.");', give)
 
-    def test_the_menu_opens_from_the_hud_and_from_a_command(self):
+    def test_the_menu_opens_from_a_key_and_from_a_command(self):
         self.assertIn('if (gCefMode[playerid] == CEF_MODE_DONATE) return RW_DonateCefClick(playerid, id);', CEFUI)
         self.assertIn('else if (mode == UI_DONATE) {', pawn('interaction'))
         self.assertIn('return RW_DonateClick(playerid, row);', pawn('interaction'))
         self.assertIn('#define UI_DONATE 24', UI)
         self.assertIn('#define CEF_MODE_DONATE             (14)', CORE)
-        self.assertIn('return RW_DonateOpen(playerid);', block(HUD, 'public RW_HudDonateEvent(playerid, browserid, arg)'))
-        self.assertIn("RW.emit('hud:donate', 1)", SCRIPT)
-        self.assertIn("e.key === 'F2'", SCRIPT)
+        self.assertIn('if ((newkeys & KEY_CROUCH) && !(oldkeys & KEY_CROUCH))', MAIN)
+        self.assertIn('return RW_DonateCommand(playerid);', MAIN)
+        self.assertIn('"donate", true', pawn('commands'))
+        self.assertNotIn('F2', SCRIPT)
+        self.assertNotIn('RW_HudDonateEvent', HUD)
 
 
 class CityTest(unittest.TestCase):

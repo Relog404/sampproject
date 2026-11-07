@@ -40,7 +40,6 @@ forward RW_HudDonateEvent(playerid, browserid, arg);
 forward RW_HudMouseToggle(playerid);
 forward RW_HudMouseEvent(playerid, browserid, on);
 forward RW_HudMenuEvent(playerid, browserid, arg);
-forward RW_MenuOpen(playerid);
 forward RW_MenuAction(playerid, browserid, const action[]);
 forward RW_SettingsOn(playerid, flag);
 forward RW_MenuToggle(playerid);

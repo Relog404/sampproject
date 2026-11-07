@@ -129,28 +129,3 @@ stock RW_CefHudMouse(playerid, on)
     #pragma unused playerid, on
     return 0;
 }
-stock RW_CefMenuOpen(playerid, const title[], const subtitle[])
-{
-    #pragma unused playerid, title, subtitle
-    return 0;
-}
-stock RW_CefMenuRow(playerid, const text[], const action[], const style[])
-{
-    #pragma unused playerid, text, action, style
-    return 0;
-}
-stock RW_CefMenuEnd(playerid)
-{
-    #pragma unused playerid
-    return 0;
-}
-stock RW_CefMenuFocus(playerid)
-{
-    #pragma unused playerid
-    return 0;
-}
-stock RW_CefMenuClose(playerid)
-{
-    #pragma unused playerid
-    return 0;
-}

@@ -189,7 +189,7 @@ stock RW_DonateRefresh(playerid)
 stock RW_DonateCommand(playerid)
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
-    if (!RW_CefOn(playerid)) RW_Info(playerid, "Донат: F2 в браузере или /donate. Очки можно обменять на рубли со счёта в этом меню.");
+    if (!RW_CefOn(playerid)) RW_Info(playerid, "Донат: клавиша C или /donate. Очки можно обменять на рубли со счёта в этом меню.");
     return RW_DonateOpen(playerid);
 }
 stock RW_PointsCommand(playerid)

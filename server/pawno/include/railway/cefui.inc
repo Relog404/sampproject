@@ -25,13 +25,11 @@
 #define CEF_UI_PHONE        (102)
 #define CEF_UI_HUD          (103)
 #define CEF_UI_AUTH         (104)
-#define CEF_UI_BIGMENU      (105)
 #define CEF_UI_MENU_URL     "http://cef/railway/index.html"
 #define CEF_UI_TOAST_URL    "http://cef/railway/notify.html"
 #define CEF_UI_PHONE_URL    "http://cef/railway/phone.html"
 #define CEF_UI_HUD_URL      "http://cef/railway/hud.html"
 #define CEF_UI_AUTH_URL     "http://cef/railway/auth.html"
-#define CEF_UI_MENU_URL2    "http://cef/railway/menu.html"
 
 #define CEF_TOAST_PLAIN     (0)
 #define CEF_TOAST_OK        (1)
@@ -75,10 +73,7 @@ stock RW_CefInit()
     CEF_RegisterEvent("phone:911", "RW_CefPhone911", Argument_Integer);
     CEF_RegisterEvent("phone:close", "RW_CefPhoneClosed");
     CEF_RegisterEvent("hud:mousetoggle", "RW_HudMouseEvent", Argument_Integer);
-    CEF_RegisterEvent("hud:menu", "RW_HudMenuEvent", Argument_Integer);
-    CEF_RegisterEvent("hud:donate", "RW_HudDonateEvent", Argument_Integer);
     CEF_RegisterEvent("auth:submit", "RW_CefAuthSubmit", Argument_String, Argument_String);
-    CEF_RegisterEvent("menu:action", "RW_MenuAction", Argument_String);
     SetTimer("RW_CefPulse", 1000, true);
     print("[cef] browser interface ready (resource railway).");
     return 1;
@@ -100,9 +95,6 @@ stock RW_CefStart(playerid)
     CEF_CreateBrowser(playerid, CEF_UI_HUD, CEF_UI_HUD_URL, false, false);
     CEF_SetBrowserLayer(playerid, CEF_UI_HUD, 90);
     CEF_CreateBrowser(playerid, CEF_UI_AUTH, CEF_UI_AUTH_URL, false, true);
-    CEF_CreateBrowser(playerid, CEF_UI_BIGMENU, CEF_UI_MENU_URL2, false, true);
-    CEF_SetBrowserLayer(playerid, CEF_UI_BIGMENU, 400);
-    CEF_SetBrowserVisible(playerid, CEF_UI_BIGMENU, false);
     CEF_SetBrowserLayer(playerid, CEF_UI_AUTH, 300);
     CEF_SetBrowserVisible(playerid, CEF_UI_AUTH, false);
     return 1;
@@ -115,7 +107,6 @@ stock RW_CefReset(playerid)
         CEF_DestroyBrowser(playerid, CEF_UI_PHONE);
         CEF_DestroyBrowser(playerid, CEF_UI_HUD);
         CEF_DestroyBrowser(playerid, CEF_UI_AUTH);
-        CEF_DestroyBrowser(playerid, CEF_UI_BIGMENU);
     }
     gCefReady[playerid] = false; gCefMode[playerid] = CEF_MODE_NONE;
     return 1;
@@ -199,7 +190,6 @@ stock RW_CefFocusRelease(playerid)
 {
     if (!RW_CefOn(playerid)) return 0;
     CEF_FocusBrowser(playerid, CEF_UI_MENU, false);
-    CEF_FocusBrowser(playerid, CEF_UI_BIGMENU, false);
     CEF_FocusBrowser(playerid, CEF_UI_AUTH, false);
     return 1;
 }
@@ -465,43 +455,8 @@ public RW_CefAuthSubmit(playerid, browserid, const password[], const confirm[])
     return RW_AuthSubmit(playerid, !RW_DB_AccountExists(nick), password, confirm);
 }
 
-/*  --------------------------- полноэкранное меню -------------------------- */
-stock RW_CefMenuOpen(playerid, const title[], const subtitle[])
-{
-    if (!RW_CefOn(playerid)) return 0;
-    CEF_SetBrowserVisible(playerid, CEF_UI_BIGMENU, true);
-    CEF_FocusBrowser(playerid, CEF_UI_BIGMENU, true);
-    CEF_EmitEvent(playerid, CEF_UI_BIGMENU, "menu:open", CEF_STR(title), CEF_STR(subtitle));
-    return 1;
-}
-stock RW_CefMenuRow(playerid, const text[], const action[], const style[])
-{
-    if (!RW_CefOn(playerid)) return 0;
-    CEF_EmitEvent(playerid, CEF_UI_BIGMENU, "menu:row", CEF_STR(text), CEF_STR(action), CEF_STR(style));
-    return 1;
-}
-stock RW_CefMenuEnd(playerid)
-{
-    if (!RW_CefOn(playerid)) return 0;
-    CEF_EmitEvent(playerid, CEF_UI_BIGMENU, "menu:end");
-    return 1;
-}
 /* Страница успевает прогрузиться: фокус повторяем через долю секунды,
    иначе первый клик после открытия пропадает. */
-stock RW_CefMenuFocus(playerid)
-{
-    if (!RW_CefOn(playerid)) return 0;
-    CEF_FocusBrowser(playerid, CEF_UI_BIGMENU, true);
-    return 1;
-}
-stock RW_CefMenuClose(playerid)
-{
-    if (!RW_CefOn(playerid)) return 0;
-    CEF_SetBrowserVisible(playerid, CEF_UI_BIGMENU, false);
-    CEF_FocusBrowser(playerid, CEF_UI_BIGMENU, false);
-    CEF_EmitEvent(playerid, CEF_UI_BIGMENU, "menu:close");
-    return 1;
-}
 
 /*  ------------------------------ phone events ----------------------------- */
 /* Приложение адвокатов: список лицензированных адвокатов, доступно из КПЗ. */

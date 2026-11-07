@@ -14,7 +14,6 @@
     enter: 'Войти',
     exit: 'Выйти',
     key: 'Клавиши',
-    donate: 'Донат',
     mouse: 'Мышь',
     ganton: 'Гантон',
     jefferson: 'Джефферсон',
@@ -106,10 +105,7 @@
     hud.classList.toggle('mouse', !!on);
   });
 
-  /* F2 открывает донат-меню, когда окно в фокусе. */
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'F2') { e.preventDefault(); RW.emit('hud:donate', 1); }
-    if (e.key === 'F3') { e.preventDefault(); RW.emit('hud:menu', 1); }
     if (e.key === 'Escape') { e.preventDefault(); RW.emit('hud:mousetoggle', 0); }
     if (e.altKey && (e.code === 'KeyY' || e.key === 'y' || e.key === 'Y' || e.key === 'ы')) {
       e.preventDefault();

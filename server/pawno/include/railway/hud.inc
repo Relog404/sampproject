@@ -42,9 +42,7 @@ stock RW_HudHints(playerid)
     if (GetPlayerVehicleID(playerid) > 0) strcat(hints, "N:engine;H:doors;");
     else strcat(hints, "Y:interaction;");
     strcat(hints, "AltY:mouse;");
-    strcat(hints, "F2:donate;");
     return RW_CefHudHint(playerid, hints);
-    return 1;
 }
 stock RW_HudShow(playerid, bool:on)
 {
@@ -61,7 +59,7 @@ stock RW_HudToggle(playerid)
     return RW_Info(playerid, gHudOn[playerid] ? "HUD is on." : "HUD is off. /hud brings it back.");
 }
 
-/* Раз в полсекунды: радар; реже — подсказки и карточка бонуса. */
+/* Раз в полсекунды: подсказки по ситуации. реже — подсказки и карточка бонуса. */
 public RW_HudPulse()
 {
     for (new playerid; playerid < MAX_PLAYERS; playerid++) {
@@ -82,18 +80,6 @@ public RW_HudMouseEvent(playerid, browserid, on)
     if (on && !gHudMouse[playerid]) return RW_HudMouseToggle(playerid);
     if (!on && gHudMouse[playerid]) return RW_HudMouseToggle(playerid);
     return 1;
-}
-public RW_HudMenuEvent(playerid, browserid, arg)
-{
-    #pragma unused browserid, arg
-    if (!gLogged[playerid]) return 0;
-    return RW_MenuOpen(playerid);
-}
-public RW_HudDonateEvent(playerid, browserid, arg)
-{
-    #pragma unused browserid, arg
-    if (!gLogged[playerid]) return 0;
-    return RW_DonateOpen(playerid);
 }
 
 /*  --------------------------------- команда ---------------------------- */

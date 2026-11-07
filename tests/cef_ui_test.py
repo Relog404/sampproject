@@ -143,7 +143,7 @@ class CursorFocusTest(unittest.TestCase):
     def test_focus_is_released_by_one_helper(self):
         self.assertIn('stock RW_CefFocusRelease(playerid)', CEFUI_SRC)
         release = CEFUI_SRC.split('stock RW_CefFocusRelease(playerid)')[1].split('\n}')[0]
-        for browser in ('CEF_UI_MENU', 'CEF_UI_BIGMENU', 'CEF_UI_AUTH'):
+        for browser in ('CEF_UI_MENU', 'CEF_UI_AUTH'):
             self.assertIn('CEF_FocusBrowser(playerid, %s, false);' % browser, release)
 
     def test_every_close_path_releases_the_focus(self):

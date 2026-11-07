@@ -540,11 +540,6 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
         gControlTick[playerid] = GetTickCount();
         return RW_HudMouseToggle(playerid);
     }
-    /* Alt + N: полноэкранное меню, то же что F3 в браузере. */
-    if ((newkeys & KEY_NO) && (newkeys & KEY_WALK) && !(oldkeys & KEY_NO)) {
-        gControlTick[playerid] = GetTickCount();
-        return RW_MenuToggle(playerid);
-    }
     /* C: донат-меню. Приседание в режиме ped-anims не используется. */
     if ((newkeys & KEY_CROUCH) && !(oldkeys & KEY_CROUCH)) {
         gControlTick[playerid] = GetTickCount();

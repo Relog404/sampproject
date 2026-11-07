@@ -1,8 +1,9 @@
-"""The full-screen menu on F3 and its settings.
+"""Settings: the interface switches and the key bindings.
 
 Every setting here really changes something on the server: a component is
 switched off, a key is rebound, a name tag is hidden. Nothing is drawn just
-to look like a setting.
+to look like a setting. There is no full-screen menu any more: /set, /key
+and the Alt + H panel do the same job and work without a mouse.
 """
 import re
 import sqlite3
@@ -21,13 +22,12 @@ MENU = pawn('menu')
 HUD = pawn('hud')
 CITY = pawn('city')
 UI = pawn('ui')
+INTERACTION = pawn('interaction')
 CORE = pawn('core')
 CEFUI = pawn('cefui')
 STUB = pawn('cefstub')
 CMDS = pawn('commands')
 MAIN = (ROOT / 'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
-PAGE = (CEF / 'menu.html').read_text(encoding='utf-8')
-SCRIPT = (CEF / 'js/menu.js').read_text(encoding='utf-8')
 CSS = (CEF / 'css/app.css').read_text(encoding='utf-8')
 HUDPAGE = (CEF / 'hud.html').read_text(encoding='utf-8')
 HUDJS = (CEF / 'js/hud.js').read_text(encoding='utf-8')
@@ -60,38 +60,8 @@ class SettingsTableTest(unittest.TestCase):
         self.assertEqual(self.db.execute('SELECT flags FROM settings WHERE player_id=4').fetchall(), [(63,)])
 
 
-class MenuPageTest(unittest.TestCase):
-    """The page: logo, the quit tab and the rows."""
-
-    def test_the_logo_sits_in_the_top_left_corner(self):
-        self.assertIn('class="menu-logo"', PAGE)
-        self.assertIn('img/logo.png', PAGE)
-        self.assertTrue(PAGE.index('menu-logo') < PAGE.index('menu-sheet'))
-
-    def test_the_quit_button_is_the_same_width_as_the_tabs(self):
-        self.assertIn('class="menu-tab danger" data-act="quit"', PAGE)
-        self.assertIn('Выйти из игры', PAGE)
-        self.assertNotIn('menu-quit', PAGE)
-        self.assertNotIn('.menu-quit {', CSS)
-        self.assertIn('.menu-tab.danger {', CSS)
-
-    def test_the_tabs_and_the_keys_are_there(self):
-        for label in ('Вернуться в игру', 'Настройки', 'Донат', 'Выйти из игры'):
-            self.assertIn(label, PAGE)
-        self.assertIn("e.key === 'Escape'", SCRIPT)
-        self.assertIn("RW.emit('menu:action'", SCRIPT)
-
-    def test_the_row_handler_matches_what_the_server_sends(self):
-        # Сервер шлёт три аргумента, поэтому и обработчик берёт три.
-        self.assertIn("RW.on('menu:row', function (text, action, style)", SCRIPT)
-        self.assertIn("CEF_EmitEvent(playerid, CEF_UI_BIGMENU, \"menu:row\", CEF_STR(text), CEF_STR(action), CEF_STR(style));", CEFUI)
-        self.assertNotIn("function (id, text, action, style)", SCRIPT)
-
-    def test_the_background_is_transparent(self):
-        self.assertIn('html, body { background: transparent; }', CSS)
-        self.assertIn('.menu { position: fixed; inset: 0;', CSS)
-        self.assertIn('background: transparent; transition: opacity', CSS)
-        self.assertNotIn('radial-gradient', CSS)
+class SettingsServerTest(unittest.TestCase):
+    """The server applies the settings and rebinds the keys."""
 
     def test_the_keys_really_open_things(self):
         self.assertIn('if ((newkeys & KEY_CROUCH) && !(oldkeys & KEY_CROUCH))', MAIN)
@@ -100,58 +70,13 @@ class MenuPageTest(unittest.TestCase):
         self.assertIn('return RW_SettingsCommand(playerid);', MAIN)
         self.assertIn('if (!strcmp(cmdtext, "/", true)) return RW_PhoneOpen(playerid);', CMDS)
 
-    def test_clicks_reach_the_page_and_not_the_game(self):
-        # Пока меню открыто, персонаж стоит: иначе клик уходит в игру.
-        self.assertIn('TogglePlayerControllable(playerid, false);', MENU)
-        self.assertIn('if (!gHudMouse[playerid]) TogglePlayerControllable(playerid, true);', MENU)
-        # Страница успевает прогрузиться: фокус повторяется.
-        self.assertIn('SetTimerEx("RW_MenuFocus", 300, false, "i", playerid);', MENU)
-        self.assertIn('public RW_MenuFocus(playerid)', MENU)
-        self.assertIn('CEF_FocusBrowser(playerid, CEF_UI_BIGMENU, true);', CEFUI)
-        self.assertIn('stock RW_CefMenuFocus(playerid)', STUB)
-
     def test_every_setting_is_reachable_without_a_mouse(self):
-        for command in ('set', 'key', 'menu', 'settings'):
+        for command in ('set', 'key', 'settings'):
             self.assertIn('"%s", true' % command, CMDS)
         set_block = block(MENU, 'stock RW_SetCommand(playerid, const params[])')
         for name in ('hud', 'hints', 'speedo', 'names', 'markers', 'welcome'):
             self.assertIn('"%s", true' % name, set_block)
         self.assertIn('RW_MenuKeyFlip(playerid, slot)', block(MENU, 'stock RW_KeyCommand(playerid, const params[])'))
-
-    def test_the_rows_come_from_the_server(self):
-        self.assertIn("RW.on('menu:open'", SCRIPT)
-        self.assertIn("RW.on('menu:row'", SCRIPT)
-        self.assertIn("RW.on('menu:close'", SCRIPT)
-
-
-class MenuServerTest(unittest.TestCase):
-    """The server drives the menu and applies the settings."""
-
-    def test_the_browser_is_created_and_destroyed(self):
-        self.assertIn('#define CEF_UI_BIGMENU      (105)', CEFUI)
-        self.assertIn('CEF_CreateBrowser(playerid, CEF_UI_BIGMENU, CEF_UI_MENU_URL2, false, true);', CEFUI)
-        self.assertIn('CEF_DestroyBrowser(playerid, CEF_UI_BIGMENU);', CEFUI)
-        self.assertIn('CEF_RegisterEvent("menu:action", "RW_MenuAction", Argument_String);', CEFUI)
-        self.assertIn('stock RW_CefMenuOpen(', STUB)
-
-    def test_the_menu_opens_on_f3_or_alt_n(self):
-        self.assertIn("RW.emit('hud:menu', 1)", HUDJS)
-        self.assertIn("e.key === 'F3'", HUDJS)
-        self.assertIn('if ((newkeys & KEY_NO) && (newkeys & KEY_WALK) && !(oldkeys & KEY_NO))', MAIN)
-        self.assertIn('return RW_MenuToggle(playerid);', MAIN)
-        self.assertIn('forward RW_MenuToggle(playerid);', CORE)
-        self.assertIn('"menu", true', CMDS)
-        self.assertIn('"settings", true', CMDS)
-
-    def test_the_actions_are_handled_on_the_server(self):
-        action = block(MENU, 'public RW_MenuAction(playerid, browserid, const action[])')
-        self.assertIn('"resume"', action)
-        self.assertIn('"quit"', action)
-        self.assertIn('"settings"', action)
-        self.assertIn('"donate"', action)
-        self.assertIn('RW_SettingsFlip(playerid, strval(action[4]))', action)
-        self.assertIn('RW_MenuKeyFlip(playerid, strval(action[4]))', action)
-        self.assertIn('RW_DonateBuy(playerid, strval(action[4]))', action)
 
     def test_settings_really_change_the_game(self):
         apply_block = block(MENU, 'stock RW_SettingsApply(playerid)')
@@ -172,6 +97,60 @@ class MenuServerTest(unittest.TestCase):
         self.assertIn('static const keys[] = { KEY_YES, KEY_NO, KEY_CTRL_BACK, KEY_WALK };', flip)
         self.assertIn('Эта клавиша уже занята другим действием.', flip)
         self.assertIn('gControlKeys[playerid][slot] = next;', flip)
+
+    def test_rebinding_does_not_reopen_a_menu(self):
+        flip = block(MENU, 'stock RW_MenuKeyFlip(playerid, slot)')
+        self.assertIn('return RW_Ok(playerid, message);', flip)
+        self.assertNotIn('RW_MenuOpen', flip)
+
+    def test_the_settings_panel_is_a_small_panel(self):
+        self.assertIn('return RW_UI_Settings(playerid);', block(MENU, 'stock RW_SettingsCommand(playerid)'))
+        self.assertIn('stock RW_UI_Settings(playerid)', INTERACTION)
+
+
+class NoFullScreenMenuTest(unittest.TestCase):
+    """Ни F3-меню, ни F2-доната: браузер больше не ловит F-клавиши."""
+
+    def test_the_second_browser_is_gone(self):
+        self.assertNotIn('CEF_UI_BIGMENU', CEFUI)
+        self.assertNotIn('CEF_UI_BIGMENU', STUB)
+        self.assertNotIn('CEF_UI_BIGMENU', CORE)
+        self.assertNotIn('CEF_UI_MENU_URL2', CEFUI)
+        for name in ('RW_CefMenuOpen', 'RW_CefMenuRow', 'RW_CefMenuEnd',
+                     'RW_CefMenuFocus', 'RW_CefMenuClose'):
+            self.assertNotIn(name, CEFUI)
+            self.assertNotIn(name, STUB)
+
+    def test_the_page_and_its_script_are_gone(self):
+        self.assertNotIn('menu:action', CEFUI)
+        self.assertNotIn('menu:action', MENU)
+        self.assertFalse((CEF / 'menu.html').exists())
+        self.assertFalse((CEF / 'js' / 'menu.js').exists())
+
+    def test_the_hud_page_forgets_f2_and_f3(self):
+        self.assertNotIn("e.key === 'F2'", HUDJS)
+        self.assertNotIn("e.key === 'F3'", HUDJS)
+        self.assertNotIn('hud:menu', HUDJS)
+        self.assertNotIn('hud:donate', HUDJS)
+        self.assertNotIn('RW_HudMenuEvent', HUD)
+        self.assertNotIn('RW_HudDonateEvent', HUD)
+
+    def test_no_key_or_command_opens_a_menu(self):
+        for marker in ('RW_MenuToggle', 'RW_MenuOpen', 'RW_MenuClose',
+                       'RW_MenuAction', 'RW_MenuCommand', 'gMenuShown',
+                       'gMenuSection', 'MENU_MAIN', 'MENU_SETTINGS', 'MENU_DONATE'):
+            self.assertNotIn(marker, MENU)
+            self.assertNotIn(marker, MAIN)
+            self.assertNotIn(marker, CMDS)
+
+    def test_the_hints_stopped_mentioning_f2(self):
+        self.assertNotIn('F2:donate;', HUD)
+        self.assertNotIn("donate: 'Донат'", HUDJS)
+        self.assertNotIn('F2', HUDPAGE)
+
+    def test_donate_still_has_its_key_and_command(self):
+        self.assertIn('return RW_DonateCommand(playerid);', MAIN)
+        self.assertIn('"donate", true', CMDS)
 
 
 class HudMouseTest(unittest.TestCase):

@@ -410,7 +410,6 @@ stock RW_CommandProcess(playerid, cmdtext[])
     if (!strcmp(cmd, "rob", true)) return RW_PropRobCommand(playerid);
     if (!strcmp(cmd, "hud", true)) return RW_HudCommand(playerid);
     if (!strcmp(cmd, "mouse", true)) return RW_HudMouseCommand(playerid);
-    if (!strcmp(cmd, "menu", true)) return RW_MenuCommand(playerid);
     if (!strcmp(cmd, "settings", true)) return RW_SettingsCommand(playerid);
     if (!strcmp(cmd, "set", true)) return RW_SetCommand(playerid, params);
     if (!strcmp(cmd, "key", true)) return RW_KeyCommand(playerid, params);
