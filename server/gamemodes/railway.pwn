@@ -564,6 +564,16 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
         gControlTick[playerid] = GetTickCount();
         return RW_MenuToggle(playerid);
     }
+    /* C: донат-меню. Приседание в режиме ped-anims не используется. */
+    if ((newkeys & KEY_CROUCH) && !(oldkeys & KEY_CROUCH)) {
+        gControlTick[playerid] = GetTickCount();
+        return RW_DonateCommand(playerid);
+    }
+    /* Alt + H: настройки. */
+    if ((newkeys & KEY_CTRL_BACK) && (newkeys & KEY_WALK) && !(oldkeys & KEY_CTRL_BACK)) {
+        gControlTick[playerid] = GetTickCount();
+        return RW_SettingsCommand(playerid);
+    }
     if (GetTickCount()-gControlTick[playerid] < 250) return 1;
     for (new i; i < 3; i++) {
         new key = gControlKeys[playerid][i];

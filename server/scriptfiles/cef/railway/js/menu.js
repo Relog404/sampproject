@@ -25,7 +25,8 @@
     menu.classList.remove('off');
   });
 
-  RW.on('menu:row', function (id, text, action, style) {
+  /* Сервер шлёт три аргумента: подпись, действие и стиль. */
+  RW.on('menu:row', function (text, action, style) {
     var node = document.createElement('button');
     node.className = 'menu-row ' + (style || '');
     node.type = 'button';

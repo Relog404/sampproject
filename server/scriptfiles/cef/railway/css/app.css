@@ -250,6 +250,7 @@ html, body {
 
 /* --------------------------------- HUD --------------------------------- */
 /* Прозрачный минимализм: ничего лишнего, тёмное стекло поверх картинки.   */
+html, body { background: transparent; }
 .hud-body { background: transparent; overflow: hidden; }
 .hud { position: fixed; inset: 0; pointer-events: none; user-select: none; font: 400 13px/1.35 "Segoe UI", Roboto, sans-serif;
        color: #F2F4F8; text-shadow: 0 1px 2px rgba(0,0,0,.55); transition: opacity .18s ease; }
@@ -279,10 +280,12 @@ html, body {
 .bonus-min:hover { color: #FFFFFF; background: rgba(255,255,255,.16); }
 .bonus-body { margin-top: 12px; }
 .bonus.min .bonus-body { display: none; }
-.bonus-art { display: block; width: 100%; height: 92px; margin-bottom: 12px; border-radius: 12px;
+.bonus-art { display: block; background: transparent; width: 100%; height: 92px; margin-bottom: 12px; border-radius: 12px;
              object-fit: cover; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
 .bonus-title { font-size: 15px; font-weight: 600; color: #F5B04C; letter-spacing: .02em; }
 .bonus-text { margin: 7px 0 12px; font-size: 13px; line-height: 1.4; color: rgba(242,244,248,.84); }
+.bonus-go.done, .bonus-go:disabled { color: rgba(242,244,248,.55); background: rgba(255,255,255,.08);
+              cursor: default; filter: none; }
 .bonus-go { width: 100%; padding: 10px; border: 0; border-radius: 11px; cursor: pointer;
             font: inherit; font-size: 14px; font-weight: 600; color: #16191F;
             background: linear-gradient(180deg, #F7C77E, #E9A44A); }
@@ -330,10 +333,12 @@ html, body {
 /* ------------------------------- меню F3 -------------------------------- */
 .menu-body { background: transparent; overflow: hidden; }
 .menu { position: fixed; inset: 0; display: flex; font: 400 14px/1.45 "Segoe UI", Roboto, sans-serif;
-        color: #F2F4F8; background: radial-gradient(120% 120% at 20% 0%, rgba(12,16,24,.55), rgba(8,10,16,.78));
-        backdrop-filter: blur(3px); transition: opacity .18s ease; }
+        color: #F2F4F8; background: transparent; transition: opacity .18s ease; }
+.menu-tab.danger { color: #FFD9D9; background: rgba(160,44,48,.42);
+                   box-shadow: inset 0 0 0 1px rgba(255,140,140,.30); }
+.menu-tab.danger:hover { color: #FFFFFF; background: rgba(180,54,58,.60); }
 .menu.off { opacity: 0; pointer-events: none; }
-.menu-logo { position: absolute; left: 40px; top: 32px; width: 260px; height: auto;
+.menu-logo { position: absolute; background: transparent; left: 40px; top: 32px; width: 260px; height: auto;
              filter: drop-shadow(0 8px 22px rgba(0,0,0,.45)); }
 .menu-sheet { margin: 150px 0 0 40px; width: 520px; }
 .menu-title { font-size: 26px; font-weight: 600; letter-spacing: .04em; }
@@ -351,11 +356,3 @@ html, body {
 .menu-row.on { color: #F5B04C; box-shadow: inset 0 0 0 1px rgba(245,176,76,.35); background: rgba(245,176,76,.10); }
 .menu-row.gold { color: #16191F; font-weight: 600; background: linear-gradient(180deg, #F7C77E, #E9A44A); }
 .menu-empty { padding: 10px 4px; font-size: 12px; color: rgba(242,244,248,.5); }
-.menu-quit { position: absolute; right: 0; top: 25%; height: 50%; width: 190px;
-             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
-             border: 0; border-radius: 18px 0 0 18px; cursor: pointer;
-             font: 600 15px/1 sans-serif; color: #FFD9D9;
-             background: linear-gradient(90deg, rgba(120,28,32,.55), rgba(160,44,48,.75));
-             box-shadow: -10px 0 30px rgba(0,0,0,.35); }
-.menu-quit:hover { filter: brightness(1.08); }
-.menu-quit-ico { font-size: 22px; }

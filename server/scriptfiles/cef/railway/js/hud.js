@@ -46,6 +46,9 @@
     },
     online: function (amount) {
       return { title: 'Бонус за игру', text: 'Каждые 30 минут в игре: ' + money(amount) + ' $.' };
+    },
+    next: function () {
+      return { title: 'Следующий бонус', text: 'Всё получено.' };
     }
   };
 
@@ -75,15 +78,45 @@
   });
 
   /* Карточка бонуса. Пустой заголовок прячет её целиком. */
+  var nextLeft = 0, nextTimer = 0;
+
+  function clock(sec) {
+    var m = Math.floor(sec / 60), s = sec % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+  function stopTimer() {
+    if (nextTimer) { window.clearInterval(nextTimer); nextTimer = 0; }
+  }
+  function startTimer(sec, base) {
+    nextLeft = Math.max(0, sec | 0);
+    bonusText.textContent = base + ' Через ' + clock(nextLeft) + '.';
+    stopTimer();
+    nextTimer = window.setInterval(function () {
+      nextLeft = Math.max(0, nextLeft - 1);
+      bonusText.textContent = base + ' Через ' + clock(nextLeft) + '.';
+      if (!nextLeft) stopTimer();
+    }, 1000);
+  }
+
   RW.on('hud:bonus', function (key, amount, day) {
+    stopTimer();
     var card = CARDS[key];
     if (!card) { bonus.classList.add('off'); return; }
     card = card(amount, day);
     bonusTitle.textContent = card.title;
     bonusText.textContent = card.text;
-    bonusGo.textContent = 'Забрать';
     head.textContent = card.title;
     bonus.classList.remove('off');
+    if (key === 'next') {
+      bonusGo.textContent = 'Всё';
+      bonusGo.disabled = true;
+      bonusGo.classList.add('done');
+      startTimer(day, card.text);
+    } else {
+      bonusGo.textContent = 'Забрать';
+      bonusGo.disabled = false;
+      bonusGo.classList.remove('done');
+    }
   });
 
   /* Показ и скрытие всего HUD. */

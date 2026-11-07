@@ -90,6 +90,16 @@ stock RW_HudDailyBonus(day)
     if (day > HUD_DAILY_LIMIT) day = HUD_DAILY_LIMIT;
     return HUD_DAILY_BONUS * day;
 }
+/* Сколько секунд до ближайшего бонуса: считает сервер, страница только тикает. */
+stock RW_HudNextSeconds(playerid)
+{
+    new online = HUD_ONLINE_SECONDS - (gettime() - gHudOnline[playerid]);
+    new daily = HUD_DAILY_SECONDS - (gettime() - gHudDaily[playerid]);
+    if (gHudDay[playerid] >= HUD_DAILY_LIMIT) daily = HUD_DAILY_SECONDS * 365;
+    if (online < 0) online = 0;
+    if (daily < 0) daily = 0;
+    return (online < daily) ? online : daily;
+}
 /* Карточка: ключ, сумма и день. Пустой ключ прячет карточку. */
 stock RW_HudBonusCard(playerid)
 {
@@ -98,7 +108,7 @@ stock RW_HudBonusCard(playerid)
     if (gHudHidden[playerid]) return RW_HudBonusEmit(playerid, "", 0, 0);
     if (RW_HudDailyReady(playerid)) return RW_HudBonusEmit(playerid, "starter", RW_HudBonusAmount(playerid), gHudDay[playerid] + 1);
     if (RW_HudOnlineReady(playerid)) return RW_HudBonusEmit(playerid, "online", HUD_ONLINE_BONUS, gHudDay[playerid]);
-    return RW_HudBonusEmit(playerid, "", 0, 0);
+    return RW_HudBonusEmit(playerid, "next", 0, RW_HudNextSeconds(playerid));
 }
 stock RW_HudBonusEmit(playerid, const key[], amount, day)
 {
@@ -233,6 +243,8 @@ stock RW_HudMouseToggle(playerid)
     if (!RW_CefOn(playerid)) return RW_Info(playerid, "Браузерного интерфейса нет: мышь не нужна, используйте /bonus и /donate.");
     gHudMouse[playerid] = !gHudMouse[playerid];
     RW_CefHudMouse(playerid, gHudMouse[playerid]);
+    /* Пока курсор на экране, персонаж стоит: иначе клик уходит в игру. */
+    if (!IsPlayerInAnyVehicle(playerid)) TogglePlayerControllable(playerid, !gHudMouse[playerid]);
     return RW_Info(playerid, gHudMouse[playerid] ? "Мышь включена: нажмите карточку бонуса. Alt + Y снова спрячет курсор." : "Мышь скрыта.");
 }
 stock RW_HudMouseCommand(playerid) { return RW_HudMouseToggle(playerid); }

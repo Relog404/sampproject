@@ -57,7 +57,7 @@ stock RW_CommandHelp(playerid)
     SendClientMessage(playerid, COLOR_GREY, "Деньги: /shop, /bank, /balance, /deposit, /withdraw, /transfer <id> <сумма>, /job, /work, /quitjob, /payday.");
     SendClientMessage(playerid, COLOR_GREY, "Недвижимость: /property, /doors, /enter, /exit, /paytax, /till put|take <сумма>, /bid <сумма>, /rob (12:00-01:00).");
     SendClientMessage(playerid, COLOR_GREY, "Сюжет: /story - восемь глав с опытом и деньгами; /profile - уровень, опыт и вся статистика.");
-    SendClientMessage(playerid, COLOR_GREY, "Интерфейс: /hud - экранный интерфейс, /bonus - бесплатный бонус, F2 или /donate - донат, Alt + Y - курсор мыши, F3 (или Alt + N, /menu) - меню и настройки, /talk - заговорить с неписем.");
+    SendClientMessage(playerid, COLOR_GREY, "Интерфейс: /hud - экранный интерфейс, /bonus - бесплатный бонус, F2 или /donate - донат, Alt + Y - курсор мыши, C - донат, Alt + H - настройки, F3 (Alt + N) - меню, / - телефон, /talk - непись.");
     SendClientMessage(playerid, COLOR_GREY, "Приложения: /apps, /weather, /group, /g <текст>, /ginvite, /taxi, /uber, /news, /ad, /auto, /deliver, /snap, /photo, /lawcall, /radio.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/spcar <id>{FFFFFF} - временная машина (400-611). /garage - гараж вокзала.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} - открыть/закрыть машину под прицелом; ключ должен быть в /inv.");
@@ -286,6 +286,8 @@ stock RW_CommandSetSkin(playerid, const params[])
 
 stock RW_CommandProcess(playerid, cmdtext[])
 {
+    /* Один слеш в чате — телефон: SA-MP не отдаёт серверу клавиши P и [. */
+    if (!strcmp(cmdtext, "/", true)) return RW_PhoneOpen(playerid);
     new cmd[64];
     new params[144];
     RW_ParseCommand(cmdtext, cmd, sizeof cmd, params, sizeof params);

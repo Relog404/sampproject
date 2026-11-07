@@ -68,17 +68,37 @@ class MenuPageTest(unittest.TestCase):
         self.assertIn('img/logo.png', PAGE)
         self.assertTrue(PAGE.index('menu-logo') < PAGE.index('menu-sheet'))
 
-    def test_the_quit_button_is_a_half_height_tab_on_the_right(self):
-        self.assertIn('class="menu-quit"', PAGE)
-        self.assertIn('data-act="quit"', PAGE)
-        self.assertIn('.menu-quit {', CSS)
-        self.assertIn('right: 0; top: 25%; height: 50%', CSS)
+    def test_the_quit_button_is_the_same_width_as_the_tabs(self):
+        self.assertIn('class="menu-tab danger" data-act="quit"', PAGE)
+        self.assertIn('Выйти из игры', PAGE)
+        self.assertNotIn('menu-quit', PAGE)
+        self.assertNotIn('.menu-quit {', CSS)
+        self.assertIn('.menu-tab.danger {', CSS)
 
     def test_the_tabs_and_the_keys_are_there(self):
         for label in ('Вернуться в игру', 'Настройки', 'Донат', 'Выйти из игры'):
             self.assertIn(label, PAGE)
         self.assertIn("e.key === 'Escape'", SCRIPT)
         self.assertIn("RW.emit('menu:action'", SCRIPT)
+
+    def test_the_row_handler_matches_what_the_server_sends(self):
+        # Сервер шлёт три аргумента, поэтому и обработчик берёт три.
+        self.assertIn("RW.on('menu:row', function (text, action, style)", SCRIPT)
+        self.assertIn("CEF_EmitEvent(playerid, CEF_UI_BIGMENU, \"menu:row\", CEF_STR(text), CEF_STR(action), CEF_STR(style));", CEFUI)
+        self.assertNotIn("function (id, text, action, style)", SCRIPT)
+
+    def test_the_background_is_transparent(self):
+        self.assertIn('html, body { background: transparent; }', CSS)
+        self.assertIn('.menu { position: fixed; inset: 0;', CSS)
+        self.assertIn('background: transparent; transition: opacity', CSS)
+        self.assertNotIn('radial-gradient', CSS)
+
+    def test_the_keys_really_open_things(self):
+        self.assertIn('if ((newkeys & KEY_CROUCH) && !(oldkeys & KEY_CROUCH))', MAIN)
+        self.assertIn('return RW_DonateCommand(playerid);', MAIN)
+        self.assertIn('if ((newkeys & KEY_CTRL_BACK) && (newkeys & KEY_WALK) && !(oldkeys & KEY_CTRL_BACK))', MAIN)
+        self.assertIn('return RW_SettingsCommand(playerid);', MAIN)
+        self.assertIn('if (!strcmp(cmdtext, "/", true)) return RW_PhoneOpen(playerid);', CMDS)
 
     def test_the_rows_come_from_the_server(self):
         self.assertIn("RW.on('menu:open'", SCRIPT)
@@ -144,6 +164,18 @@ class BonusCardTest(unittest.TestCase):
         self.assertIn("RW.emit('hud:bonusclaim', 1)", HUDJS)
         self.assertIn('CEF_RegisterEvent("hud:bonusclaim", "RW_HudBonusClick", Argument_Integer);', CEFUI)
         self.assertNotIn("RW.emit('hud:bonus', 1)", HUDJS)
+
+    def test_after_the_claim_the_button_shows_the_countdown(self):
+        self.assertIn('"next"', HUD)
+        self.assertIn('RW_HudNextSeconds(playerid)', HUD)
+        self.assertIn("next: function ()", HUDJS)
+        self.assertIn("bonusGo.textContent = 'Всё'", HUDJS)
+        self.assertIn("bonusGo.disabled = true;", HUDJS)
+        self.assertIn("startTimer(day, card.text);", HUDJS)
+        self.assertIn('.bonus-go.done', CSS)
+
+    def test_the_player_freezes_while_the_cursor_is_on(self):
+        self.assertIn('TogglePlayerControllable(playerid, !gHudMouse[playerid]);', HUD)
 
     def test_the_card_collapses_and_comes_back(self):
         self.assertIn('function setMin(on)', HUDJS)
