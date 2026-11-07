@@ -239,7 +239,7 @@ class CameraTest(unittest.TestCase):
 
     def test_the_photo_is_an_item(self):
         self.assertRegex(CORE, r'#define ITEM_PHOTO\s+18')
-        self.assertRegex(INV, r'#define INV_TYPE_MAX 18')
+        self.assertRegex(INV, r'#define INV_TYPE_MAX (18|19|20)')
         self.assertIn('if (type == ITEM_PHOTO) return 2273;', INV)
         self.assertIn('if (type == ITEM_PHOTO) return 50;', INV)
         self.assertIn('!strcmp(word, "photo", true)', INV)

@@ -84,7 +84,7 @@ class EmsItemTest(unittest.TestCase):
         self.assertRegex(CORE, r'#define ITEM_DEFIB\s+14')
         self.assertRegex(CORE, r'#define ITEM_MEDKIT\s+15')
         self.assertRegex(CORE, r'#define FACTION_EMS\s+3')
-        self.assertRegex(INV, r'#define INV_TYPE_MAX (15|1[5-9])')
+        self.assertRegex(INV, r'#define INV_TYPE_MAX (15|1[5-9]|20)')
 
     def test_items_have_a_model_and_a_weight(self):
         model = block(INV, 'stock RW_InvModel(type, data = 0)')

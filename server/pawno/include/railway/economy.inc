@@ -462,6 +462,22 @@ stock RW_TransferCommand(playerid, const params[])
 
 /*  Покупка наличными: цена, свободное место в карманах и только потом выдача. */
 
+/* Точки карты нужны и другим модулям (например, целям ограблений),
+   а сами массивы — static, поэтому отдаём их через эти функции. */
+stock RW_ShopPoints() { return sizeof gShops; }
+stock RW_ShopPoint(index, &Float:x, &Float:y, &Float:z)
+{
+    if (index < 0 || index >= sizeof gShops) return 0;
+    x = gShops[index][0]; y = gShops[index][1]; z = gShops[index][2];
+    return 1;
+}
+stock RW_AtmPoints() { return sizeof gAtms; }
+stock RW_AtmPoint(index, &Float:x, &Float:y, &Float:z)
+{
+    if (index < 0 || index >= sizeof gAtms) return 0;
+    x = gAtms[index][0]; y = gAtms[index][1]; z = gAtms[index][2];
+    return 1;
+}
 stock bool:RW_ShopNear(playerid)
 {
     for (new i; i < sizeof gShops; i++)

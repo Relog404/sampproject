@@ -11,7 +11,7 @@
 #define ITEM_BANDAGE 5
 #define ITEM_SYRINGE 6
 #define ITEM_ARMOUR  7
-#define INV_TYPE_MAX 18
+#define INV_TYPE_MAX 20
 #define INV_NEAR 50
 #define INV_WORLD 500
 #define INV_TDS 165
@@ -54,6 +54,8 @@ stock RW_InvModel(type, data = 0)
     if (type == ITEM_LOCKPICK) return 1580;
     if (type == ITEM_TUNING) return 1078;
     if (type == ITEM_PHOTO) return 2273;
+    if (type == ITEM_CHEM) return 1210;
+    if (type == ITEM_GREEN) return 1578;
     return 11746;
 }
 // Weight in grams. Ammunition is weighed per round, so a stack scales with it.
@@ -77,6 +79,8 @@ stock RW_InvGrams(type, data = 0, amount = 1)
     /* деталь тюнинга: data Ч номер детали, еЄ вес считает transport.inc */
     if (type == ITEM_TUNING) return RW_TunePartGrams(data);
     if (type == ITEM_PHOTO) return 50;
+    if (type == ITEM_CHEM) return 200 * amount;
+    if (type == ITEM_GREEN) return 50 * amount;
     return 100;
 }
 stock RW_InvPack(playerid)
@@ -263,6 +267,7 @@ stock RW_InvGrant(playerid, type, data = 0, amount = 1)
     if (type==ITEM_LOCKPICK && (data<0 || data>=PHONE_TARIFFS || amount!=1)) return 0;
     if (type==ITEM_TUNING && (data<0 || data>=TUNE_PARTS || amount<1 || amount>TUNE_MAX_LEVEL)) return 0;
     if (type==ITEM_PHOTO && (data<0 || data>=PHOTO_PLACES || amount<0 || amount>1439)) return 0;
+    if ((type==ITEM_CHEM || type==ITEM_GREEN) && (data!=0 || amount<1 || amount>50)) return 0;
     new slot = RW_InvFree(playerid, 0, type, data, amount);
     if (slot < 0) return 0;
     if (!RW_DB_Exec("SAVEPOINT inventory_grant")) return 0;

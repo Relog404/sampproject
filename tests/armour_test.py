@@ -115,7 +115,7 @@ class ArmourSqlTest(unittest.TestCase):
 class ArmourSourceTest(unittest.TestCase):
     def test_item_type_is_registered(self):
         self.assertIn('#define ITEM_ARMOUR  7', INV)
-        self.assertRegex(INV, r'#define INV_TYPE_MAX (7|8|9|1[0-9])')   # armour is type 7
+        self.assertRegex(INV, r'#define INV_TYPE_MAX (7|8|9|1[0-9]|20)')   # armour is type 7
         self.assertIn('if (type == ITEM_ARMOUR) return RW_ArmourModel(data);', INV)
         self.assertIn('if (type == ITEM_ARMOUR) return RW_ArmourGrams(data);', INV)
         self.assertIn('if (gInvWorn[playerid]>0) weight += RW_InvGrams(ITEM_ARMOUR, gArmourData[playerid]);', INV)

@@ -223,6 +223,8 @@ stock RW_TrunkName(type, data, dest[], size = sizeof dest)
     else if (type == ITEM_MEDKIT) format(dest, size, "MEDKIT");
     else if (type == ITEM_LOCKPICK) format(dest, size, "LOCKPICK");
     else if (type == ITEM_TUNING) { new pname[24]; RW_TuneName(data, pname, sizeof pname); format(dest, size, "%s L%d", pname, 1); }
+    else if (type == ITEM_CHEM) format(dest, size, "PRECURSOR");
+    else if (type == ITEM_GREEN) format(dest, size, "GREEN");
     else format(dest, size, "ITEM");
     return 1;
 }

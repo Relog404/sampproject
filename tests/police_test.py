@@ -116,7 +116,7 @@ class PoliceItemTest(unittest.TestCase):
     def test_item_types_are_registered(self):
         for name, value in (('ITEM_CUFFS', 10), ('ITEM_TASER', 11), ('ITEM_BATON', 12), ('ITEM_BADGE', 13)):
             self.assertRegex(CORE, r'#define %s\s+%d' % (name, value))
-        self.assertRegex(INV, r'#define INV_TYPE_MAX (13|1[3-9])')
+        self.assertRegex(INV, r'#define INV_TYPE_MAX (13|1[3-9]|20)')
 
     def test_items_have_a_model_and_a_weight(self):
         model = block(INV, 'stock RW_InvModel(type, data = 0)')

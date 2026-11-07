@@ -99,7 +99,7 @@ class PhoneItemTest(unittest.TestCase):
     def test_item_types_are_known_to_the_inventory(self):
         self.assertIn('#define ITEM_SIM                    8', CORE)
         self.assertIn('#define ITEM_PHONE                  9', CORE)
-        self.assertRegex(INV, r'#define INV_TYPE_MAX (9|1[0-9])')
+        self.assertRegex(INV, r'#define INV_TYPE_MAX (9|1[0-9]|20)')
 
     def test_items_have_a_model_weight_and_name(self):
         model = block(INV, 'stock RW_InvModel(type, data = 0)')

@@ -90,6 +90,8 @@ stock RW_MarketItemName(type, data, dest[], size = sizeof dest)
     else if (type == ITEM_LOCKPICK) format(dest, size, "Отмычка");
     else if (type == ITEM_TUNING) { new pname[24]; RW_TuneName(data, pname, sizeof pname); format(dest, size, "%s (%d)", pname, data); }
     else if (type == ITEM_PHOTO) format(dest, size, "Фото");
+    else if (type == ITEM_CHEM) format(dest, size, "Прекурсор");
+    else if (type == ITEM_GREEN) format(dest, size, "Green");
     else format(dest, size, "Предмет");
     return 1;
 }

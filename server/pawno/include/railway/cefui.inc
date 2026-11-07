@@ -319,6 +319,7 @@ public RW_CefClick(playerid, browserid, id)
     if (gCefMode[playerid] == CEF_MODE_DONATE) return RW_DonateCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_STORY) return RW_StoryCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_MARKET) return RW_MarketCefClick(playerid, id);
+    if (gCefMode[playerid] == CEF_MODE_CRIME) return RW_CrimeCefClick(playerid, id);
     return 1;
 }
 

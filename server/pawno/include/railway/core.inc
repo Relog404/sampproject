@@ -50,6 +50,12 @@ forward RW_MenuFocus(playerid);
 forward RW_MarketPulse();
 forward RW_MarketClick(playerid, row);
 forward RW_MarketCefClick(playerid, id);
+forward RW_CrimePulse();
+forward RW_CrimeFinish(playerid);
+forward RW_CrimeCancel(playerid);
+forward RW_CrimeCraftDone(playerid);
+forward RW_CrimeClick(playerid, row);
+forward RW_CrimeCefClick(playerid, id);
 forward RW_DonateOpen(playerid);
 forward RW_DonateClick(playerid, row);
 forward RW_DonateCefClick(playerid, id);
@@ -102,6 +108,7 @@ forward RW_LawyerCallFor(playerid, target);
 #define CEF_MODE_DONATE             (14)
 #define CEF_MODE_STORY              (15)
 #define CEF_MODE_MARKET             (16)
+#define CEF_MODE_CRIME              (17)
 /* Настройки интерфейса: их читают модули, подключённые раньше menu.inc. */
 #define SET_HUD             (1)         /* экранный интерфейс              */
 #define SET_HINTS           (2)         /* подсказки клавиш                */
@@ -181,6 +188,8 @@ forward RW_LawyerCallFor(playerid, target);
 #define ITEM_LOCKPICK               16
 #define ITEM_TUNING                 17
 #define ITEM_PHOTO                  18
+#define ITEM_CHEM                   19      /* прекурсор для варки  */
+#define ITEM_GREEN                  20      /* наркота Green        */
 #define FACTION_NONE                0
 #define FACTION_LSPD                1
 #define FACTION_SHERIFF             2
