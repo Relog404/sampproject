@@ -155,16 +155,16 @@ class InventorySourceTests(unittest.TestCase):
         self.assertIn('GetPlayerSkin(playerid)', INV)
         self.assertIn('SetPlayerAttachedObject(playerid, INV_ATTACH, 3026', INV)
 
-    def test_inventory_callbacks_run_before_russian_dialog_guard(self):
+    def test_inventory_callbacks_run_before_the_dialog_guard(self):
         main = (ROOT/'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
         click = main.split('public OnPlayerClickPlayerTextDraw',1)[1].split('public OnPlayerClickTextDraw',1)[0]
-        self.assertLess(click.index('RW_InvClick'), click.index('gUIRussianDialogs'))
+        self.assertLess(click.index('RW_InvClick'), click.index('gUIOnCef'))
         cancel = main.split('public OnPlayerClickTextDraw',1)[1].split('public OnPlayerKeyStateChange',1)[0]
-        self.assertLess(cancel.index('UI_INVENTORY'), cancel.index('gUIRussianDialogs'))
+        self.assertLess(cancel.index('UI_INVENTORY'), cancel.index('gUIOnCef'))
         ui = pawn('ui')
-        self.assertIn('gUIMode[playerid] >= UI_INVENTORY', ui.split('stock RW_UI_NativeResponse',1)[1].split('stock RW_TD_Encode',1)[0])
+        guard = ui.split('stock RW_UI_NativeResponse',1)[1].split('stock RW_TD_Encode',1)[0]
+        self.assertIn('gUIOnCef[playerid]', guard)
         self.assertIn('RW_InvReset(playerid)', ui)
-
     def test_admin_grants_and_console_only_admin_assignment(self):
         grant = INV.split('stock RW_InvGiveCommand',1)[1]
         self.assertIn('!gLogged[playerid] || gAdminLevel[playerid] < 1', grant)

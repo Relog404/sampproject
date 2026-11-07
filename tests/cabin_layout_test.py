@@ -132,14 +132,15 @@ class CompactGridTest(unittest.TestCase):
 class CardPreviewTest(unittest.TestCase):
     def test_vehicle_card_shows_the_car(self):
         self.assertIn('RW_UI_PreviewShow(playerid, GetVehicleModel(v), 480.0, 155.0, 130.0, 100.0);', INTER)
-        # the card is wider for UI_VEHICLE so the preview never covers a row
-        self.assertIn('else if (mode == UI_VEHICLE) { x = 300.0; width = 322.0; }', UI)
-        self.assertIn('x+(mode == UI_VEHICLE ? 165.0 : width-12.0)', UI)
+        # карточка машины открывается в браузере: UI_VEHICLE знает свой режим
+        self.assertIn('if (mode == UI_VEHICLE) return CEF_MODE_VEHICLE;', UI)
 
-    def test_cabin_row_does_not_overlap_refresh(self):
-        # row 7 used to fall on slot 5, the same line as the new cabin row
-        self.assertIn('if (mode == UI_VEHICLE && i == 7) slot = 6;', UI)
-        self.assertNotIn('if (mode == UI_VEHICLE && i == 7) slot = 5;', UI)
+    def test_the_cabin_card_goes_to_the_browser(self):
+        # раскладка строк больше не считается на сервере: порядок строк
+        # определяет страница, а сервер только шлёт их
+        self.assertIn('if (mode == UI_VEHICLE) return CEF_MODE_VEHICLE;', UI)
+        self.assertIn('if (mode == UI_PASSENGERS) return CEF_MODE_PASSENGERS;', UI)
+        self.assertNotIn('19.0*slot', UI)
 
     def test_garage_card_shows_the_car(self):
         self.assertIn('RW_UI_PreviewShow(playerid, previewModel, 445.0, 100.0, 110.0, 150.0);', GARAGE)

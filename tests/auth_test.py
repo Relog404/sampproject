@@ -103,9 +103,13 @@ class AuthFallbackTest(unittest.TestCase):
         self.assertIn('Неверный пароль', ACCOUNTS)
         self.assertIn('Аккаунт создан.', ACCOUNTS)
 
-    def test_the_text_draw_auth_panel_is_russian_too(self):
-        self.assertIn('С возвращением', UI)
-        self.assertIn('Создать аккаунт', UI)
+    def test_the_auth_opens_in_the_browser_or_in_a_dialog(self):
+        """Тексдрав-карточки входа больше нет: страница в браузере, а без
+        браузера — нативный диалог, который умеет кириллицу."""
+        auth = UI.split('stock RW_UI_OpenAuth(', 1)[1].split('\nstock ', 1)[0]
+        self.assertIn('RW_CefAuthOpen(', auth)
+        self.assertIn('return RW_ShowLoginDialog(playerid);', auth)
+        self.assertNotIn('RW_UI_Panel', auth)
 
     def test_the_server_side_keys_stay_ascii(self):
         for text in re.findall(r'"([^"\r\n]*)"', ACCOUNTS):

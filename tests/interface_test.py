@@ -320,7 +320,7 @@ class InterfaceLanguageTest(unittest.TestCase):
         self.assertIn('"Y:interaction;"', HUD)
 
     def test_the_auth_and_the_welcome_speak_russian(self):
-        self.assertIn('С возвращением', UI)
+        self.assertIn('RW_ShowLoginDialog', UI)
         self.assertIn('добро пожаловать на вокзал', MAIN)
         self.assertIn('Здравствуйте, {F5B04C}%s{FFFFFF}!', ACCOUNTS)
 

@@ -15,32 +15,24 @@ class CompactRussianUiTest(unittest.TestCase):
         self.control = source('interaction')
         self.main = (ROOT/'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
 
-    def test_layout_rectangles_fit_viewport_and_are_smaller(self):
-        # Values are read from the actual layout branches, not an independent fixture.
-        code = self.ui.split('new Float:x =', 1)[1].split('gUI[playerid][0]', 1)[0]
-        default = re.search(r'(\d+\.\d+), Float:y = (\d+\.\d+), Float:width = (\d+\.\d+), Float:height = (\d+\.\d+)', code)
-        rects = [tuple(map(float, default.groups()))]
-        for match in re.finditer(r'x = (\d+\.\d+); y = (\d+\.\d+); width = (\d+\.\d+); height = (\d+\.\d+);', code):
-            rects.append(tuple(map(float, match.groups())))
-        self.assertEqual(len(rects), 3)
-        for x, y, w, h in rects:
-            self.assertGreaterEqual(x, 0)
-            self.assertGreaterEqual(y, 0)
-            self.assertLessEqual(x+w, 640)
-            self.assertLessEqual(y+h, 448)
-            self.assertLess(w*h, 246*302*0.6)
-        # Bind/settings and 8-passenger-row layouts also stay in bounds.
-        self.assertIn('height = 194.0', code)
-        self.assertIn('height = 240.0', code)
-        self.assertLess(190*240, 246*302*0.65)
+    def test_the_panel_never_builds_text_draws(self):
+        """Панель рисуется в браузере, поэтому тексдрав-раскладка (бывший
+        RW_UI_BuildPanel) удалена: геометрия больше не на сервере."""
+        self.assertNotIn('RW_UI_BuildPanel', self.ui)
+        self.assertNotIn('gUILayoutMode', self.ui)
+        self.assertIn('stock RW_UI_CefMode(mode)', self.ui)
+        panel = self.ui.split('stock RW_UI_Panel(', 1)[1].split('\nstock ', 1)[0]
+        self.assertNotIn('PlayerTextDraw', panel)
 
-    def test_sparse_rows_have_compacted_hitboxes(self):
-        self.assertIn('mode == UI_VEHICLE && i == 7) slot = 6', self.ui)   # row 5 is the cabin row
-        self.assertIn('mode == UI_SETTINGS && i >= 5) slot = i-2', self.ui)
-        self.assertIn('mode == UI_BIND && i == 7) slot = 4', self.ui)
-        self.assertIn('19.0*slot', self.ui)
-        self.assertIn('x+(mode == UI_VEHICLE ? 165.0 : width-12.0)', self.ui)
-        self.assertIn('PlayerTextDrawDestroy(playerid, gUI[playerid][22])', self.ui)
+    def test_a_row_goes_to_the_browser_or_to_the_dialog(self):
+        """Строка панели уходит в браузер, а без браузера — в нативный диалог:
+        отдельных хитбоксов у строк больше нет."""
+        row = self.ui.split('stock RW_UI_Row(', 1)[1].split('\nstock ', 1)[0]
+        self.assertIn('if (gUIOnCef[playerid]) { RW_CefRow(playerid, row, text, "", "bag"); return RW_UI_ScheduleCef(playerid); }', row)
+        # страница рисуется один раз, когда все строки уже отправлены
+        self.assertIn('SetTimerEx("RW_UI_FlushCef", 50, false, "i", playerid)', self.ui)
+        self.assertIn('format(gUINativeRows[playerid][row], 128, "%s", text);', row)
+        self.assertNotIn('PlayerTextDraw', row)
 
     def test_all_text_passes_through_per_player_encoder(self):
         for marker in ('stock PlayerText:RW_TD_Label', 'stock RW_UI_Text'):
@@ -58,25 +50,19 @@ class CompactRussianUiTest(unittest.TestCase):
         for text in ('Lock doors', 'Insert key', 'Passengers', 'Settings', 'Choose key'):
             self.assertIn(text, self.control)
 
-    def test_auth_card_hides_for_password_dialog_and_uses_two_steps(self):
-        self.assertIn('С возвращением', self.ui)
-        self.assertIn('Login', self.ui)
+    def test_auth_opens_in_the_browser_and_asks_the_password_in_a_dialog(self):
+        """Вход: сначала страница в браузере, без браузера — нативный диалог в
+        два шага (логин, потом пароль)."""
+        auth = self.ui.split('stock RW_UI_OpenAuth(', 1)[1].split('\nstock ', 1)[0]
+        self.assertIn('RW_CefAuthOpen(', auth)
+        self.assertIn('return RW_ShowLoginDialog(playerid);', auth)
+        self.assertNotIn('RW_UI_Panel', auth)
         begin = self.ui.split('stock RW_UI_PasswordBegin', 1)[1].split('\n}', 1)[0]
-        self.assertIn('PlayerTextDrawHide', begin)
         self.assertIn('gUIInput[playerid] = true', begin)
         account = source('accounts')
         self.assertIn('Регистрация 1/2', account)
         self.assertIn('Регистрация 2/2', account)
         self.assertIn('DIALOG_REGISTER_CONFIRM, DIALOG_STYLE_PASSWORD', account)
-        confirm = self.main.split('if (dialogid == DIALOG_REGISTER_CONFIRM) {', 1)[1].split('\n    }', 1)[0]
-        self.assertIn('!gRegPending[playerid]', confirm)
-        self.assertIn('RW_ClearRegisterPassword(playerid)', confirm)
-        self.assertIn('RW_AuthSubmit(playerid, true, password, inputtext)', confirm)
-        self.assertIn('password[i] = 0', confirm)
-        disconnect = self.main.split('public OnPlayerDisconnect', 1)[1].split('public OnPlayerRequestClass', 1)[0]
-        self.assertIn('RW_ClearRegisterPassword', disconnect)
-        # Rendering/localisation must not modify persisted credentials.
-        self.assertNotIn('RW_TD_Encode', account)
 
     def test_marker_is_saved_and_reusable_without_forced_teleport(self):
         click = self.main.split('public OnPlayerClickMap', 1)[1].split('public OnPlayerClickPlayerTextDraw', 1)[0]

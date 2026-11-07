@@ -17,7 +17,7 @@
 
 /* Browser interface on the omp-cef plugin. Set to 0 to build a gamemode that
    needs no plugin at all - the TextDraw interface is then the only one. */
-#define RAILWAY_CEF             (0)
+#define RAILWAY_CEF             (1)
 
 #include <railway/core>
 #include <railway/ui>
@@ -540,7 +540,7 @@ public OnPlayerClickPlayerTextDraw(playerid, PlayerText:playertextid)
     if (gUIMode[playerid] == UI_KEYMENU) return RW_KeyMenuClick(playerid, playertextid);
     if (gUIMode[playerid] == UI_DOWNED) return RW_MedClick(playerid, playertextid);
     if (gUIMode[playerid] == UI_INVENTORY) return RW_InvClick(playerid, playertextid);
-    if (!gUICreated[playerid] || gUIRussianDialogs[playerid]) return 0;
+    if (!gUICreated[playerid] || gUIOnCef[playerid]) return 0;
     if (playertextid == gUI[playerid][11]) {
         if (!gLogged[playerid]) Kick(playerid);
         else RW_UI_Close(playerid);
@@ -560,7 +560,7 @@ public OnPlayerClickTextDraw(playerid, Text:clickedid)
     gUISelecting[playerid] = false;
     if (gUIInput[playerid]) return 1;
     if (gUIMode[playerid] == UI_INVENTORY || gUIMode[playerid] == UI_GARAGE || gUIMode[playerid] == UI_KEYMENU || gUIMode[playerid] == UI_DOWNED) return RW_UI_Close(playerid);
-    if (gUIRussianDialogs[playerid]) return 1;
+    if (gUIOnCef[playerid]) return 1;
     if (gUIMode[playerid] == UI_AUTH && !gLogged[playerid]) RW_UI_SelectBegin(playerid);
     else if (gUIMode[playerid] != 0) RW_UI_Close(playerid);
     return 1;

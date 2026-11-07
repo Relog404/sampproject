@@ -12,6 +12,50 @@ def pawn(name):
 def body(text, start, end):
     return text.split(start, 1)[1].split(end, 1)[0]
 
+class PanelBridgeTest(unittest.TestCase):
+    """RW_UI_Panel рисует панель в браузере; без браузера — нативный диалог.
+    Тексдрав-панелей больше нет: клиент SA-MP не умеет кириллицу."""
+
+    def setUp(self):
+        self.ui = pawn('ui')
+
+    def test_every_menu_mode_knows_its_browser_page(self):
+        modes = body(self.ui, 'stock RW_UI_CefMode(mode)', 'stock RW_UI_Panel(')
+        for mode in ('UI_VEHICLE', 'UI_PASSENGERS', 'UI_POLICE', 'UI_MDT', 'UI_EMS', 'UI_TRUNK',
+                     'UI_LOCKPICK', 'UI_SERVICE', 'UI_SHOP', 'UI_BANK', 'UI_JOB', 'UI_PHONE_APP',
+                     'UI_PROPERTY', 'UI_DONATE', 'UI_STORY', 'UI_MARKET', 'UI_CRIME', 'UI_FAMILY',
+                     'UI_GOV', 'UI_INVENTORY'):
+            self.assertIn('if (mode == %s)' % mode, modes)
+        self.assertIn('return CEF_MODE_NONE;', modes)
+
+    def test_the_panel_opens_the_browser_and_prepares_the_dialog(self):
+        panel = body(self.ui, 'stock RW_UI_Panel(', 'stock RW_UI_Row(')
+        self.assertIn('RW_CefOpen(playerid, cef, title, subtitle)', panel)
+        self.assertIn('gUIOnCef[playerid] = true;', panel)
+        self.assertIn('return RW_UI_ScheduleNative(playerid);', panel)
+        self.assertNotIn('PlayerTextDraw', panel)
+
+    def test_rows_are_drawn_once_the_last_one_is_sent(self):
+        row = body(self.ui, 'stock RW_UI_Row(', 'stock RW_UI_Close(')
+        self.assertIn('RW_UI_ScheduleCef(playerid)', row)
+        flush = body(self.ui, 'public RW_UI_FlushCef(playerid)', 'stock RW_UI_NativeResponse(')
+        self.assertIn('return RW_CefEnd(playerid);', flush)
+
+    def test_closing_cancels_both_paths(self):
+        close = body(self.ui, 'stock RW_UI_Close(', 'stock RW_UI_OpenAuth(')
+        self.assertIn('RW_UI_CancelCef(playerid);', close)
+        self.assertIn('RW_UI_CancelNative(playerid);', close)
+        self.assertIn('gUIOnCef[playerid] = false;', close)
+
+    def test_no_panel_text_draw_is_left(self):
+        """Панель больше не строит и не показывает тексдравы."""
+        self.assertNotIn('RW_UI_BuildPanel', self.ui)
+        self.assertNotIn('gUILayoutMode', self.ui)
+        self.assertNotIn('gUIPanelCreated', self.ui)
+        for index in ('22', '23'):
+            self.assertNotIn('gUI[playerid][%s]' % index, self.ui.split('stock RW_UI_Panel(')[1])
+
+
 class NativeInterfaceTest(unittest.TestCase):
     def setUp(self):
         self.main = (ROOT / 'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
@@ -93,9 +137,8 @@ class NativeInterfaceTest(unittest.TestCase):
         self.assertIn('gUIHasNext[playerid]', self.control)
 
     def test_hud_not_rendered_over_open_menu(self):
-        panel = body(self.ui, 'stock RW_UI_Panel', 'stock RW_UI_Row')
-        self.assertIn('i = 12; i <= 18', panel)
-        self.assertIn('PlayerTextDrawHide', panel)
+        show = body(self.ui, 'stock RW_UI_SpeedoShow', 'stock RW_UI_SpeedoHide')
+        self.assertIn('if (gUIMode[playerid] == 0)', show)
         update = body(self.ui, 'stock RW_UI_SpeedoUpdate', '// Notices use')
         self.assertIn('if (gUIMode[playerid] != 0) return 1', update)
         self.assertIn('gSpeedoShown[playerid] = false', self.ui)
