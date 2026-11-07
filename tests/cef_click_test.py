@@ -60,6 +60,40 @@ class ClickabilityTest(unittest.TestCase):
         self.assertIn('return RW_CefInvEnd(playerid);', block(pawn('inventory'), 'stock RW_InvCef(playerid)'))
 
 
+class KeyMenuScreenTest(unittest.TestCase):
+    def test_the_key_menu_opens_a_page(self):
+        open_ = block(GARAGE, 'stock RW_KeyMenuOpen(playerid, target)')
+        self.assertIn('if (RW_CefOn(playerid)) return RW_KeyMenuCef(playerid);', open_)
+        screen = block(GARAGE, 'stock RW_KeyMenuCef(playerid)')
+        self.assertIn('RW_CefOpen(playerid, CEF_MODE_KEYS, "Выдать ключ", subtitle)', screen)
+        self.assertIn('return RW_CefEnd(playerid);', screen)
+
+    def test_the_rows_are_shared_with_the_text_draw_menu(self):
+        screen = block(GARAGE, 'stock RW_KeyMenuCef(playerid)')
+        self.assertIn('RW_KeyMenuRow(playerid, row, label, sizeof label)', screen)
+        row = block(GARAGE, 'stock bool:RW_KeyMenuRow(')
+        self.assertIn('RW_VehicleName(', row)
+
+    def test_the_buttons_do_not_fall_on_the_rows(self):
+        self.assertIn('#define CEF_KEYS_PREV               20', CORE)
+        self.assertIn('#define CEF_KEYS_NEXT               21', CORE)
+        self.assertIn('#define CEF_KEYS_CLOSE              22', CORE)
+
+    def test_a_click_grants_the_key_or_turns_the_page(self):
+        click = block(GARAGE, 'stock RW_KeyMenuCefClick(playerid, id)')
+        self.assertIn('if (id == CEF_KEYS_CLOSE) return RW_UI_Close(playerid);', click)
+        self.assertIn('RW_KeyMenuBuild(playerid);', click)
+        self.assertIn('if (id >= 0 && id < 6) return RW_KeyMenuGrant(playerid, id);', click)
+        grant = block(GARAGE, 'stock RW_KeyMenuGrant(playerid, row)')
+        self.assertIn('RW_InvGrant(target, ITEM_CAR_KEY, data)', grant)
+        self.assertIn('Target player is no longer available', grant)
+
+    def test_the_text_draw_menu_grants_the_same_way(self):
+        """Оба меню выдают ключ одной функцией: поведение не расходится."""
+        td = block(GARAGE, 'stock RW_KeyMenuClick(playerid, PlayerText:clicked)')
+        self.assertIn('return RW_KeyMenuGrant(playerid, row);', td)
+
+
 class GarageScreenTest(unittest.TestCase):
     def test_the_garage_opens_a_page(self):
         open_ = block(GARAGE, 'stock RW_GarageOpen(playerid, bool:resetPage = true)')

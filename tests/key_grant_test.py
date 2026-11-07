@@ -62,13 +62,13 @@ class KeyGrantInputTest(unittest.TestCase):
         row = garage.split('stock bool:RW_KeyMenuRow(', 1)[1].split('\nstock ', 1)[0]
         self.assertIn('"%s / RW-%03d / %d"', row)
         self.assertIn('"%s / c%d / на стоянке"', row)
-        self.assertIn('RW_KeyMenuGrant(playerid, row)', garage)
-        self.assertIn('"c%d / stored / %s (%d)"', garage)
-        # A click re-checks the target, grants that car's token and closes.
-        self.assertIn('RW_InvGrant(target, ITEM_CAR_KEY, data)', click)
-        self.assertIn('RW_InvExplainGrant(playerid, target, ITEM_CAR_KEY, data)', click)
-        self.assertIn('RW_UI_Close(playerid)', click)
-        self.assertIn('Target player is no longer available', click)
+        self.assertIn('return RW_KeyMenuGrant(playerid, row);', click)
+        # выдача одна и та же для тексдрав-меню и для страницы в браузере
+        grant = garage.split('stock RW_KeyMenuGrant(', 1)[1].split('\nstock ', 1)[0]
+        self.assertIn('RW_InvGrant(target, ITEM_CAR_KEY, data)', grant)
+        self.assertIn('RW_InvExplainGrant(playerid, target, ITEM_CAR_KEY, data)', grant)
+        self.assertIn('RW_UI_Close(playerid)', grant)
+        self.assertIn('Target player is no longer available', grant)
     def test_key_menu_is_a_real_ui_mode(self):
         ui = pawn('ui')
         self.assertIn('#define UI_KEYMENU 9', ui)
