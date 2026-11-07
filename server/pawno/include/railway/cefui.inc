@@ -129,6 +129,12 @@ public RW_CefPulse()
         if (gCefReady[p] || !IsPlayerConnected(p) || !gLogged[p]) continue;
         if (CEF_PlayerHasPlugin(p)) RW_CefStart(p);
     }
+    /* —траховка: если ни одной панели не открыто, фокус держать некому.
+       «астр€вший курсор мыши на экране лечитс€ сам, за секунду. */
+    for (new p; p < MAX_PLAYERS; p++) {
+        if (!gCefReady[p] || !IsPlayerConnected(p) || !gLogged[p]) continue;
+        if (gCefMode[p] == CEF_MODE_NONE && gUIMode[p] == 0) RW_CefFocusRelease(p);
+    }
     return 1;
 }
 public OnCefReady(playerid)
@@ -188,11 +194,22 @@ stock RW_CefEnd(playerid)
     CEF_EmitEvent(playerid, CEF_UI_MENU, "ui:end");
     return 1;
 }
+/*  урсор мыши по€вл€етс€, пока браузер в фокусе, и убираетс€, когда фокус
+   сн€т. ≈сли фокус осталс€ у панели, которую сервер уже закрыл, курсор висит
+   на экране и мешает играть, поэтому фокус снимаетс€ всегда и со всех окон. */
+stock RW_CefFocusRelease(playerid)
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_FocusBrowser(playerid, CEF_UI_MENU, false);
+    CEF_FocusBrowser(playerid, CEF_UI_BIGMENU, false);
+    CEF_FocusBrowser(playerid, CEF_UI_AUTH, false);
+    return 1;
+}
 stock RW_CefClose(playerid)
 {
     if (!RW_CefOn(playerid)) return 0;
     gCefMode[playerid] = CEF_MODE_NONE;
-    CEF_FocusBrowser(playerid, CEF_UI_MENU, false);
+    RW_CefFocusRelease(playerid);
     CEF_SetBrowserVisible(playerid, CEF_UI_MENU, false);
     CEF_EmitEvent(playerid, CEF_UI_MENU, "ui:close");
     return 1;
@@ -200,8 +217,8 @@ stock RW_CefClose(playerid)
 public RW_CefClosed(playerid, browserid)
 {
     #pragma unused browserid
-    if (!RW_CefOn(playerid)) return 0;
     RW_CefClose(playerid);
+    RW_CefFocusRelease(playerid);
     gControlMode[playerid] = 0;
     return 1;
 }

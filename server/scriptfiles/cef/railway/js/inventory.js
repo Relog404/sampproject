@@ -86,7 +86,11 @@
     sub = el('div', 'inv-sub', '');
     head.appendChild(sub);
     var close = el('button', 'inv-x', 'ESC');
-    close.addEventListener('click', function () { RW.emit('ui:click', 3000); });
+    close.addEventListener('click', function () {
+      show(false);
+      RW.emit('ui:click', 3000);
+      RW.emit('ui:closed');
+    });
     head.appendChild(close);
     main.appendChild(head);
 
@@ -113,7 +117,10 @@
     document.body.appendChild(root);
 
     document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && opened) RW.emit('ui:click', 3000);
+      if (event.key !== 'Escape' || !opened) return;
+      show(false);
+      RW.emit('ui:click', 3000);
+      RW.emit('ui:closed');
     });
   }
 

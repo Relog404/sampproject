@@ -137,6 +137,56 @@ class ProtocolTest(unittest.TestCase):
         self.assertIn('window.cef.emit', bridge)
 
 
+class CursorFocusTest(unittest.TestCase):
+    """Курсор мыши появляется вместе с фокусом браузера и убирается вместе с ним."""
+
+    def test_focus_is_released_by_one_helper(self):
+        self.assertIn('stock RW_CefFocusRelease(playerid)', CEFUI_SRC)
+        release = CEFUI_SRC.split('stock RW_CefFocusRelease(playerid)')[1].split('\n}')[0]
+        for browser in ('CEF_UI_MENU', 'CEF_UI_BIGMENU', 'CEF_UI_AUTH'):
+            self.assertIn('CEF_FocusBrowser(playerid, %s, false);' % browser, release)
+
+    def test_every_close_path_releases_the_focus(self):
+        close = CEFUI_SRC.split('stock RW_CefClose(playerid)')[1].split('\n}')[0]
+        self.assertIn('RW_CefFocusRelease(playerid);', close)
+        self.assertIn('CEF_SetBrowserVisible(playerid, CEF_UI_MENU, false);', close)
+        closed = CEFUI_SRC.split('public RW_CefClosed(playerid, browserid)')[1].split('\n}')[0]
+        self.assertIn('RW_CefFocusRelease(playerid);', closed)
+
+    def test_a_stuck_cursor_is_dropped_by_the_pulse(self):
+        pulse = CEFUI_SRC.split('public RW_CefPulse()')[1].split('\n}')[0]
+        self.assertIn('gCefMode[p] == CEF_MODE_NONE && gUIMode[p] == 0', pulse)
+        self.assertIn('RW_CefFocusRelease(p);', pulse)
+
+    def test_the_close_button_closes_the_sheet_everywhere(self):
+        """Кнопка «Закрыть» — id 8 во всех панелях: лист прячется сам и
+        серверу уходит ui:closed, даже если панель не разобрала клик."""
+        page = (PAGES / 'js/ui.js').read_text(encoding='utf-8')
+        self.assertIn('var CLOSE_ID = 8;', page)
+        self.assertIn('if (id === CLOSE_ID)', page)
+        self.assertIn("RW.emit('ui:closed');", page)
+
+    def test_the_inventory_closes_without_waiting_for_the_server(self):
+        page = (PAGES / 'js/inventory.js').read_text(encoding='utf-8')
+        self.assertIn("RW.emit('ui:click', 3000);", page)
+        self.assertIn("RW.emit('ui:closed');", page)
+
+    def test_the_bridge_keeps_every_listener(self):
+        """ui.js и inventory.js слушают один и тот же ui:close, поэтому мост
+        хранит список обработчиков, а не один, и биндится, даже если
+        плагин внедрил window.cef позже скриптов."""
+        bridge = (PAGES / 'js/bridge.js').read_text(encoding='utf-8')
+        self.assertIn('handlers[name].push(callback)', bridge)
+        self.assertIn('window.cef.on(name,', bridge)
+        self.assertIn('window.setInterval(flush, 50)', bridge)
+        self.assertNotIn('handlers[name] = callback;', bridge)
+
+    def test_the_demo_never_covers_the_live_interface(self):
+        page = (PAGES / 'js/ui.js').read_text(encoding='utf-8')
+        self.assertIn('if (RW.demo()) demo();', page)
+        self.assertNotIn('if (!RW.ready()) demo();', page)
+
+
 class FallbackTest(unittest.TestCase):
     """Players without the plugin keep the native dialog interface."""
 

@@ -32,6 +32,8 @@
       'stroke-linecap="round" stroke-linejoin="round">' + body + '</svg>';
   }
 
+  var CLOSE_ID = 8;
+
   var rows = [];
   var actions = [];
   var open = false;
@@ -82,7 +84,15 @@
     });
     elActions.querySelectorAll('.btn').forEach(function (node) {
       node.addEventListener('click', function () {
-        RW.emit('ui:click', parseInt(node.getAttribute('data-id'), 10));
+        var id = parseInt(node.getAttribute('data-id'), 10);
+        RW.emit('ui:click', id);
+        /* Закрыть (кнопка 8) одинакова во всех панелях: прячем лист сразу и
+           говорим серверу, чтобы он снял фокус и курсор, даже если панель
+           сама этот id не разобрала. */
+        if (id === CLOSE_ID) {
+          show(false);
+          RW.emit('ui:closed');
+        }
       });
     });
   }
@@ -158,6 +168,5 @@
     RW.fake('ui:action', [8, 'Close', 'danger']);
     RW.fake('ui:end', []);
   }
-  if (window.location.search.indexOf('fake=1') >= 0) demo();
-  else window.setTimeout(function () { if (!RW.ready()) demo(); }, 200);
+  if (RW.demo()) demo();
 })();
