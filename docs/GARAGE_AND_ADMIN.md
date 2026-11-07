@@ -16,7 +16,7 @@ outside 3 metres to re-arm entry, so closing the panel does not reopen it
 continuously. `/garage` also works while on foot within 4 metres of the booth,
 in interior 0 / virtual world 0.
 
-The TextDraw panel shows six cars per page, with previous/next and close.
+The panel shows six cars per page, with previous/next and close.
 It lists permanent cars for which you **currently carry a key**, including
 keys in your backpack and keys picked up from another player. It also lists
 active temporary cars for which you have a key. Duplicate keys do not produce
@@ -92,14 +92,11 @@ weight and characteristics. It shows actions when applicable:
 - **USE KEY**: owned car keys; insert/remove the key while driving that car.
 - **CLOSE**: dismiss context panel, keeping inventory open.
 
-Native SA-MP `OnPlayerClickPlayerTextDraw` does not identify the mouse button.
-Therefore this implementation uses a **normal selectable TextDraw click**, not
-an identifiable right-click. True RMB-specific UI requires client support;
-no client plugin is included or required here.
-
-Total cached PlayerTextDraw usage: 24 shared + 165 inventory + 13 garage = 202,
-below the 256-per-player limit. Menu backgrounds are created before controls
-and hidden/reset when switching screens, disconnecting or dying.
+Native SA-MP dialogs do not identify the mouse button either, so the browser
+page is the only place where a **right-click** opens an item card. Without the
+plugin the same actions are reachable from the rows of the native dialog:
+click a row, then pick the action. Client support is only needed for the
+browser pages; no client plugin is required to play.
 
 ## Admin driving commands
 
@@ -181,7 +178,7 @@ do not run GTA or prove rendering/flight feel. Before deployment:
 ## Будка на спавне и выдача ключа по id машины
 
 Будка (объект 3881), пикап и 3D-подпись стоят в 3–5 метрах от точки спавна
-(GARAGE_X/Y/Z = STATION + 2.5 / 2.4). Меню TextDraw открывается при входе в
+(GARAGE_X/Y/Z = STATION + 2.5 / 2.4). Меню открывается при входе в
 будку (радиус 2 м), по пикапу или командой `/garage` в радиусе 6 м: список
 своих постоянных машин и временных `/spcar`.
 

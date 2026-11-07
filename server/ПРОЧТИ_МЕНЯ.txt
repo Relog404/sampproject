@@ -1,4 +1,4 @@
-RAILWAY / TextDraw
+RAILWAY / интерфейс в браузере
 
 1. Change rcon_password in server.cfg.
 2. Start samp-server.exe from this folder.

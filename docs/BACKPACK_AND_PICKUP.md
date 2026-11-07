@@ -43,7 +43,7 @@ No client plugin is required.
 ## Ground interaction
 
 While on foot, outside all menus, aim the centre of the camera at a dropped
-item within 3 metres. A small TextDraw hint shows the item name, weight and
+item within 3 metres. A small HUD hint shows the item name, weight and
 pickup action. Looking away, moving away, changing world/interior, opening a
 menu or entering a vehicle hides the hint.
 
@@ -79,7 +79,7 @@ The vehicle argument accepts:
 - **nothing at all** — the car you sit in, or the managed car you aim at
   within 6 metres.
 
-Admin **`/givekey <playerid>`** opens a TextDraw menu: every spawned car is
+Admin **`/givekey <playerid>`** opens the key menu: every spawned car is
 listed by its **SA-MP vehicle id** (with plate, model and temporary/permanent),
 and stored permanent cars by their garage `c<id>`. Click a row and that car's
 key is granted to the chosen player. `/giveitem <id> key <vehicle id>`,
@@ -138,7 +138,7 @@ contracts. They do not run the Pawn VM or emulate GTA rendering/input.
 
 The booth object, its pickup and a 3D text label now stand a few metres from
 the player spawn point, so the car selection is visible right after spawning.
-Walking into the booth (or touching the pickup) opens the TextDraw menu; `/garage`
+Walking into the booth (or touching the pickup) opens the garage page; `/garage`
 also opens it within 6 metres of the booth. The menu lists the cars you hold
 keys for: permanent cars from `owned_cars` and temporary `/spcar` cars. Choose
 one and it appears on the garage pad. Keys left in the ignition still let any

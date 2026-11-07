@@ -8,9 +8,9 @@ ACTIONS for this session, not arbitrary physical keys. /vmenu, /engine,
 /door and /key also work. Physical Ъ / ] and backslash cannot be captured
 by a plain SA-MP server and are no longer used.
 
-All system menus/messages are English. /uinative uses native SA-MP dialogs;
-/uitd selects compact clickable TextDraw panels. /uiru and /tdrus are legacy
-native-menu aliases, not Russian-language switches. No font changes required.
-Inventory and the station garage always use TextDraw. Item context menus use
-a normal click: stock SA-MP cannot identify right-clicks on PlayerTextDraws.
+Menus, inventory, HUD and notices are browser pages and speak Russian; with
+the omp-cef client part installed you see them, without it the very same menus
+open as native SA-MP dialogs. No font changes and no client modifications are
+required. Item cards open by right-click on the inventory page; in the native
+dialog the same actions are listed as rows.
 No client plugin is installed. Flight is server-assisted, not native aircraft physics.

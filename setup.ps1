@@ -9,6 +9,6 @@ foreach ($file in @('server\samp-server.exe', 'server\server.cfg', 'server\gamem
 }
 New-Item -ItemType Directory -Path (Join-Path $root 'server\scriptfiles') -Force | Out-Null
 if ($Build) { & (Join-Path $root 'server\tools\build-gamemode.ps1') }
-Write-Host 'Native TextDraw mode ready. No client modifications or plugins required.' -ForegroundColor Green
+Write-Host 'Server kit ready: menus in the browser, native dialogs without it.' -ForegroundColor Green
 Write-Host 'Change rcon_password in server\server.cfg, then start server\samp-server.exe.'
 Write-Host 'Existing scriptfiles\railway.db must be preserved. Default controls: Y menu, N engine, H doors.'
