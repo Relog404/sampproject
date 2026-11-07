@@ -4,7 +4,7 @@
 #define _railway_ui_included
 #include <railway/core>
 
-#define UI_COUNT 28
+#define UI_COUNT 29
 #define UI_AUTH 1
 #define UI_SETTINGS 2
 #define UI_VEHICLE 3
@@ -32,6 +32,7 @@
 #define UI_STORY 25
 #define UI_MARKET 26
 #define UI_CRIME 27
+#define UI_FAMILY 28
 new PlayerText:gUIPreview[MAX_PLAYERS];
 new PlayerText:gUI[MAX_PLAYERS][UI_COUNT];
 new bool:gUICreated[MAX_PLAYERS], bool:gUIInput[MAX_PLAYERS];

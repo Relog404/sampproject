@@ -57,7 +57,7 @@ stock RW_CommandHelp(playerid)
     SendClientMessage(playerid, COLOR_GREY, "Деньги: /shop, /bank, /balance, /deposit, /withdraw, /transfer <id> <сумма>, /job, /work, /quitjob, /payday.");
     SendClientMessage(playerid, COLOR_GREY, "Недвижимость: /property, /doors, /enter, /exit, /paytax, /till put|take <сумма>, /bid <сумма>, /rob (12:00-01:00).");
     SendClientMessage(playerid, COLOR_GREY, "Сюжет: /story - восемь глав с опытом и деньгами; /profile - уровень, опыт и вся статистика.");
-    SendClientMessage(playerid, COLOR_GREY, "Интерфейс: /hud - экранный интерфейс, /bonus - бесплатный бонус, F2 или /donate - донат, /set <hud|hints|bonus|speedo|names|markers|welcome>, /key <0|1|2>, Alt + Y - курсор мыши, C - донат, Alt + H - настройки, F3 (Alt + N) - меню, / - телефон, /talk - непись.  Маркетплейс: /market, /sell <слот> <цена> [часы], /buy <лот>, /stavka <лот> <сумма>, /unsell <лот>, /claim Криминал: /crime, /heist, /craft, /green, /selldrugs, /wanted..");
+    SendClientMessage(playerid, COLOR_GREY, "Интерфейс: /hud - экранный интерфейс, /bonus - бесплатный бонус, F2 или /donate - донат, /set <hud|hints|bonus|speedo|names|markers|welcome>, /key <0|1|2>, Alt + Y - курсор мыши, C - донат, Alt + H - настройки, F3 (Alt + N) - меню, / - телефон, /talk - непись.  Маркетплейс: /market, /sell <слот> <цена> [часы], /buy <лот>, /stavka <лот> <сумма>, /unsell <лот>, /claim Криминал: /crime, /heist, /craft, /green, /selldrugs, /wanted. Семья: /family, /fcreate, /finvite, /fjoin, /fleave, /fkick, /frank, /fgive, /fstore, /ftake, /fcap, /fzones, /fcash..");
     SendClientMessage(playerid, COLOR_GREY, "Приложения: /apps, /weather, /group, /g <текст>, /ginvite, /taxi, /uber, /news, /ad, /auto, /deliver, /snap, /photo, /lawcall, /radio.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/spcar <id>{FFFFFF} - временная машина (400-611). /garage - гараж вокзала.");
     SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} - открыть/закрыть машину под прицелом; ключ должен быть в /inv.");
@@ -430,6 +430,19 @@ stock RW_CommandProcess(playerid, cmdtext[])
     if (!strcmp(cmd, "green", true)) return RW_GreenCommand(playerid);
     if (!strcmp(cmd, "selldrugs", true)) return RW_SellDrugsCommand(playerid);
     if (!strcmp(cmd, "wanted", true)) return RW_WantedCommand(playerid, params);
+    if (!strcmp(cmd, "family", true)) return RW_FamilyPanel(playerid);
+    if (!strcmp(cmd, "fcreate", true)) return RW_FamilyCreate(playerid, params);
+    if (!strcmp(cmd, "finvite", true)) return RW_FamilyInvite(playerid, params);
+    if (!strcmp(cmd, "fjoin", true)) return RW_FamilyJoin(playerid);
+    if (!strcmp(cmd, "fleave", true)) return RW_FamilyLeave(playerid);
+    if (!strcmp(cmd, "fkick", true)) return RW_FamilyKick(playerid, params);
+    if (!strcmp(cmd, "frank", true)) return RW_FamilyRank(playerid, params);
+    if (!strcmp(cmd, "fgive", true)) return RW_FamilyGiveCar(playerid);
+    if (!strcmp(cmd, "fstore", true)) return RW_FamilyStore(playerid, params);
+    if (!strcmp(cmd, "ftake", true)) return RW_FamilyTakeItem(playerid, params);
+    if (!strcmp(cmd, "fcap", true)) return RW_FamilyCapture(playerid);
+    if (!strcmp(cmd, "fzones", true)) return RW_FamilyZonesCommand(playerid);
+    if (!strcmp(cmd, "fcash", true)) return RW_FamilyCashCommand(playerid, params);
     if (!strcmp(cmd, "donate", true)) return RW_DonateCommand(playerid);
     if (!strcmp(cmd, "points", true)) return RW_PointsCommand(playerid);
     if (!strcmp(cmd, "givedonate", true)) return RW_GiveDonateCommand(playerid, params);

@@ -240,6 +240,8 @@ stock RW_UI_Click(playerid, row)
         return RW_MarketClick(playerid, row);
     } else if (mode == UI_CRIME) {
         return RW_CrimeClick(playerid, row);
+    } else if (mode == UI_FAMILY) {
+        return RW_FamilyClick(playerid, row);
     } else if (mode == UI_DONATE) {
         return RW_DonateClick(playerid, row);
     } else if (mode == UI_STORY) {
