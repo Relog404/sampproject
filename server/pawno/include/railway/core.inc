@@ -34,6 +34,12 @@ forward RW_PropTaxTick(playerid);
 forward RW_PropPulse();
 forward RW_PropSale(playerid, price);
 forward RW_HudPulse();
+/* Ввод в браузере: цена, ставка, сумма. Клик вместо команды в чате. */
+forward RW_CefInputSubmit(playerid, browserid, const value[]);
+forward RW_InputOpen(playerid, kind, arg, const title[], const subtitle[], const hint[]);
+forward RW_InputSellPrice(playerid, uid);
+forward RW_InputCancel(playerid);
+forward bool:RW_InputBusy(playerid);
 forward RW_HudBonusClick(playerid, browserid, arg);
 forward RW_HudBonusHideEvent(playerid, browserid, arg);
 forward RW_HudDonateEvent(playerid, browserid, arg);
@@ -135,6 +141,19 @@ forward RW_LawyerCallFor(playerid, target);
 #define CEF_MODE_SETTINGS           (24)
 #define CEF_MODE_BIND               (25)
 #define CEF_MODE_MAP                (26)
+#define CEF_MODE_INPUT            (27)
+
+/*  ------------------------------ поле ввода ------------------------------ */
+#define INPUT_NONE          (0)
+#define INPUT_SELL_PRICE    (1)     /* цена за час на складе            */
+#define INPUT_SELL_HOURS    (2)     /* срок показа, часов               */
+#define INPUT_BID           (3)     /* ставка на аукционе               */
+#define INPUT_TILL_PUT      (4)     /* положить в кассу                 */
+#define INPUT_TILL_TAKE     (5)     /* взять из кассы                   */
+#define INPUT_PROP_BID      (6)     /* ставка на аукционе недвижимости  */
+
+#define INPUT_MAX_TEXT      96      /* столько берём из поля            */
+
 /* Настройки интерфейса: их читают модули, подключённые раньше menu.inc. */
 #define SET_HUD             (1)         /* экранный интерфейс              */
 #define SET_HINTS           (2)         /* подсказки клавиш                */

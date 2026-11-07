@@ -465,6 +465,7 @@ stock RW_InvUseLabel(type, bool:weaponInHand, dest[], size = sizeof dest)
 #define INV_CEF_ACT_TAKE        3       /* поднять с земли                   */
 #define INV_CEF_ACT_WEAR        4       /* надеть, взять в руки, снять        */
 #define INV_CEF_ACT_USE         5       /* главное действие вещи              */
+#define INV_CEF_ACT_SELL        6       /* продать на маркетплейсе            */
 
 /* Короткое название вещи: и в ячейке, и в шапке карточки. */
 stock RW_InvTitle(type, data, amount, dest[], size = sizeof dest)
@@ -594,6 +595,13 @@ stock RW_InvCefContext(playerid, slot)
             RW_InvUseLabel(type, inHand, label, sizeof label);
             RW_CefInvAction(playerid, INV_CEF_ACT_USE, label, "ok");
         }
+        /* Продажа — только из карманов и рюкзака, и только тем, что можно
+           отдать: цену и срок спросит поле ввода, а не чат. */
+        if (slot < INV_SLOTS && RW_InvCanRemove(playerid, slot) && RW_MarketSellable(type)) {
+            new price[16];
+            format(price, sizeof price, "Продать");
+            RW_CefInvAction(playerid, INV_CEF_ACT_SELL, price, "ok");
+        }
     }
     return RW_CefInvEnd(playerid);
 }
@@ -607,6 +615,7 @@ stock RW_InvCefClick(playerid, id)
         if (action == INV_CEF_ACT_TAKE) { RW_GroundTake(playerid); return RW_InvCef(playerid, false); }
         if (action == INV_CEF_ACT_MOVE) { RW_InvTransfer(playerid, gInvFromGround[playerid] ? 0 : RW_InvSectionOf(playerid)); return RW_InvCef(playerid, false); }
         if (action == INV_CEF_ACT_WEAR) { RW_InvWearSelected(playerid); return RW_InvCef(playerid, false); }
+        if (action == INV_CEF_ACT_SELL) return RW_InputSellPrice(playerid, gInvSelected[playerid]);
         if (action == INV_CEF_ACT_USE) { RW_UI_Close(playerid); return RW_InvUseSelected(playerid); }
         return 1;
     }

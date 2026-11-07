@@ -161,6 +161,35 @@ stock RW_MarketGive(playerid, type, data, amount)
 
 /*  -------------------------------- продажа -------------------------------- */
 
+/* Продажа со склада: одна функция и на команду, и на клик по кнопке. */
+stock RW_MarketSell(playerid, slot, price, hours)
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
+    if (!gInvLoaded[playerid]) return RW_Error(playerid, "Инвентарь ещё загружается.");
+    if (slot < 0 || slot >= INV_SLOTS) return RW_Error(playerid, "Нет такого слота: слоты с 0 до 79.");
+    if (price < 1 || price > MARKET_MAX_PRICE) return RW_Error(playerid, "Цена — от 1 до 100 000 000.");
+    if (hours < MARKET_MIN_HOURS || hours > MARKET_MAX_HOURS) return RW_Error(playerid, "Срок — от 5 до 24 часов, то есть от 2 500 до 12 000 комиссии.");
+    new fee = RW_MarketFee(hours);
+    if (gMoney[playerid] < fee) return RW_Error(playerid, "Не хватает на комиссию склада: нужно 500 за час, минимум 2 500.");
+    new type = gInv[playerid][slot][iiType], data = gInv[playerid][slot][iiData], amount = gInv[playerid][slot][iiAmount];
+    if (type <= 0 || amount < 1) return RW_Error(playerid, "В этом слоте пусто.");
+    if (RW_MarketTakeItem(playerid, slot) <= 0) return RW_Error(playerid, "Этот предмет продать нельзя.");
+    if (!RW_TakeMoney(playerid, fee)) return RW_Error(playerid, "Не хватает наличных на комиссию.");
+    new nick[MAX_PLAYER_NAME], safe[MAX_PLAYER_NAME], query[420], item[40];
+    RW_GetNick(playerid, nick);
+    RW_PoliceSqlName(nick, safe, sizeof safe);
+    RW_MarketItemName(type, data, item, sizeof item);
+    format(query, sizeof query, "INSERT INTO market_lots(seller,seller_name,type,data,amount,price,status,ends,stamp) VALUES(%d,'%s',%d,%d,%d,%d,0,%d,%d)",
+        gAccountId[playerid], safe, type, data, amount, price, gettime() + hours * 3600, gettime());
+    RW_DB_Exec(query);
+    new DBResult:r = db_query(gDB, "SELECT last_insert_rowid() AS id");
+    new lot;
+    if (r != DBResult:0) { if (db_num_rows(r) == 1) lot = db_get_field_assoc_int(r, "id"); db_free_result(r); }
+    new money[32], message[200];
+    RW_FormatMoney(fee, money, sizeof money);
+    format(message, sizeof message, "Лот №%d: %s за %d. Комиссия %s, на складе %d ч. Деньги придут на счёт в банке.", lot, item, price, money, hours);
+    return RW_Ok(playerid, message);
+}
 stock RW_SellCommand(playerid, const params[])
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
@@ -168,31 +197,7 @@ stock RW_SellCommand(playerid, const params[])
     new slot[16], price[16], hours[16];
     RW_MarketArgs(params, slot, sizeof slot, price, sizeof price, hours, sizeof hours);
     if (!slot[0] || !price[0]) return RW_Info(playerid, "Использование: /sell <слот инвентаря> <цена> [часы 5-24]. Комиссия 500 за час.");
-    new islot = strval(slot), iprice = strval(price);
-    new ihours = hours[0] ? strval(hours) : MARKET_MIN_HOURS;
-    if (islot < 0 || islot >= INV_SLOTS) return RW_Error(playerid, "Нет такого слота: слоты с 0 до 79.");
-    if (iprice < 1 || iprice > MARKET_MAX_PRICE) return RW_Error(playerid, "Цена — от 1 до 100 000 000.");
-    if (ihours < MARKET_MIN_HOURS || ihours > MARKET_MAX_HOURS) return RW_Error(playerid, "Срок — от 5 до 24 часов, то есть от 2 500 до 12 000 комиссии.");
-    new fee = RW_MarketFee(ihours);
-    if (gMoney[playerid] < fee) return RW_Error(playerid, "Не хватает на комиссию склада: нужно 500 за час, минимум 2 500.");
-    new type = gInv[playerid][islot][iiType], data = gInv[playerid][islot][iiData], amount = gInv[playerid][islot][iiAmount];
-    if (type <= 0 || amount < 1) return RW_Error(playerid, "В этом слоте пусто.");
-    if (RW_MarketTakeItem(playerid, islot) <= 0) return RW_Error(playerid, "Этот предмет продать нельзя.");
-    if (!RW_TakeMoney(playerid, fee)) return RW_Error(playerid, "Не хватает наличных на комиссию.");
-    new nick[MAX_PLAYER_NAME], safe[MAX_PLAYER_NAME], query[420], item[40];
-    RW_GetNick(playerid, nick);
-    RW_PoliceSqlName(nick, safe, sizeof safe);
-    RW_MarketItemName(type, data, item, sizeof item);
-    format(query, sizeof query, "INSERT INTO market_lots(seller,seller_name,type,data,amount,price,status,ends,stamp) VALUES(%d,'%s',%d,%d,%d,%d,0,%d,%d)",
-        gAccountId[playerid], safe, type, data, amount, iprice, gettime() + ihours * 3600, gettime());
-    RW_DB_Exec(query);
-    new DBResult:r = db_query(gDB, "SELECT last_insert_rowid() AS id");
-    new lot;
-    if (r != DBResult:0) { if (db_num_rows(r) == 1) lot = db_get_field_assoc_int(r, "id"); db_free_result(r); }
-    new money[32], message[200];
-    RW_FormatMoney(fee, money, sizeof money);
-    format(message, sizeof message, "Лот №%d: %s за %d. Комиссия %s, на складе %d ч. Деньги придут на счёт в банке.", lot, item, iprice, money, ihours);
-    return RW_Ok(playerid, message);
+    return RW_MarketSell(playerid, strval(slot), strval(price), hours[0] ? strval(hours) : MARKET_MIN_HOURS);
 }
 
 /*  -------------------------------- витрина -------------------------------- */
@@ -235,6 +240,15 @@ stock RW_MarketRows(playerid)
     }
     db_free_result(r);
     if (!index) RW_MarketRowOut(playerid, 0, "Лотов нет", "Вернитесь позже или выставите свой: /sell", "info");
+    /* Строка 7 только в браузере: в диалоге под этим номером «Закрыть». */
+    if (RW_CefOn(playerid) && gCefMode[playerid] == CEF_MODE_MARKET) {
+        new pick = gMarketPick[playerid];
+        if (pick > 0 && RW_MarketLotField(pick, "status") == MARKET_AUCTION) {
+            new label[64];
+            format(label, sizeof label, "Поднять ставку: лот №%d", pick);
+            RW_MarketRowOut(playerid, 7, label, "Нажмите, чтобы ввести сумму", "wallet");
+        } else RW_MarketRowOut(playerid, 7, "Ставка: выберите лот на аукционе", "Нажмите на лот, потом сюда", "info");
+    }
     return index;
 }
 stock RW_MarketRowOut(playerid, row, const text[], const arg[], const icon[])
@@ -269,6 +283,13 @@ stock RW_MarketOpen(playerid)
     RW_UI_Row(playerid, 7, "Закрыть");
     return 1;
 }
+/* Что вообще можно выставить на витрину: остальное продать нельзя. */
+stock bool:RW_MarketSellable(type)
+{
+    if (type <= 0) return false;
+    if (type == ITEM_BACKPACK || type == ITEM_PHONE || type == ITEM_SIM || type == ITEM_CAR_KEY) return false;
+    return true;
+}
 stock RW_MarketCount()
 {
     if (gDB == DB:0) return 0;
@@ -295,6 +316,13 @@ stock RW_MarketAction(playerid, row, bool:cef)
         gMarketPage[playerid] = (gMarketPage[playerid] + 1) % pages;
         gMarketPick[playerid] = 0;
         return RW_MarketOpen(playerid);
+    }
+    if (row == 7 && cef) {
+        new pick = gMarketPick[playerid];
+        if (pick <= 0) return RW_Error(playerid, "Сначала выберите лот: нажмите на него.");
+        if (RW_MarketLotField(pick, "status") != MARKET_AUCTION) return RW_Error(playerid, "Ставки принимаются только на аукционе.");
+        return RW_InputOpen(playerid, INPUT_BID, pick, "Аукцион: лот №" , "Ваша ставка наличными",
+            "Минимум — на 5 процентов выше текущей");
     }
     new lot = gMarketIds[playerid][row];
     if (lot <= 0) return 1;
@@ -358,13 +386,10 @@ stock RW_BuyCommand(playerid, const params[])
 
 /*  ------------------------------- аукцион --------------------------------- */
 
-stock RW_BidCommand(playerid, const params[])
+/* Ставка на аукционе: та же функция, что и по команде, но по клику. */
+stock RW_MarketBid(playerid, lot, amount)
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
-    new id[16], sum[16];
-    RW_MarketArgs(params, id, sizeof id, sum, sizeof sum, sum, sizeof sum);
-    if (!id[0] || !sum[0]) return RW_Info(playerid, "Использование: /bid <номер лота> <сумма>.");
-    new lot = strval(id), amount = strval(sum);
     if (lot <= 0 || amount <= 0) return RW_Error(playerid, "Номер лота и сумма должны быть числами.");
     if (RW_MarketLotField(lot, "status") != MARKET_AUCTION) return RW_Error(playerid, "Ставки принимаются только на аукционе: лот уходит туда, когда выйдет срок склада.");
     new seller = RW_MarketLotField(lot, "seller");
@@ -388,6 +413,14 @@ stock RW_BidCommand(playerid, const params[])
     for (new p; p < MAX_PLAYERS; p++) if (IsPlayerConnected(p) && gAccountId[p] == old && p != playerid)
         RW_Info(p, "Вашу ставку перебили. Деньги вернулись на счёт в банке.");
     return RW_Ok(playerid, message);
+}
+stock RW_BidCommand(playerid, const params[])
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
+    new id[16], sum[16];
+    RW_MarketArgs(params, id, sizeof id, sum, sizeof sum, sum, sizeof sum);
+    if (!id[0] || !sum[0]) return RW_Info(playerid, "Использование: /bid <номер лота> <сумма>.");
+    return RW_MarketBid(playerid, strval(id), strval(sum));
 }
 
 /*  --------------------------- снятие и получение -------------------------- */

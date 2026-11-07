@@ -114,6 +114,16 @@ stock RW_CefHudHint(playerid, const hints[])
     #pragma unused playerid, hints
     return 0;
 }
+stock RW_CefInput(playerid, const title[], const subtitle[], const hint[])
+{
+    #pragma unused playerid, title, subtitle, hint
+    return 0;
+}
+stock RW_CefInputClose(playerid)
+{
+    #pragma unused playerid
+    return 0;
+}
 stock RW_CefHudWallet(playerid, bank, cash, hour, minute)
 {
     #pragma unused playerid, bank, cash, hour, minute

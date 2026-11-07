@@ -75,17 +75,17 @@ class MarketFeeTest(unittest.TestCase):
         self.assertEqual(24 * 500, 12000)
 
     def test_a_sale_needs_the_fee_and_a_sane_term(self):
-        sell = block(MARKET, 'stock RW_SellCommand(playerid, const params[])')
+        sell = block(MARKET, 'stock RW_MarketSell(playerid, slot, price, hours)')
         self.assertIn('if (gMoney[playerid] < fee) return RW_Error', sell)
         self.assertIn('RW_TakeMoney(playerid, fee)', sell)
-        self.assertIn('if (ihours < MARKET_MIN_HOURS || ihours > MARKET_MAX_HOURS)', sell)
-        self.assertIn('gettime() + ihours * 3600, gettime());', sell)
+        self.assertIn('if (hours < MARKET_MIN_HOURS || hours > MARKET_MAX_HOURS)', sell)
+        self.assertIn('gettime() + hours * 3600, gettime());', sell)
         self.assertIn('INSERT INTO market_lots(seller,seller_name,type,data,amount,price,status,ends,stamp)',
                       sql(MARKET, 'INSERT INTO market_lots'))
 
     def test_the_item_really_leaves_the_sellers_bag(self):
-        sell = block(MARKET, 'stock RW_SellCommand(playerid, const params[])')
-        self.assertIn('RW_MarketTakeItem(playerid, islot)', sell)
+        sell = block(MARKET, 'stock RW_MarketSell(playerid, slot, price, hours)')
+        self.assertIn('RW_MarketTakeItem(playerid, slot)', sell)
         take = block(MARKET, 'stock RW_MarketTakeItem(playerid, slot)')
         self.assertIn('DELETE FROM inventory_items WHERE uid=%d AND owner=%d AND slot=%d', take)
         self.assertIn('RW_InvCanRemove(playerid, slot)', take)
@@ -134,7 +134,7 @@ class MarketAuctionTest(unittest.TestCase):
     """Bids raise each other and losers get their money back."""
 
     def test_a_bid_is_accepted_only_on_the_auction(self):
-        bid = block(MARKET, 'stock RW_BidCommand(playerid, const params[])')
+        bid = block(MARKET, 'stock RW_MarketBid(playerid, lot, amount)')
         self.assertIn('if (RW_MarketLotField(lot, "status") != MARKET_AUCTION) return RW_Error', bid)
         self.assertIn('if (amount < min) return RW_Error', bid)
 
@@ -145,12 +145,12 @@ class MarketAuctionTest(unittest.TestCase):
         self.assertEqual(10000 + (10000 * 5) // 100 + 1, 10501)
 
     def test_the_outbid_player_is_refunded_to_his_account(self):
-        bid = block(MARKET, 'stock RW_BidCommand(playerid, const params[])')
+        bid = block(MARKET, 'stock RW_MarketBid(playerid, lot, amount)')
         self.assertIn('RW_MarketCredit(old, bid);', bid)
         self.assertIn('Деньги вернулись на счёт в банке', bid)
 
     def test_money_leaves_the_bidder_at_once(self):
-        bid = block(MARKET, 'stock RW_BidCommand(playerid, const params[])')
+        bid = block(MARKET, 'stock RW_MarketBid(playerid, lot, amount)')
         self.assertIn('RW_TakeMoney(playerid, amount)', bid)
 
 

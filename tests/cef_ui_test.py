@@ -106,7 +106,7 @@ class ProtocolTest(unittest.TestCase):
     def test_events_match(self):
         server = self.server_events()
         pages = self.page_events()
-        self.assertEqual(server, {'ui:open', 'ui:row', 'ui:action', 'ui:end', 'ui:close', 'ui:toast', 'ui:preview'})
+        self.assertEqual(server, {'ui:open', 'ui:row', 'ui:action', 'ui:end', 'ui:close', 'ui:toast', 'ui:preview', 'ui:ask'})
         self.assertEqual(server - pages, set(), 'server emits something no page handles')
 
     def test_pages_answer_with_registered_events(self):

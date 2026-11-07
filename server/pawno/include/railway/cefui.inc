@@ -86,6 +86,7 @@ stock RW_CefInit()
     CEF_RegisterEvent("phone:911", "RW_CefPhone911", Argument_Integer);
     CEF_RegisterEvent("phone:close", "RW_CefPhoneClosed");
     CEF_RegisterEvent("hud:mousetoggle", "RW_HudMouseEvent", Argument_Integer);
+    CEF_RegisterEvent("ui:answer", "RW_CefInputSubmit", Argument_String);
     CEF_RegisterEvent("auth:submit", "RW_CefAuthSubmit", Argument_String, Argument_String);
     SetTimer("RW_CefPulse", 1000, true);
     print("[cef] browser interface ready (resource railway).");
@@ -247,6 +248,9 @@ stock RW_CefClose(playerid)
 public RW_CefClosed(playerid, browserid)
 {
     #pragma unused browserid
+    /* Закрытое поле ввода: иначе «ждём ввод» останется навсегда, а вместе
+       с ним и запрет на остальные действия. */
+    if (RW_InputBusy(playerid)) return RW_InputCancel(playerid);
     RW_CefClose(playerid);
     RW_CefFocusRelease(playerid);
     gControlMode[playerid] = 0;
@@ -380,6 +384,8 @@ public RW_CefClick(playerid, browserid, id)
     if (gCefMode[playerid] == CEF_MODE_GARAGE) return RW_GarageCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_KEYS) return RW_KeyMenuCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_DOWNED) return RW_MedCefClick(playerid, id);
+    /* Поле ввода: строк в нём нет, поэтому любой клик его закрывает. */
+    if (gCefMode[playerid] == CEF_MODE_INPUT) { RW_InputCancel(playerid); return 1; }
     /* Настройки, бинды и карта: панель общая, поэтому клик разбирает
        тот же RW_UI_Click, что и раньше — по gUIMode. */
     if (gCefMode[playerid] == CEF_MODE_SETTINGS || gCefMode[playerid] == CEF_MODE_BIND
@@ -464,6 +470,28 @@ stock RW_CefHudHint(playerid, const hints[])
     CEF_EmitEvent(playerid, CEF_UI_HUD, "hud:hint", CEF_STR(hints));
     return 1;
 }
+/*  --------------------------- поле ввода --------------------------------- */
+/*  Сервер просит число или текст: страница показывает поле, ответ приходит
+    событием ui:answer. Проверяет ввод снова сервер — странице не верят. */
+stock RW_CefInput(playerid, const title[], const subtitle[], const hint[])
+{
+    if (!RW_CefOn(playerid)) return 0;
+    gCefMode[playerid] = CEF_MODE_INPUT;
+    CEF_SetBrowserVisible(playerid, CEF_UI_MENU, true);
+    CEF_FocusBrowser(playerid, CEF_UI_MENU, true);
+    CEF_EmitEvent(playerid, CEF_UI_MENU, "ui:ask", CEF_STR(title), CEF_STR(subtitle), CEF_STR(hint));
+    return 1;
+}
+stock RW_CefInputClose(playerid)
+{
+    if (!RW_CefOn(playerid)) return 0;
+    gCefMode[playerid] = CEF_MODE_NONE;
+    RW_CefFocusRelease(playerid);
+    CEF_SetBrowserVisible(playerid, CEF_UI_MENU, false);
+    CEF_EmitEvent(playerid, CEF_UI_MENU, "ui:close");
+    return 1;
+}
+
 /* Кошелёк: счёт в банке, наличные и московское время — справа от радара. */
 stock RW_CefHudWallet(playerid, bank, cash, hour, minute)
 {

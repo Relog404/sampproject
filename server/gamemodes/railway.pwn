@@ -56,6 +56,7 @@
 #include <railway/story>
 #include <railway/menu>
 #include <railway/commands>
+#include <railway/input>
 
 /* ------------------------------------------------------------------ запуск */
 

@@ -276,15 +276,29 @@ stock RW_PropRows(playerid)
         RW_FormatMoney(gPropBid[id], bid, sizeof bid);
         format(row, sizeof row, "Auction: bid %s, %d s left", bid, gPropAucEnd[id] - gettime());
         RW_AppRowProp(playerid, 5, row, "bid", "wallet");
-    } else if (RW_PropMine(playerid, id) && gPropInfo[id][0] == PROP_KIND_BIZ) {
+        RW_AppRowProp(playerid, 7, "The auction is running: wait for it to end", "", "info");
+    } else if (gPropInfo[id][0] == PROP_KIND_BIZ && RW_PropMine(playerid, id)) {
         new till[32];
         RW_FormatMoney(gPropCash[id], till, sizeof till);
-        format(row, sizeof row, "Till: %s (/till put|take <sum>)", till);
+        format(row, sizeof row, "Till: %s. Put money in", till);
         RW_AppRowProp(playerid, 5, row, "till", "wallet");
+        RW_AppRowProp(playerid, 7, "Take money out of the till", "take", "wallet");
+    } else if (gPropInfo[id][0] == PROP_KIND_BIZ) {
+        new till[32];
+        RW_FormatMoney(gPropCash[id], till, sizeof till);
+        format(row, sizeof row, "Till: %s (the owner only)", till);
+        RW_AppRowProp(playerid, 5, row, "", "info");
+        RW_AppRowProp(playerid, 7, "Only the owner takes the cash", "", "info");
+    } else if (RW_PropMine(playerid, id)) {
+        format(row, sizeof row, "Pay the tax: %s", tax);
+        RW_AppRowProp(playerid, 5, row, "tax", "wallet");
+        RW_AppRowProp(playerid, 7, "One owner, one property", "", "info");
     } else {
-        RW_AppRowProp(playerid, 5, "Pay the tax: /paytax", "", "wallet");
+        format(row, sizeof row, "Tax per payday: %s (the owner pays)", tax);
+        RW_AppRowProp(playerid, 5, row, "", "info");
+        RW_AppRowProp(playerid, 7, "One owner, one property", "", "info");
     }
-    if (gPropInfo[id][0] == PROP_KIND_BIZ) RW_AppRowProp(playerid, 6, "Rob the till: /rob, from 12:00 to 01:00", "", "danger");
+    if (gPropInfo[id][0] == PROP_KIND_BIZ) RW_AppRowProp(playerid, 6, "Rob the till: from 12:00 to 01:00", "rob", "danger");
     else RW_AppRowProp(playerid, 6, "One owner, one property", "", "info");
     return 1;
 }
@@ -333,6 +347,14 @@ stock RW_PropAction(playerid, row, bool:cef)
         if (gPropAt[playerid] >= 0) return RW_PropExit(playerid);
         return RW_PropEnter(playerid, id);
     }
+    if (row == 5 && RW_PropAucOn(id))
+        return RW_InputOpen(playerid, INPUT_PROP_BID, id, "Auction", "Your bid: at least the current one plus 1 000", "For example: 50000");
+    if (row == 5 && RW_PropMine(playerid, id) && gPropInfo[id][0] != PROP_KIND_BIZ) return RW_PropPayTax(playerid, id);
+    if (row == 5 && RW_PropMine(playerid, id) && gPropInfo[id][0] == PROP_KIND_BIZ && !RW_PropAucOn(id))
+        return RW_InputOpen(playerid, INPUT_TILL_PUT, id, "Till", "How much to put in: from the bank account", "For example: 5000");
+    if (row == 6 && gPropInfo[id][0] == PROP_KIND_BIZ) return RW_PropRob(playerid, id);
+    if (cef && row == 7 && RW_PropMine(playerid, id) && gPropInfo[id][0] == PROP_KIND_BIZ && !RW_PropAucOn(id))
+        return RW_InputOpen(playerid, INPUT_TILL_TAKE, id, "Till", "How much to take out: cash into your pocket", "For example: 5000");
     return 1;
 }
 stock RW_PropCefClick(playerid, row) { return RW_PropAction(playerid, row, true); }
@@ -572,6 +594,31 @@ stock RW_PropTill(playerid)
     format(message, sizeof message, "%s till: %s. /till put <sum> or /till take <sum>.", gPropNames[id], sum);
     return RW_Ok(playerid, message);
 }
+/* Касса: одна функция и на команду, и на клик по кнопке в панели. */
+stock RW_PropTillAmount(playerid, id, amount, bool:put)
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    if (id < 0 || !RW_PropMine(playerid, id) || gPropInfo[id][0] != PROP_KIND_BIZ)
+        return RW_Error(playerid, "Stand at the door of your business.");
+    if (amount <= 0) return RW_Error(playerid, put ? ("Tell how much: /till put <sum>.") : ("Tell how much: /till take <sum>."));
+    new sum[32], message[160];
+    if (put) {
+        if (gBank[playerid] < amount) return RW_Error(playerid, "Not enough money on the account.");
+        RW_BankTake(playerid, amount);
+        gPropCash[id] = gPropCash[id] + amount;
+        RW_PropSave(id);
+        RW_FormatMoney(amount, sum, sizeof sum);
+        format(message, sizeof message, "Put %s into the till. Now: %d.", sum, gPropCash[id]);
+        return RW_Ok(playerid, message);
+    }
+    if (amount > gPropCash[id]) return RW_Error(playerid, "The till does not have that much.");
+    gPropCash[id] = gPropCash[id] - amount;
+    RW_BankAdd(playerid, amount);
+    RW_PropSave(id);
+    RW_FormatMoney(amount, sum, sizeof sum);
+    format(message, sizeof message, "Took %s from the till. Left: %d.", sum, gPropCash[id]);
+    return RW_Ok(playerid, message);
+}
 stock RW_PropTillCommand(playerid, const params[])
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
@@ -585,28 +632,8 @@ stock RW_PropTillCommand(playerid, const params[])
     if (id < 0 || !RW_PropMine(playerid, id) || gPropInfo[id][0] != PROP_KIND_BIZ)
         return RW_Error(playerid, "Stand at the door of your business.");
     if (!word[0]) return RW_PropTill(playerid);
-    if (!strcmp(word, "take", true)) {
-        if (amount <= 0) return RW_Error(playerid, "Tell how much: /till take <sum>.");
-        if (amount > gPropCash[id]) return RW_Error(playerid, "The till does not have that much.");
-        gPropCash[id] = gPropCash[id] - amount;
-        RW_BankAdd(playerid, amount);
-        RW_PropSave(id);
-        new sum[32], message[160];
-        RW_FormatMoney(amount, sum, sizeof sum);
-        format(message, sizeof message, "Took %s from the till. Left: %d.", sum, gPropCash[id]);
-        return RW_Ok(playerid, message);
-    }
-    if (!strcmp(word, "put", true)) {
-        if (amount <= 0) return RW_Error(playerid, "Tell how much: /till put <sum>.");
-        if (gBank[playerid] < amount) return RW_Error(playerid, "Not enough money on the account.");
-        RW_BankTake(playerid, amount);
-        gPropCash[id] = gPropCash[id] + amount;
-        RW_PropSave(id);
-        new sum[32], message[160];
-        RW_FormatMoney(amount, sum, sizeof sum);
-        format(message, sizeof message, "Put %s into the till. Now: %d.", sum, gPropCash[id]);
-        return RW_Ok(playerid, message);
-    }
+    if (!strcmp(word, "take", true)) return RW_PropTillAmount(playerid, id, amount, false);
+    if (!strcmp(word, "put", true)) return RW_PropTillAmount(playerid, id, amount, true);
     return RW_Error(playerid, "Use: /till put <sum> or /till take <sum>.");
 }
 

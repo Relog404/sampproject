@@ -277,13 +277,13 @@ class BusinessTillTest(unittest.TestCase):
         self.assertIn('#define BIZ_TILL_SHARE          10', PROP)
 
     def test_only_the_owner_touches_the_till(self):
-        till = block(PROP, 'stock RW_PropTillCommand(playerid, const params[])')
+        till = block(PROP, 'stock RW_PropTillAmount(playerid, id, amount, bool:put)')
         self.assertIn('if (id < 0 || !RW_PropMine(playerid, id) || gPropInfo[id][0] != PROP_KIND_BIZ)', till)
         self.assertIn('gPropInfo[id][0] != PROP_KIND_BIZ', till)
         self.assertIn('Stand at the door of your business.', till)
 
     def test_taking_needs_money_in_the_till(self):
-        till = block(PROP, 'stock RW_PropTillCommand(playerid, const params[])')
+        till = block(PROP, 'stock RW_PropTillAmount(playerid, id, amount, bool:put)')
         self.assertIn('if (amount > gPropCash[id]) return RW_Error(playerid, "The till does not have that much.");', till)
         self.assertIn('RW_BankAdd(playerid, amount);', till)
         self.assertIn('if (gBank[playerid] < amount) return RW_Error(playerid, "Not enough money on the account.");', till)
