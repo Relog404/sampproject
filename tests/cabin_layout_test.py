@@ -112,7 +112,7 @@ class CompactGridTest(unittest.TestCase):
 
     def test_the_server_sends_the_whole_grid(self):
         """80 ячеек карманов и рюкзака плюс то, что лежит рядом."""
-        grid = INV.split('stock RW_InvCef(playerid)', 1)[1].split('\nstock ', 1)[0]
+        grid = INV.split('stock RW_InvCef(playerid, bool:opening = true)', 1)[1].split('\nstock ', 1)[0]
         self.assertIn('for (new i; i < INV_SLOTS; i++)', grid)
         self.assertIn('RW_InvCefCell(playerid, 80 + i,', grid)
         self.assertNotIn('gInvTD', INV)

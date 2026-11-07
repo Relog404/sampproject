@@ -160,7 +160,14 @@
     grid.appendChild(cell(id, label, note, amount, !!selected, style || ''));
   });
 
+  /* Обновление раз в секунду: чистим только сетку. Карточку не трогаем,
+     иначе открытое описание вещи закрывалось бы само каждую секунду. */
+  RW.on('inv:redraw', function () {
+    if (grid) grid.innerHTML = '';
+  });
+
   RW.on('inv:context', function (id, title, desc, stats) {
+    if (id < 0) { if (card) card.className = 'inv-card'; return; }
     build();
     cardActions.innerHTML = '';
     cardTitle.textContent = title || '';

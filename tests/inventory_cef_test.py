@@ -32,6 +32,7 @@ def block(src, signature):
 
 INV = pawn('inventory')
 CEF = pawn('cefui')
+STUB = pawn('cefstub')
 CORE = pawn('core')
 PAGE = (ROOT / 'server/scriptfiles/cef/railway/js/inventory.js').read_text(encoding='utf-8')
 HTML = (ROOT / 'server/scriptfiles/cef/railway/index.html').read_text(encoding='utf-8')
@@ -58,12 +59,12 @@ class InventoryModeTest(unittest.TestCase):
 class InventoryGridTest(unittest.TestCase):
     def test_opening_prefers_the_browser(self):
         open_ = block(INV, 'stock RW_InvOpen(playerid)')
-        self.assertIn('if (RW_CefOn(playerid)) { gUIMode[playerid] = UI_INVENTORY; return RW_InvCef(playerid); }', open_)
+        self.assertIn('if (RW_CefOn(playerid)) { gUIMode[playerid] = UI_INVENTORY; return RW_InvCef(playerid, true); }', open_)
         # без браузера игроку честно говорят, что инвентарь — страница
         self.assertIn('Инвентарь открывается в браузере', open_)
 
     def test_the_grid_shows_equipment_pockets_bag_and_the_ground(self):
-        grid = block(INV, 'stock RW_InvCef(playerid)')
+        grid = block(INV, 'stock RW_InvCef(playerid, bool:opening = true)')
         self.assertIn('RW_InvCefCell(playerid, 131,', grid)     # рюкзак
         self.assertIn('RW_InvCefCell(playerid, 132,', grid)     # оружие
         self.assertIn('RW_InvCefCell(playerid, 133,', grid)     # броня
@@ -72,7 +73,7 @@ class InventoryGridTest(unittest.TestCase):
         self.assertIn('return RW_CefInvEnd(playerid);', grid)
 
     def test_a_locked_bag_is_shown_but_not_filled(self):
-        grid = block(INV, 'stock RW_InvCef(playerid)')
+        grid = block(INV, 'stock RW_InvCef(playerid, bool:opening = true)')
         self.assertIn('if (i >= INV_MAIN && !hasBag) { RW_CefInvCell(playerid, i, "", "", 0, 0, "locked"); continue; }', grid)
 
     def test_the_page_draws_cells_and_asks_for_the_card_on_the_right_button(self):
@@ -112,8 +113,8 @@ class InventoryClickTest(unittest.TestCase):
 
     def test_actions_run_the_same_functions_as_the_commands(self):
         click = block(INV, 'stock RW_InvCefClick(playerid, id)')
-        self.assertIn('if (action == INV_CEF_ACT_DROP) { RW_InvDrop(playerid); return RW_InvCef(playerid); }', click)
-        self.assertIn('if (action == INV_CEF_ACT_TAKE) { RW_GroundTake(playerid); return RW_InvCef(playerid); }', click)
+        self.assertIn('if (action == INV_CEF_ACT_DROP) { RW_InvDrop(playerid); return RW_InvCef(playerid, false); }', click)
+        self.assertIn('if (action == INV_CEF_ACT_TAKE) { RW_GroundTake(playerid); return RW_InvCef(playerid, false); }', click)
         self.assertIn('RW_InvTransfer(playerid,', click)
         self.assertIn('if (id == INV_CEF_CLOSE) return RW_UI_Close(playerid);', click)
 
@@ -121,9 +122,30 @@ class InventoryClickTest(unittest.TestCase):
         click = block(INV, 'stock RW_InvCefClick(playerid, id)')
         # четыре действия перерисовывают сетку, пятое (левый клик) тоже:
         # «Взять в руки» и «Использовать» закрывают инвентарь перед действием.
-        self.assertEqual(click.count('return RW_InvCef(playerid);'), 5)
-        self.assertIn('if (action == INV_CEF_ACT_WEAR) { RW_InvWearSelected(playerid); return RW_InvCef(playerid); }', click)
+        self.assertEqual(click.count('return RW_InvCef(playerid, false);'), 5)
+        self.assertIn('if (action == INV_CEF_ACT_WEAR) { RW_InvWearSelected(playerid); return RW_InvCef(playerid, false); }', click)
         self.assertIn('if (action == INV_CEF_ACT_USE) { RW_UI_Close(playerid); return RW_InvUseSelected(playerid); }', click)
+
+    def test_the_grid_is_refreshed_without_grabbing_the_focus(self):
+        """Перерисовка раз в секунду не трогает фокус: иначе браузер снова
+        перехватывает ввод каждую секунду и клик по кнопке пропадает."""
+        self.assertIn('if (opening) {', block(INV, 'stock RW_InvCef(playerid, bool:opening = true)'))
+        self.assertIn('} else RW_CefInvRefresh(playerid);', block(INV, 'stock RW_InvCef(playerid, bool:opening = true)'))
+        render = block(INV, 'stock RW_InvRender(playerid)')
+        self.assertIn('return RW_InvCef(playerid, false);', render)
+        self.assertNotIn('RW_CefInvOpen', render)
+        self.assertIn('CEF_EmitEvent(playerid, CEF_UI_MENU, "inv:redraw");', CEF)
+        self.assertIn('stock RW_CefInvRefresh(playerid)', CEF)
+        self.assertIn('stock RW_CefInvRefresh(playerid)', STUB)
+        self.assertIn("RW.on('inv:redraw'", PAGE)
+        self.assertNotIn('show(true)', block(PAGE, "RW.on('inv:redraw'"))
+
+    def test_the_card_of_a_vanished_item_is_closed_by_the_server(self):
+        self.assertIn('if (gInvSelected[playerid] > 0 && !RW_InvKept(playerid, gInvSelected[playerid]))',
+                      block(INV, 'stock RW_InvCef(playerid, bool:opening = true)'))
+        self.assertIn('RW_CefInvInfo(playerid, -1, "", "", "");', INV)
+        self.assertIn('stock bool:RW_InvKept(playerid, uid)', INV)
+        self.assertIn('if (id < 0) { if (card) card.className = '  + "'inv-card'" + '; return; }', PAGE)
 
     def test_russian_item_names_are_built_once(self):
         title = block(INV, 'stock RW_InvTitle(')

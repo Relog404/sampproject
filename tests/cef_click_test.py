@@ -64,7 +64,7 @@ class ClickabilityTest(unittest.TestCase):
         у гаража это RW_CefEnd, у инвентаря — RW_CefInvEnd."""
         self.assertIn('return RW_CefEnd(playerid);', block(GARAGE, 'stock RW_GarageCef(playerid)'))
         self.assertIn('return RW_CefEnd(playerid);', block(GARAGE, 'stock RW_KeyMenuCef(playerid)'))
-        self.assertIn('return RW_CefInvEnd(playerid);', block(pawn('inventory'), 'stock RW_InvCef(playerid)'))
+        self.assertIn('return RW_CefInvEnd(playerid);', block(pawn('inventory'), 'stock RW_InvCef(playerid, bool:opening = true)'))
 
 
 class KeyMenuScreenTest(unittest.TestCase):

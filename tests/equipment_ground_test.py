@@ -91,7 +91,7 @@ class EquipmentSourceTest(unittest.TestCase):
         self.assertIn('gInvEquipped[playerid]>0) weight +=',INV)
     def test_equipment_slot_is_selectable_and_uses_real_equip_action(self):
         # слот рюкзака — ячейка 131 сетки; клик по ней выбирает вещь
-        grid = section('stock RW_InvCef(playerid)', '\nstock ')
+        grid = section('stock RW_InvCef(playerid, bool:opening = true)', '\nstock ')
         self.assertIn('RW_InvCefCell(playerid, 131,', grid)
         click = section('stock RW_InvCefClick(', '\nstock ')
         self.assertIn('gInvSelected[playerid] = gInvEquipped[playerid]', click)

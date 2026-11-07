@@ -44,6 +44,11 @@ stock RW_CefInvCell(playerid, id, const label[], const note[], amount, selected,
     #pragma unused playerid, id, label, note, amount, selected, style
     return 0;
 }
+stock RW_CefInvRefresh(playerid)
+{
+    #pragma unused playerid
+    return 0;
+}
 stock RW_CefInvInfo(playerid, id, const title[], const desc[], const stats[])
 {
     #pragma unused playerid, id, title, desc, stats

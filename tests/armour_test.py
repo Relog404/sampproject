@@ -167,7 +167,7 @@ class ArmourSourceTest(unittest.TestCase):
 
     def test_inventory_card(self):
         # слот брони в сетке страницы: RW_InvCef шлёт ячейку 133
-        grid = section(INV, 'stock RW_InvCef(playerid)', '\nstock ')
+        grid = section(INV, 'stock RW_InvCef(playerid, bool:opening = true)', '\nstock ')
         self.assertIn('RW_InvCefCell(playerid, 133, gInvWorn[playerid] > 0 ? ITEM_ARMOUR : 0,', grid)
         self.assertIn('gInvSelected[playerid] == gInvWorn[playerid]', grid)
         # «Надеть» — общая функция: её зовут и тексдрав-меню, и карточка в браузере.

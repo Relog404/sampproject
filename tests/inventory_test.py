@@ -150,7 +150,7 @@ class InventorySourceTests(unittest.TestCase):
         что лежит рядом. Тексдравов в инвентаре больше нет."""
         self.assertNotIn('gInvTD', INV)
         self.assertNotIn('RW_InvCreate', INV)
-        grid = section('stock RW_InvCef(playerid)', '\nstock ')
+        grid = section('stock RW_InvCef(playerid, bool:opening = true)', '\nstock ')
         self.assertIn('for (new i; i < INV_SLOTS; i++)', grid)
         self.assertIn('RW_InvCefCell(playerid, 131,', grid)
         self.assertIn('RW_InvCefCell(playerid, 132,', grid)

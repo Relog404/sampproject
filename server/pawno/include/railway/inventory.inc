@@ -382,7 +382,7 @@ stock RW_InvDrop(playerid)
 stock RW_InvRender(playerid)
 {
     #if RAILWAY_CEF
-        if (gUIMode[playerid] == UI_INVENTORY && RW_CefOn(playerid)) return RW_InvCef(playerid);
+        if (gUIMode[playerid] == UI_INVENTORY && RW_CefOn(playerid)) return RW_InvCef(playerid, false);
     #endif
     return 1;
 }
@@ -489,6 +489,15 @@ stock RW_InvTitle(type, data, amount, dest[], size = sizeof dest)
     return 1;
 }
 /* ќдна €чейка сетки. ѕуста€ уходит на страницу со стилем empty. */
+/* ¬идна ли вещь в сетке: карманы, рюкзак, земл€ р€дом или надетое. */
+stock bool:RW_InvKept(playerid, uid)
+{
+    if (uid <= 0) return false;
+    if (uid == gInvEquipped[playerid] || uid == gWpActive[playerid] || uid == gInvWorn[playerid]) return true;
+    if (RW_InvFind(playerid, uid) >= 0) return true;
+    for (new i; i < INV_NEAR; i++) if (gInvNear[playerid][i] == uid) return true;
+    return false;
+}
 stock RW_InvCefCell(playerid, id, type, data, amount, bool:selected)
 {
     if (type <= 0) return RW_CefInvCell(playerid, id, "", "", 0, 0, "empty");
@@ -497,11 +506,13 @@ stock RW_InvCefCell(playerid, id, type, data, amount, bool:selected)
     return RW_CefInvCell(playerid, id, label, "", amount, selected ? 1 : 0, "");
 }
 /* —етка: три слота экипировки, карманы, рюкзак и то, что лежит р€дом. */
-stock RW_InvCef(playerid)
+stock RW_InvCef(playerid, bool:opening = true)
 {
     new bool:hasBag = RW_InvPack(playerid) >= 0, subtitle[96];
     format(subtitle, sizeof subtitle, "%.1f / 50 кг", float(RW_InvWeight(playerid, 0)) / 1000.0);
-    if (!RW_CefInvOpen(playerid, "»нвентарь", subtitle)) return 0;
+    if (opening) {
+        if (!RW_CefInvOpen(playerid, "»нвентарь", subtitle)) return 0;
+    } else RW_CefInvRefresh(playerid);
     RW_InvCefCell(playerid, 131, hasBag ? ITEM_BACKPACK : 0, 0, 1,
         gInvSelected[playerid] > 0 && gInvSelected[playerid] == gInvEquipped[playerid]);
     RW_InvCefCell(playerid, 132, gWpActive[playerid] > 0 ? ITEM_WEAPON : 0, gWpWeapon[playerid], gWpAmmo[playerid],
@@ -521,6 +532,13 @@ stock RW_InvCef(playerid)
         RW_InvCefCell(playerid, 80 + i, ground < 0 ? 0 : gGround[ground][igType],
             ground < 0 ? 0 : gGround[ground][igData], ground < 0 ? 0 : gGround[ground][igAmount],
             gInvFromGround[playerid] && gInvNear[playerid][i] > 0 && gInvNear[playerid][i] == gInvSelected[playerid]);
+    }
+    /* ¬ыбранна€ вещь исчезла (выброшена, надета, убрана в рюкзак) Ч карточка
+       про неЄ больше не правда, поэтому сервер сам еЄ закрывает. */
+    if (gInvSelected[playerid] > 0 && !RW_InvKept(playerid, gInvSelected[playerid])) {
+        gInvSelected[playerid] = 0;
+        gInvFromGround[playerid] = false;
+        RW_CefInvInfo(playerid, -1, "", "", "");
     }
     return RW_CefInvEnd(playerid);
 }
@@ -585,10 +603,10 @@ stock RW_InvCefClick(playerid, id)
     if (id == INV_CEF_CLOSE) return RW_UI_Close(playerid);
     if (id >= INV_CEF_ACTION) {
         new action = id - INV_CEF_ACTION;
-        if (action == INV_CEF_ACT_DROP) { RW_InvDrop(playerid); return RW_InvCef(playerid); }
-        if (action == INV_CEF_ACT_TAKE) { RW_GroundTake(playerid); return RW_InvCef(playerid); }
-        if (action == INV_CEF_ACT_MOVE) { RW_InvTransfer(playerid, gInvFromGround[playerid] ? 0 : RW_InvSectionOf(playerid)); return RW_InvCef(playerid); }
-        if (action == INV_CEF_ACT_WEAR) { RW_InvWearSelected(playerid); return RW_InvCef(playerid); }
+        if (action == INV_CEF_ACT_DROP) { RW_InvDrop(playerid); return RW_InvCef(playerid, false); }
+        if (action == INV_CEF_ACT_TAKE) { RW_GroundTake(playerid); return RW_InvCef(playerid, false); }
+        if (action == INV_CEF_ACT_MOVE) { RW_InvTransfer(playerid, gInvFromGround[playerid] ? 0 : RW_InvSectionOf(playerid)); return RW_InvCef(playerid, false); }
+        if (action == INV_CEF_ACT_WEAR) { RW_InvWearSelected(playerid); return RW_InvCef(playerid, false); }
         if (action == INV_CEF_ACT_USE) { RW_UI_Close(playerid); return RW_InvUseSelected(playerid); }
         return 1;
     }
@@ -599,7 +617,7 @@ stock RW_InvCefClick(playerid, id)
     else if (id == 132) { gInvSelected[playerid] = gWpActive[playerid]; gInvFromGround[playerid] = false; }
     else if (id == 133) { gInvSelected[playerid] = gInvWorn[playerid]; gInvFromGround[playerid] = false; }
     else if (id >= 0 && id < INV_SLOTS) { gInvSelected[playerid] = gInv[playerid][id][iiUid]; gInvFromGround[playerid] = false; }
-    return RW_InvCef(playerid);
+    return RW_InvCef(playerid, false);
 }
 /* ѕереложить: из карманов Ч в рюкзак, из рюкзака Ч в карманы. */
 stock RW_InvSectionOf(playerid)
@@ -619,7 +637,7 @@ stock RW_InvOpen(playerid)
     if (gUIInput[playerid] || gInvFitting[playerid]) return 1;
     RW_UI_Close(playerid, true);
     #if RAILWAY_CEF
-        if (RW_CefOn(playerid)) { gUIMode[playerid] = UI_INVENTORY; return RW_InvCef(playerid); }
+        if (RW_CefOn(playerid)) { gUIMode[playerid] = UI_INVENTORY; return RW_InvCef(playerid, true); }
     #endif
     /* »нвентарь Ч страница в браузере; без браузера вещи выдаютс€ и
        забираютс€ командами: /inv, /give, /take. */

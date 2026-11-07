@@ -407,6 +407,15 @@ stock RW_CefInvCell(playerid, id, const label[], const note[], amount, selected,
         CEF_INT(amount), CEF_INT(selected), CEF_STR(style));
     return 1;
 }
+/* ќбновление открытого инвентар€: только €чейки. ‘окус не трогаем Ч иначе
+   браузер перехватывает ввод заново каждую секунду, курсор не убираетс€ и
+   первый клик после перерисовки пропадает. */
+stock RW_CefInvRefresh(playerid)
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_EmitEvent(playerid, CEF_UI_MENU, "inv:redraw");
+    return 1;
+}
 stock RW_CefInvInfo(playerid, id, const title[], const desc[], const stats[])
 {
     if (!RW_CefOn(playerid)) return 0;
