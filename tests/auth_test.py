@@ -75,7 +75,8 @@ class AuthServerTest(unittest.TestCase):
 
     def test_the_card_opens_before_the_plain_dialog(self):
         openauth = block(UI, 'stock RW_UI_OpenAuth(playerid)')
-        self.assertIn('RW_UI_SelectEnd(playerid);', openauth)
+        self.assertIn('if (RW_CefAuthOpen(playerid, !RW_DB_AccountExists(authNick), authNick, "")) return 1;', openauth)
+        self.assertNotIn('RW_UI_SelectEnd', openauth)
         self.assertIn('RW_CefAuthOpen(playerid, !RW_DB_AccountExists(authNick), authNick, "")', openauth)
 
     def test_an_error_comes_back_into_the_card(self):

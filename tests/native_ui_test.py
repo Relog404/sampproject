@@ -111,12 +111,13 @@ class NativeInterfaceTest(unittest.TestCase):
         """Клик по тексдрав-панели удалён: панель рисует браузер, а без
         него игрок отвечает в нативном диалоге."""
         self.assertNotIn('public OnPlayerClickPlayerTextDraw', self.main)
+        self.assertNotIn('public OnPlayerClickTextDraw', self.main)
         self.assertNotIn('gUI[playerid]', self.main)
         self.assertNotIn('gUI[playerid]', self.ui)
-        close = body(self.ui, 'stock RW_UI_Close(playerid,', 'stock RW_UI_OpenAuth')
-        self.assertLess(close.index('gUIMode[playerid] = 0'), close.index('RW_UI_SelectEnd'))
-        cancel = body(self.main, 'public OnPlayerClickTextDraw', 'public OnPlayerKeyStateChange')
-        self.assertIn('gUIInput[playerid]', cancel)
+        # курсор SelectTextDraw нужен был только чтобы кликать по тексдравам
+        for marker in ('RW_UI_SelectBegin', 'RW_UI_SelectEnd', 'gUISelecting', 'gUIExpectedCancels'):
+            self.assertNotIn(marker, self.ui)
+            self.assertNotIn(marker, self.main)
         reset = self.ui.split('stock RW_UI_Reset', 1)[1]
         self.assertNotIn('PlayerTextDrawDestroy', reset)
         self.assertNotIn('gUICreated', reset)
@@ -227,10 +228,12 @@ class NativeInterfaceTest(unittest.TestCase):
             self.assertIn(name, imported)
         # панели рисуются в браузере: тексдравов в сборке не осталось
         for name in ('CreatePlayerTextDraw', 'PlayerTextDrawSetString', 'PlayerTextDrawShow',
-                     'PlayerTextDrawSetPreviewModel', 'PlayerTextDrawDestroy'):
+                     'PlayerTextDrawSetPreviewModel', 'PlayerTextDrawDestroy',
+                     'SelectTextDraw', 'CancelSelectTextDraw'):
             self.assertNotIn(name, imported)
-        self.assertNotIn('OnPlayerClickPlayerTextDraw', exported)
-        for name in ('OnPlayerClickTextDraw', 'OnPlayerKeyStateChange'):
+        for name in ('OnPlayerClickPlayerTextDraw', 'OnPlayerClickTextDraw'):
+            self.assertNotIn(name, exported)
+        for name in ('OnPlayerKeyStateChange', 'OnPlayerRequestClass'):
             self.assertIn(name, exported)
 
 if __name__ == '__main__':

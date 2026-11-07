@@ -159,16 +159,19 @@ class InventorySourceTests(unittest.TestCase):
         self.assertIn('SetPlayerAttachedObject(playerid, INV_ATTACH, 3026', INV)
 
     def test_inventory_callbacks_run_before_the_dialog_guard(self):
+        """Колбэки тексдравов удалены: ответ приходит из браузера или из
+        нативного диалога, а инвентарь разбирает его до проверки UI."""
         main = (ROOT/'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
-        click = main.split('public OnPlayerClickTextDraw',1)[1].split('public OnPlayerKeyStateChange',1)[0]
-        self.assertNotIn('RW_InvClick', click)
-        self.assertNotIn('RW_GarageClick', click)
-        self.assertNotIn('RW_KeyMenuClick', click)
-        cancel = main.split('public OnPlayerClickTextDraw',1)[1].split('public OnPlayerKeyStateChange',1)[0]
-        self.assertLess(cancel.index('UI_INVENTORY'), cancel.index('gUIOnCef'))
+        for callback in ('public OnPlayerClickTextDraw', 'public OnPlayerClickPlayerTextDraw'):
+            self.assertNotIn(callback, main)
         ui = pawn('ui')
         guard = ui.split('stock RW_UI_NativeResponse',1)[1].split('stock RW_UI_Init',1)[0]
         self.assertIn('gUIOnCef[playerid]', guard)
+        self.assertIn('RW_UI_Click(playerid, gUINativeMap[playerid][listitem]);', guard)
+        click = pawn('interaction').split('stock RW_UI_Click(',1)[1].split('\n}',1)[0]
+        self.assertNotIn('RW_InvClick', click)
+        self.assertIn('} else if (mode == UI_GARAGE) {', click)
+        self.assertIn('return RW_GarageCefClick(playerid, row);', click)
         self.assertIn('RW_InvReset(playerid)', ui)
     def test_admin_grants_and_console_only_admin_assignment(self):
         grant = INV.split('stock RW_InvGiveCommand',1)[1]

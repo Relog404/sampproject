@@ -37,8 +37,6 @@
 /* Тексдрав-превью удалено: машину в карточке рисует страница. */
 new bool:gUIInput[MAX_PLAYERS];
 new bool:gUIRussianDialogs[MAX_PLAYERS];   /* старый переключатель, оставлен для совместимости */
-new bool:gUISelecting[MAX_PLAYERS];
-new gUIExpectedCancels[MAX_PLAYERS];
 new gUIMode[MAX_PLAYERS], gUIBind[MAX_PLAYERS], gUIPage[MAX_PLAYERS];
 new gUITarget[MAX_PLAYERS][6], gToastStart[MAX_PLAYERS];
 new bool:gToastActive[MAX_PLAYERS], bool:gUIHasNext[MAX_PLAYERS];
@@ -50,22 +48,6 @@ new gUINativeTimer[MAX_PLAYERS], gUINativeCount[MAX_PLAYERS];
 new gUICefTimer[MAX_PLAYERS];
 new gUINativeTitle[MAX_PLAYERS][64], gUINativeSubtitle[MAX_PLAYERS][96];
 new gUINativeRows[MAX_PLAYERS][UI_ROWS][128], gUINativeMap[MAX_PLAYERS][UI_ROWS];
-// CancelSelectTextDraw generates INVALID_TEXT_DRAW too. Never cancel an
-// inactive cursor, and clear state BEFORE the native can invoke callbacks.
-stock RW_UI_SelectBegin(playerid)
-{
-    gUISelecting[playerid] = true;
-    SelectTextDraw(playerid, 0xD8C39BFF);
-    return 1;
-}
-stock RW_UI_SelectEnd(playerid)
-{
-    if (!gUISelecting[playerid]) return 1;
-    gUISelecting[playerid] = false;
-    gUIExpectedCancels[playerid]++;
-    CancelSelectTextDraw(playerid);
-    return 1;
-}
 stock RW_UI_ScheduleNative(playerid)
 {
     if (gUINativeTimer[playerid] == 0) gUINativeTimer[playerid] = SetTimerEx("RW_UI_FlushNative", 50, false, "i", playerid);
@@ -191,7 +173,6 @@ stock RW_UI_Panel(playerid, mode, const title[], const subtitle[])
         return 1;
     }
     gUIOnCef[playerid] = false;
-    RW_UI_SelectEnd(playerid);
     return RW_UI_ScheduleNative(playerid);
 }
 stock RW_UI_Row(playerid, row, const text[])
@@ -202,6 +183,7 @@ stock RW_UI_Row(playerid, row, const text[])
 }
 stock RW_UI_Close(playerid, bool:keepSelection = false)
 {
+    #pragma unused keepSelection
     gUIOnCef[playerid] = false;
     RW_UI_CancelCef(playerid);
     RW_CefClose(playerid);
@@ -218,14 +200,12 @@ stock RW_UI_Close(playerid, bool:keepSelection = false)
     gUIMode[playerid] = 0;
     gControlMode[playerid] = 0;
     gUIInput[playerid] = false;
-    if (!keepSelection) RW_UI_SelectEnd(playerid);
     if (gLogged[playerid] && GetPlayerState(playerid) == PLAYER_STATE_DRIVER) RW_UI_SpeedoShow(playerid, GetPlayerVehicleID(playerid));
     return 1;
 }
 stock RW_UI_OpenAuth(playerid)
 {
-    /* Зависший курсор мешает войти: сначала убираем выбор текстов. */
-    RW_UI_SelectEnd(playerid);
+    /* Карточка входа в браузере; без него спрашивает нативный диалог. */
     if (!gLogged[playerid]) {
         new authNick[MAX_PLAYER_NAME];
         RW_GetNick(playerid, authNick);
@@ -239,7 +219,6 @@ stock RW_UI_OpenAuth(playerid)
 stock RW_UI_PasswordBegin(playerid)
 {
     gUIInput[playerid] = true;
-    RW_UI_SelectEnd(playerid);
 }
 stock RW_UI_CloseAuth(playerid) { return RW_UI_Close(playerid); }
 stock RW_UI_SpeedoShow(playerid, vehicleid)
@@ -286,8 +265,5 @@ stock RW_UI_Reset(playerid)
     if (IsPlayerConnected(playerid)) ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
     gUIMode[playerid] = 0; gControlMode[playerid] = 0;
     gUIInput[playerid] = false; gToastActive[playerid] = false;
-    if (IsPlayerConnected(playerid)) RW_UI_SelectEnd(playerid);
-    gUISelecting[playerid] = false;
-    gUIExpectedCancels[playerid] = 0;
     return 1;
 }

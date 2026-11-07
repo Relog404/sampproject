@@ -43,7 +43,8 @@ class CompactRussianUiTest(unittest.TestCase):
         self.assertNotIn('gUILatin', self.ui)
         self.assertIn('gUIRussianDialogs[playerid] = true', self.main)
         commands = source('commands')
-        self.assertIn('"tdlatin"', commands)
+        self.assertNotIn('"tdlatin"', commands)
+        self.assertNotIn('"uitd"', commands)
         self.assertIn('"tdrus"', commands)
         for text in ('Lock doors', 'Insert key', 'Passengers', 'Settings', 'Choose key'):
             self.assertIn(text, self.control)

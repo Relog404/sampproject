@@ -1,10 +1,11 @@
 # Station garage, permanent cars and admin driving tools
 
-All system UI, login screens, notifications, chat messages and command help
-are now **English**. `/uinative` selects native SA-MP menus; `/uitd` selects
-compact TextDraw menus. `/uiru` and `/tdrus` remain compatibility aliases for
-native menus, but do not switch the language back to Russian. Inventory and
-garage always use TextDraw.
+The interface is drawn by the browser: menus, inventory, HUD and notices are
+pages in `server/scriptfiles/cef/railway` and every label is Russian. Without
+the omp-cef client the very same menus open as native SA-MP dialogs, which
+support Cyrillic too. There are no TextDraws left on the server, so `/uitd`
+and `/tdlatin` are gone; `/uinative`, `/uiru` and `/tdrus` only print a
+reminder about the browser.
 
 ## Station booth
 

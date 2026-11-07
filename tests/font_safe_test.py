@@ -47,12 +47,17 @@ class FontSafeInterfaceTest(unittest.TestCase):
         self.assertIn('gMapPending[playerid] && gMapHasPoint[playerid] && row == 0', control)
 
     def test_old_commands_do_not_reenable_raw_font_output(self):
+        """Команд переключения латиницы больше нет: /uitd и /tdlatin удалены,
+        а старые алиасы просто напоминают про браузер."""
         commands = src('commands')
-        for command in ('"tdrus"','"uiru"','"tdlatin"','"uitd"'):
+        for command in ('"tdrus"','"uiru"','"uinative"'):
             self.assertIn(command, commands)
+        for command in ('"tdlatin"','"uitd"'):
+            self.assertNotIn(command, commands)
         language = src('interaction').split('stock RW_UI_Language',1)[1]
-        self.assertIn('gUIRussianDialogs[playerid] = !latin', language)
+        self.assertIn('gUIRussianDialogs[playerid] = true', language)
         self.assertNotIn('gUILatin', language)
+        self.assertNotIn('latin ?', language)
 
 if __name__ == '__main__':
     unittest.main()

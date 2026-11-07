@@ -364,13 +364,14 @@ stock RW_MapPrompt(playerid)
     RW_UI_Row(playerid, 1, "No, stay here");
     return 1;
 }
-stock RW_UI_Language(playerid, bool:latin)
+/* ѕереключать нечего: панели рисуютс€ в браузере, без него Ч русские диалоги. */
+stock RW_UI_Language(playerid)
 {
-    if (gUIInput[playerid]) return RW_ControlNotify(playerid, "Finish or cancel password input first.");
-    gUIRussianDialogs[playerid] = !latin;
+    if (gUIInput[playerid]) return RW_ControlNotify(playerid, "—начала закончите ввод парол€.");
+    gUIRussianDialogs[playerid] = true;
     RW_UI_Close(playerid);
     if (!gLogged[playerid]) return RW_UI_OpenAuth(playerid);
-    return RW_ControlNotify(playerid, latin ? ("TextDraw panels enabled. /uiru - native dialogs.") : ("Native dialogs enabled. /uitd - TextDraw panels. All text is English."));
+    return RW_ControlNotify(playerid, "ћеню открываютс€ в браузере; без него Ч русские окна SA-MP.");
 }
 
 #if RAILWAY_CEF

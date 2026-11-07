@@ -534,22 +534,6 @@ public OnPlayerClickMap(playerid, Float:fX, Float:fY, Float:fZ)
 }
 
 
-public OnPlayerClickTextDraw(playerid, Text:clickedid)
-{
-    if (clickedid != Text:INVALID_TEXT_DRAW) return 0;
-    // Consume cancellation echoes even if a new panel is already selecting.
-    if (gUIExpectedCancels[playerid] > 0) { gUIExpectedCancels[playerid]--; return 1; }
-    // Programmatic cancellation has already cleared this flag. A genuine
-    // client Esc consumes the current selection once, without another cancel.
-    if (!gUISelecting[playerid]) return 1;
-    gUISelecting[playerid] = false;
-    if (gUIInput[playerid]) return 1;
-    if (gUIMode[playerid] == UI_INVENTORY) return RW_UI_Close(playerid);
-    if (gUIOnCef[playerid]) return 1;
-    if (gUIMode[playerid] == UI_AUTH && !gLogged[playerid]) RW_UI_SelectBegin(playerid);
-    else if (gUIMode[playerid] != 0) RW_UI_Close(playerid);
-    return 1;
-}
 public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
 {
     if (!gLogged[playerid] || gUIMode[playerid] != 0 || gUIInput[playerid] || gInvFitting[playerid]) return 1;
