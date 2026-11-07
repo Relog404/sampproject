@@ -625,6 +625,144 @@ stock RW_InvRender(playerid)
     PlayerTextDrawSetString(playerid, gInvTD[playerid][153], text);
     return RW_InvContextRender(playerid);
 }
+/*  ---------------------------------- CEF ---------------------------------- */
+/*  Инвентарь в браузере: сетка ячеек, по правой кнопке сервер присылает      *
+ *  карточку вещи — название, описание, вес — и кнопки действий.              *
+ *  Кнопки и ячейки отвечают одним числом в RW_CefClick (см. RW_InvCefClick).  */
+#define INV_CEF_CONTEXT         1000    /* правая кнопка: карточка вещи      */
+#define INV_CEF_ACTION          2000    /* кнопка действия в карточке        */
+#define INV_CEF_CLOSE           3000    /* закрыть инвентарь                 */
+#define INV_CEF_ACT_DROP        1       /* выбросить                         */
+#define INV_CEF_ACT_MOVE        2       /* переложить: карманы <-> рюкзак    */
+#define INV_CEF_ACT_TAKE        3       /* поднять с земли                   */
+
+/* Короткое название вещи: и в ячейке, и в шапке карточки. */
+stock RW_InvTitle(type, data, amount, dest[], size = sizeof dest)
+{
+    if (type == ITEM_BACKPACK) format(dest, size, "Рюкзак");
+    else if (type == ITEM_WEAPON) RW_WeaponName(data, dest, size);
+    else if (type == ITEM_AMMO) { new cname[16]; RW_CaliberName(data, cname, sizeof cname); format(dest, size, "Патроны %s", cname); }
+    else if (type == ITEM_BANDAGE) format(dest, size, "Бинт");
+    else if (type == ITEM_SYRINGE) format(dest, size, "Адреналин");
+    else if (type == ITEM_ARMOUR) RW_ArmourName(data, dest, size);
+    else if (type == ITEM_SIM) { new tname[32]; RW_PhoneTariffName(data, tname, sizeof tname); format(dest, size, "SIM %s", tname); }
+    else if (type == ITEM_PHONE) RW_PhoneName(data, dest, size);
+    else if (type == ITEM_CUFFS || type == ITEM_TASER || type == ITEM_BATON || type == ITEM_BADGE) RW_PoliceItemName(type, data, dest, size);
+    else if (type == ITEM_DEFIB) format(dest, size, "Дефибриллятор");
+    else if (type == ITEM_MEDKIT) format(dest, size, "Аптечка");
+    else if (type == ITEM_LOCKPICK) format(dest, size, "Отмычка");
+    else if (type == ITEM_TUNING) { new pname[24]; RW_TuneName(data, pname, sizeof pname); format(dest, size, "%s L%d", pname, amount); }
+    else if (type == ITEM_PHOTO) { new pname[24]; RW_PhotoPlaceName(data, pname, sizeof pname); format(dest, size, "Фото %s", pname); }
+    else if (type == ITEM_CHEM) format(dest, size, "Прекурсор");
+    else if (type == ITEM_GREEN) format(dest, size, "Шишки");
+    else RW_TrunkName(type, data, dest, size);
+    return 1;
+}
+/* Одна ячейка сетки. Пустая уходит на страницу со стилем empty. */
+stock RW_InvCefCell(playerid, id, type, data, amount, bool:selected)
+{
+    if (type <= 0) return RW_CefInvCell(playerid, id, "", "", 0, 0, "empty");
+    new label[40];
+    RW_InvTitle(type, data, amount, label, sizeof label);
+    return RW_CefInvCell(playerid, id, label, "", amount, selected ? 1 : 0, "");
+}
+/* Сетка: три слота экипировки, карманы, рюкзак и то, что лежит рядом. */
+stock RW_InvCef(playerid)
+{
+    new bool:hasBag = RW_InvPack(playerid) >= 0, subtitle[96];
+    format(subtitle, sizeof subtitle, "%.1f / 50 кг", float(RW_InvWeight(playerid, 0)) / 1000.0);
+    if (!RW_CefInvOpen(playerid, "Инвентарь", subtitle)) return 0;
+    RW_InvCefCell(playerid, 131, hasBag ? ITEM_BACKPACK : 0, 0, 1,
+        gInvSelected[playerid] > 0 && gInvSelected[playerid] == gInvEquipped[playerid]);
+    RW_InvCefCell(playerid, 132, gWpActive[playerid] > 0 ? ITEM_WEAPON : 0, gWpWeapon[playerid], gWpAmmo[playerid],
+        gWpActive[playerid] > 0 && gInvSelected[playerid] == gWpActive[playerid]);
+    RW_InvCefCell(playerid, 133, gInvWorn[playerid] > 0 ? ITEM_ARMOUR : 0, gArmourData[playerid], 1,
+        gInvWorn[playerid] > 0 && gInvSelected[playerid] == gInvWorn[playerid]);
+    for (new i; i < INV_SLOTS; i++) {
+        if (i >= INV_MAIN && !hasBag) { RW_CefInvCell(playerid, i, "", "", 0, 0, "locked"); continue; }
+        RW_InvCefCell(playerid, i, gInv[playerid][i][iiType], gInv[playerid][i][iiData], gInv[playerid][i][iiAmount],
+            !gInvFromGround[playerid] && gInv[playerid][i][iiUid] > 0 && gInv[playerid][i][iiUid] == gInvSelected[playerid]);
+    }
+    new count;
+    for (new i; i < INV_WORLD && count < INV_NEAR; i++) if (RW_InvNearGround(playerid, i)) gInvNear[playerid][count++] = gGround[i][igUid];
+    for (new i = count; i < INV_NEAR; i++) gInvNear[playerid][i] = 0;
+    for (new i; i < INV_NEAR; i++) {
+        new ground = RW_InvGroundFind(gInvNear[playerid][i]);
+        RW_InvCefCell(playerid, 80 + i, ground < 0 ? 0 : gGround[ground][igType],
+            ground < 0 ? 0 : gGround[ground][igData], ground < 0 ? 0 : gGround[ground][igAmount],
+            gInvFromGround[playerid] && gInvNear[playerid][i] > 0 && gInvNear[playerid][i] == gInvSelected[playerid]);
+    }
+    return RW_CefInvEnd(playerid);
+}
+/* Карточка вещи по правой кнопке: описание, вес и кнопки действий. */
+stock RW_InvCefContext(playerid, slot)
+{
+    new uid = 0, type = 0, data = 0, amount = 0, bool:ground = false;
+    if (slot >= 80 && slot < 130) { uid = gInvNear[playerid][slot - 80]; ground = uid > 0; }
+    else if (slot == 131) uid = gInvEquipped[playerid];
+    else if (slot == 132) uid = gWpActive[playerid];
+    else if (slot == 133) uid = gInvWorn[playerid];
+    else if (slot >= 0 && slot < INV_SLOTS) uid = gInv[playerid][slot][iiUid];
+    if (!uid) return RW_CefInvInfo(playerid, slot, "Пусто", "Свободная ячейка.", "");
+    gInvSelected[playerid] = uid;
+    gInvFromGround[playerid] = ground;
+    if (ground) {
+        new index = RW_InvGroundFind(uid);
+        if (index < 0 || !RW_InvNearGround(playerid, index)) return 1;
+        type = gGround[index][igType]; data = gGround[index][igData]; amount = gGround[index][igAmount];
+    }
+    else if (slot == 132) { type = ITEM_WEAPON; data = gWpWeapon[playerid]; amount = gWpAmmo[playerid]; }
+    else if (slot == 133) { type = ITEM_ARMOUR; data = gArmourData[playerid]; amount = 1; }
+    else if (slot == 131) { type = ITEM_BACKPACK; data = 0; amount = 1; }
+    else {
+        new found = RW_InvFind(playerid, uid);
+        if (found < 0) return 1;
+        type = gInv[playerid][found][iiType]; data = gInv[playerid][found][iiData]; amount = gInv[playerid][found][iiAmount];
+    }
+    new title[40], desc[128], stats[128];
+    RW_InvTitle(type, data, amount, title, sizeof title);
+    if (type == ITEM_WEAPON) format(desc, sizeof desc, "В руках: %d патронов.", amount);
+    else if (type == ITEM_AMMO) format(desc, sizeof desc, "Патронов в пачке: %d.", amount);
+    else if (ground) format(desc, sizeof desc, "Лежит на земле: поднимите.");
+    else format(desc, sizeof desc, "Вещь лежит в инвентаре.");
+    format(stats, sizeof stats, "Вес: %.2f кг", float(RW_InvGrams(type, data, amount)) / 1000.0);
+    RW_CefInvInfo(playerid, slot, title, desc, stats);
+    if (ground) RW_CefInvAction(playerid, INV_CEF_ACT_TAKE, "Поднять", "ok");
+    else {
+        if (RW_InvCanRemove(playerid, slot)) RW_CefInvAction(playerid, INV_CEF_ACT_DROP, "Выбросить", "danger");
+        if (RW_InvPack(playerid) >= 0 && slot < INV_SLOTS)
+            RW_CefInvAction(playerid, INV_CEF_ACT_MOVE, slot < INV_MAIN ? ("В рюкзак") : ("В карманы"), "");
+    }
+    return RW_CefInvEnd(playerid);
+}
+/* Ответ страницы: ячейка, правая кнопка по ячейке или кнопка в карточке. */
+stock RW_InvCefClick(playerid, id)
+{
+    if (id == INV_CEF_CLOSE) return RW_UI_Close(playerid);
+    if (id >= INV_CEF_ACTION) {
+        new action = id - INV_CEF_ACTION;
+        if (action == INV_CEF_ACT_DROP) { RW_InvDrop(playerid); return RW_InvCef(playerid); }
+        if (action == INV_CEF_ACT_TAKE) { RW_GroundTake(playerid); return RW_InvCef(playerid); }
+        if (action == INV_CEF_ACT_MOVE) { RW_InvTransfer(playerid, gInvFromGround[playerid] ? 0 : RW_InvSectionOf(playerid)); return RW_InvCef(playerid); }
+        return 1;
+    }
+    if (id >= INV_CEF_CONTEXT) return RW_InvCefContext(playerid, id - INV_CEF_CONTEXT);
+    /* Левая кнопка: просто выбрать вещь и перерисовать сетку. */
+    if (id >= 80 && id < 130) { gInvSelected[playerid] = gInvNear[playerid][id - 80]; gInvFromGround[playerid] = gInvSelected[playerid] > 0; }
+    else if (id == 131) { gInvSelected[playerid] = gInvEquipped[playerid]; gInvFromGround[playerid] = false; }
+    else if (id == 132) { gInvSelected[playerid] = gWpActive[playerid]; gInvFromGround[playerid] = false; }
+    else if (id == 133) { gInvSelected[playerid] = gInvWorn[playerid]; gInvFromGround[playerid] = false; }
+    else if (id >= 0 && id < INV_SLOTS) { gInvSelected[playerid] = gInv[playerid][id][iiUid]; gInvFromGround[playerid] = false; }
+    return RW_InvCef(playerid);
+}
+/* Переложить: из карманов — в рюкзак, из рюкзака — в карманы. */
+stock RW_InvSectionOf(playerid)
+{
+    new slot = RW_InvFind(playerid, gInvSelected[playerid]);
+    if (slot < 0) return 0;
+    return slot < INV_MAIN ? 1 : 0;
+}
+
 stock RW_InvOpen(playerid)
 {
     if (gUIMode[playerid] == UI_INVENTORY) return RW_UI_Close(playerid);
@@ -633,6 +771,9 @@ stock RW_InvOpen(playerid)
     new pstate = GetPlayerState(playerid);
     if (pstate != PLAYER_STATE_ONFOOT && pstate != PLAYER_STATE_DRIVER && pstate != PLAYER_STATE_PASSENGER) return 1;
     if (gUIInput[playerid] || gInvFitting[playerid]) return 1;
+    #if RAILWAY_CEF
+        if (RW_CefOn(playerid)) { RW_UI_Close(playerid, true); return RW_InvCef(playerid); }
+    #endif
     RW_UI_Close(playerid, true);
     for (new i = 12; i <= 18; i++) PlayerTextDrawHide(playerid, gUI[playerid][i]);
     RW_InvCreate(playerid);

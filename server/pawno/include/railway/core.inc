@@ -122,6 +122,7 @@ forward RW_LawyerCallFor(playerid, target);
 #define CEF_MODE_CRIME              (17)
 #define CEF_MODE_FAMILY             (18)
 #define CEF_MODE_GOV                (19)
+#define CEF_MODE_INVENTORY          (20)
 /* Настройки интерфейса: их читают модули, подключённые раньше menu.inc. */
 #define SET_HUD             (1)         /* экранный интерфейс              */
 #define SET_HINTS           (2)         /* подсказки клавиш                */

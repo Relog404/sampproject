@@ -34,6 +34,31 @@ stock RW_CefToast(playerid, const text[], kind = 0)
     #pragma unused playerid, text, kind
     return 0;
 }
+stock RW_CefInvOpen(playerid, const title[], const subtitle[])
+{
+    #pragma unused playerid, title, subtitle
+    return 0;
+}
+stock RW_CefInvCell(playerid, id, const label[], const note[], amount, selected, const style[])
+{
+    #pragma unused playerid, id, label, note, amount, selected, style
+    return 0;
+}
+stock RW_CefInvInfo(playerid, id, const title[], const desc[], const stats[])
+{
+    #pragma unused playerid, id, title, desc, stats
+    return 0;
+}
+stock RW_CefInvAction(playerid, id, const label[], const style[] = "")
+{
+    #pragma unused playerid, id, label, style
+    return 0;
+}
+stock RW_CefInvEnd(playerid)
+{
+    #pragma unused playerid
+    return 0;
+}
 stock RW_CefClose(playerid)
 {
     #pragma unused playerid

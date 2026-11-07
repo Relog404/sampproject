@@ -322,6 +322,46 @@ public RW_CefClick(playerid, browserid, id)
     if (gCefMode[playerid] == CEF_MODE_CRIME) return RW_CrimeCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_FAMILY) return RW_FamilyCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_GOV) return RW_GovCefClick(playerid, id);
+    if (gCefMode[playerid] == CEF_MODE_INVENTORY) return RW_InvCefClick(playerid, id);
+    return 1;
+}
+
+/*  --------------------------- инвентарь (страница) ------------------------ */
+/*  У инвентаря своя страница: сетка ячеек, по правой кнопке сервер присылает
+    карточку вещи (название, описание, вес) и кнопки действий.                 */
+
+stock RW_CefInvOpen(playerid, const title[], const subtitle[])
+{
+    if (!RW_CefOn(playerid)) return 0;
+    gCefMode[playerid] = CEF_MODE_INVENTORY;
+    CEF_SetBrowserVisible(playerid, CEF_UI_MENU, true);
+    CEF_FocusBrowser(playerid, CEF_UI_MENU, true);
+    CEF_EmitEvent(playerid, CEF_UI_MENU, "inv:open", CEF_STR(title), CEF_STR(subtitle));
+    return 1;
+}
+stock RW_CefInvCell(playerid, id, const label[], const note[], amount, selected, const style[])
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_EmitEvent(playerid, CEF_UI_MENU, "inv:cell", CEF_INT(id), CEF_STR(label), CEF_STR(note),
+        CEF_INT(amount), CEF_INT(selected), CEF_STR(style));
+    return 1;
+}
+stock RW_CefInvInfo(playerid, id, const title[], const desc[], const stats[])
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_EmitEvent(playerid, CEF_UI_MENU, "inv:context", CEF_INT(id), CEF_STR(title), CEF_STR(desc), CEF_STR(stats));
+    return 1;
+}
+stock RW_CefInvAction(playerid, id, const label[], const style[] = "")
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_EmitEvent(playerid, CEF_UI_MENU, "inv:action", CEF_INT(id), CEF_STR(label), CEF_STR(style));
+    return 1;
+}
+stock RW_CefInvEnd(playerid)
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_EmitEvent(playerid, CEF_UI_MENU, "inv:end");
     return 1;
 }
 
