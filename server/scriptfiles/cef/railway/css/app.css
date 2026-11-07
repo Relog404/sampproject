@@ -273,6 +273,24 @@ html, body { background: transparent; }
          backdrop-filter: blur(4px); pointer-events: auto; cursor: pointer;
          transition: opacity .18s ease, transform .18s ease; }
 .bonus.off { opacity: 0; transform: translateY(-8px); pointer-events: none; }
+.speedo { position: absolute; right: 26px; bottom: 26px; width: 188px; padding: 12px 14px 10px;
+          border-radius: 14px; background: rgba(14,18,26,.45);
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,.10), 0 12px 28px rgba(0,0,0,.30);
+          backdrop-filter: blur(4px); opacity: 0; transform: translateY(8px);
+          transition: opacity .18s ease, transform .18s ease; pointer-events: none; }
+.speedo.on { opacity: 1; transform: none; }
+.speedo-name { font-size: 12px; color: rgba(242,244,248,.72); white-space: nowrap; overflow: hidden;
+               text-overflow: ellipsis; }
+.speedo-value { display: flex; align-items: baseline; gap: 6px; }
+.speedo-value #speedoNum { font-size: 42px; font-weight: 600; letter-spacing: .02em; color: #F5B04C; }
+.speedo-unit { font-size: 12px; color: rgba(242,244,248,.62); }
+.speedo-gear { position: absolute; right: 16px; top: 34px; font-size: 24px; font-weight: 600;
+               color: rgba(242,244,248,.9); }
+.speedo-flags { margin-top: 4px; font-size: 11px; color: rgba(242,244,248,.62); }
+.speedo-rpm { margin-top: 8px; height: 3px; border-radius: 3px; background: rgba(255,255,255,.12); }
+.speedo-rpm-fill { width: 1%; height: 100%; border-radius: 3px; background: #F5B04C;
+                   transition: width .12s linear; }
+
 .bonus-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .bonus-head-title { font-size: 13px; font-weight: 600; letter-spacing: .02em; color: #F5B04C; }
 .bonus-min { width: 24px; height: 24px; padding: 0; border: 0; border-radius: 8px; cursor: pointer;

@@ -186,16 +186,7 @@ stock RW_UI_Init()
 stock RW_UI_Create(playerid)
 {
     if (gUICreated[playerid]) return 1;
-    gUI[playerid][12] = RW_TD_Box(playerid, 508.0, 349.0, 118.0, 82.0, 0x171B23E8);
-    gUI[playerid][13] = RW_TD_Label(playerid, 518.0, 355.0, "Vehicle", 0.18);
-    gUI[playerid][14] = RW_TD_Label(playerid, 518.0, 366.0, "000", 0.72);
-    PlayerTextDrawLetterSize(playerid, gUI[playerid][14], 0.72, 2.5);
-    gUI[playerid][15] = RW_TD_Label(playerid, 518.0, 392.0, "km/h", 0.16);
-    gUI[playerid][16] = RW_TD_Label(playerid, 597.0, 373.0, "N", 0.4);
-    PlayerTextDrawLetterSize(playerid, gUI[playerid][16], 0.4, 1.6);
-    gUI[playerid][17] = RW_TD_Label(playerid, 518.0, 405.0, "Key -  Engine -", 0.14);
-    PlayerTextDrawLetterSize(playerid, gUI[playerid][17], 0.14, 0.75);
-    gUI[playerid][18] = RW_TD_Box(playerid, 518.0, 425.0, 1.0, 2.0, 0xD8C39BFF);
+    /* 12..18 были тексдрав-спидометром: он переехал в HUD-страницу. */
     /* 19..21 были тексдравом всплывашки: уведомления ушли в браузер. */
     gUICreated[playerid] = true;
     gUIMode[playerid] = 0;
@@ -336,34 +327,22 @@ stock RW_UI_CloseAuth(playerid) { return RW_UI_Close(playerid); }
 stock RW_UI_SpeedoShow(playerid, vehicleid)
 {
     if (!RW_SettingsOn(playerid, SET_SPEEDO)) return 0;
-    RW_UI_Create(playerid);
-    new name[48]; RW_VehicleName(GetVehicleModel(vehicleid), name, sizeof name);
-    RW_UI_Text(playerid, 13, name);
-    if (gUIMode[playerid] == 0) for (new i = 12; i <= 18; i++) PlayerTextDrawShow(playerid, gUI[playerid][i]);
+    new name[48];
+    RW_VehicleName(GetVehicleModel(vehicleid), name, sizeof name);
+    RW_CefHudSpeedo(playerid, true, name, 0, 0, 0, 0);
     gSpeedoShown[playerid] = true; gSpeedoVehicle[playerid] = vehicleid;
     return 1;
 }
 stock RW_UI_SpeedoHide(playerid)
 {
-    if (gUICreated[playerid]) for (new i = 12; i <= 18; i++) PlayerTextDrawHide(playerid, gUI[playerid][i]);
+    RW_CefHudSpeedo(playerid, false, "", 0, 0, 0, 0);
     gSpeedoShown[playerid] = false; gSpeedoVehicle[playerid] = INVALID_VEHICLE_ID;
     return 1;
 }
 stock RW_UI_SpeedoUpdate(playerid, speed, gear, rpm, flags)
 {
     if (gUIMode[playerid] != 0) return 1;
-    new buf[96]; format(buf, sizeof buf, "%03d", speed); RW_UI_Text(playerid, 14, buf);
-    if (gear < 0) format(buf, sizeof buf, "R");
-    else if (gear == 0) format(buf, sizeof buf, "N");
-    else format(buf, sizeof buf, "%d", gear);
-    RW_UI_Text(playerid, 16, buf);
-    format(buf, sizeof buf, "Key %s  Engine %s~n~Doors %s", (flags & 2) ? ("+") : ("-"), (flags & 1) ? ("+") : ("-"), (flags & 4) ? ("open") : ("locked"));
-    RW_UI_Text(playerid, 17, buf);
-    new Float:width = float(rpm)*96.0/6500.0;
-    if (width < 1.0) width = 1.0; if (width > 96.0) width = 96.0;
-    PlayerTextDrawTextSize(playerid, gUI[playerid][18], width, 2.0);
-    PlayerTextDrawShow(playerid, gUI[playerid][18]);
-    return 1;
+    return RW_CefHudSpeedo(playerid, true, "", speed, gear, rpm, flags);
 }
 // Notices: kind 0 plain, 1 ok, 2 error. The text already went to the chat in
 // RW_Info / RW_Ok / RW_Error, so the notice is only the browser toast — no

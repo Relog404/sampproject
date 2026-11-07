@@ -146,6 +146,31 @@
   });
 
   /* Режим мыши: включается командой /mouse, иначе курсор не мешает играть. */
+  /* Спидометр: сервер шлёт имя машины, скорость, передачу, обороты и флаги
+     (1 — мотор, 2 — ключ, 4 — двери). Пустое имя значит «имя не менять». */
+  var speedo = document.getElementById('speedo');
+  var speedoName = document.getElementById('speedoName');
+  var speedoNum = document.getElementById('speedoNum');
+  var speedoGear = document.getElementById('speedoGear');
+  var speedoFlags = document.getElementById('speedoFlags');
+  var speedoRpm = document.getElementById('speedoRpm');
+
+  RW.on('hud:speedo', function (on, name, speed, gear, rpm, flags) {
+    if (!speedo) return;
+    if (!on) { speedo.className = 'speedo'; return; }
+    if (name) speedoName.textContent = name;
+    speedoNum.textContent = ('00' + (speed || 0)).slice(-3);
+    speedoGear.textContent = gear < 0 ? 'R' : (gear === 0 ? 'N' : String(gear));
+    speedoFlags.textContent = 'Ключ ' + (flags & 2 ? '+' : '-') +
+      '  Мотор ' + (flags & 1 ? '+' : '-') +
+      '  Двери ' + (flags & 4 ? 'открыты' : 'закрыты');
+    var percent = (rpm || 0) / 6500 * 100;
+    if (percent < 1) percent = 1;
+    if (percent > 100) percent = 100;
+    speedoRpm.style.width = percent + '%';
+    speedo.className = 'speedo on';
+  });
+
   RW.on('hud:mouse', function (on) {
     hud.classList.toggle('mouse', !!on);
   });

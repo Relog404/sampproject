@@ -374,6 +374,14 @@ stock RW_CefInvEnd(playerid)
 
 /*  ------------------------------- HUD events ------------------------------ */
 /*  HUD получает только готовые данные: радар, подсказки и карточку бонуса.  */
+/* —пидометр: им€ машины, скорость, передача, обороты и флаги (ключ, мотор, двери). */
+stock RW_CefHudSpeedo(playerid, bool:on, const name[], speed, gear, rpm, flags)
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_EmitEvent(playerid, CEF_UI_HUD, "hud:speedo", CEF_INT(on ? 1 : 0), CEF_STR(name),
+        CEF_INT(speed), CEF_INT(gear), CEF_INT(rpm), CEF_INT(flags));
+    return 1;
+}
 stock RW_CefHudRadar(playerid, angle, const blips[], const zone[])
 {
     if (!RW_CefOn(playerid)) return 0;

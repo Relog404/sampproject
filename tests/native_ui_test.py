@@ -136,12 +136,24 @@ class NativeInterfaceTest(unittest.TestCase):
         self.assertIn('RW_ControlExecute(playerid, gControlVehicle[playerid], 4, gUITarget', self.control)
         self.assertIn('gUIHasNext[playerid]', self.control)
 
-    def test_hud_not_rendered_over_open_menu(self):
+    def test_the_speedometer_lives_on_the_hud_page(self):
+        """Спидометр рисует HUD-страница: сервер шлёт цифры, тексдравов нет."""
         show = body(self.ui, 'stock RW_UI_SpeedoShow', 'stock RW_UI_SpeedoHide')
-        self.assertIn('if (gUIMode[playerid] == 0)', show)
+        self.assertIn('RW_CefHudSpeedo(playerid, true, name, 0, 0, 0, 0);', show)
+        self.assertIn('if (!RW_SettingsOn(playerid, SET_SPEEDO)) return 0;', show)
+        hide = body(self.ui, 'stock RW_UI_SpeedoHide', '// Notices use')
+        self.assertIn('RW_CefHudSpeedo(playerid, false, "", 0, 0, 0, 0);', hide)
+        self.assertIn('gSpeedoShown[playerid] = false', hide)
         update = body(self.ui, 'stock RW_UI_SpeedoUpdate', '// Notices use')
         self.assertIn('if (gUIMode[playerid] != 0) return 1', update)
-        self.assertIn('gSpeedoShown[playerid] = false', self.ui)
+        self.assertIn('RW_CefHudSpeedo(playerid, true, "", speed, gear, rpm, flags);', update)
+        for marker in ('gUI[playerid][12]', 'gUI[playerid][14]', 'gUI[playerid][18]'):
+            self.assertNotIn(marker, self.ui)
+        # страница умеет показывать и скрывать спидометр
+        page = (ROOT / 'server/scriptfiles/cef/railway/js/hud.js').read_text(encoding='utf-8')
+        self.assertIn("RW.on('hud:speedo'", page)
+        self.assertIn("speedo.className = 'speedo on'", page)
+        self.assertIn("speedo.className = 'speedo'", page)
 
     def test_notifications_never_touch_a_textdraw(self):
         """Уведомления рисует браузер; тексдравов-всплывашек больше нет.

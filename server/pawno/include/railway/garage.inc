@@ -126,7 +126,6 @@ stock RW_GarageOpen(playerid, bool:resetPage = true)
     #if RAILWAY_CEF
         if (RW_CefOn(playerid)) return RW_GarageCef(playerid);
     #endif
-    for (new i = 12; i <= 18; i++) PlayerTextDrawHide(playerid, gUI[playerid][i]);
     for (new i; i < 13; i++) PlayerTextDrawShow(playerid, gGarageTD[playerid][i]);
     new previewModel;
     for (new row; row < 6; row++) {
