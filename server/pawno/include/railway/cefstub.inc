@@ -124,6 +124,11 @@ stock RW_CefInputClose(playerid)
     #pragma unused playerid
     return 0;
 }
+stock RW_CefHudGps(playerid, const text[])
+{
+    #pragma unused playerid, text
+    return 0;
+}
 stock RW_CefHudWallet(playerid, bank, cash, hour, minute)
 {
     #pragma unused playerid, bank, cash, hour, minute

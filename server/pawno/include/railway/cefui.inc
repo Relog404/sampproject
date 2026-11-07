@@ -86,6 +86,7 @@ stock RW_CefInit()
     CEF_RegisterEvent("phone:911", "RW_CefPhone911", Argument_Integer);
     CEF_RegisterEvent("phone:close", "RW_CefPhoneClosed");
     CEF_RegisterEvent("hud:mousetoggle", "RW_HudMouseEvent", Argument_Integer);
+    CEF_RegisterEvent("hud:gps", "RW_GpsEvent", Argument_String);
     CEF_RegisterEvent("ui:answer", "RW_CefInputSubmit", Argument_String);
     CEF_RegisterEvent("auth:submit", "RW_CefAuthSubmit", Argument_String, Argument_String);
     SetTimer("RW_CefPulse", 1000, true);
@@ -140,13 +141,20 @@ public RW_CefPulse()
 {
     if (!gCefEnabled) return 1;
     for (new p; p < MAX_PLAYERS; p++) {
-        if (gCefReady[p] || !IsPlayerConnected(p) || !gLogged[p]) continue;
-        if (CEF_PlayerHasPlugin(p)) RW_CefStart(p);
+        if (gCefReady[p] || !IsPlayerConnected(p)) continue;
+        if (!CEF_PlayerHasPlugin(p)) continue;
+        RW_CefStart(p);
+        /* Браузер поднялся — вход показываем в нём. Раньше CEF стартовал
+           только после входа, поэтому окно авторизации всегда оставалось
+           нативным диалогом и auth.html не видел никто. */
+        if (!gLogged[p]) RW_UI_OpenAuth(p);
     }
     /* Страховка: если ни одной панели не открыто, фокус держать некому.
        Застрявший курсор мыши на экране лечится сам, за секунду. */
     for (new p; p < MAX_PLAYERS; p++) {
-        if (!gCefReady[p] || !IsPlayerConnected(p) || !gLogged[p]) continue;
+        if (!gCefReady[p] || !IsPlayerConnected(p)) continue;
+        /* Своё окно — со своим фокусом: вход, телефон и поле ввода. */
+        if (gCefAuth[p] || gPhoneShown[p] || RW_InputBusy(p)) continue;
         if (gCefMode[p] == CEF_MODE_NONE && gUIMode[p] == 0) RW_CefFocusRelease(p);
     }
     return 1;
@@ -233,7 +241,11 @@ stock RW_CefFocusRelease(playerid)
 {
     if (!RW_CefOn(playerid)) return 0;
     CEF_FocusBrowser(playerid, CEF_UI_MENU, false);
-    CEF_FocusBrowser(playerid, CEF_UI_AUTH, false);
+    /* Телефон и HUD — отдельные окна со своим фокусом: гасим их, только
+       когда они и правда закрыты или мышь выключена сама. */
+    if (!gPhoneShown[playerid]) CEF_FocusBrowser(playerid, CEF_UI_PHONE, false);
+    if (!gHudMouse[playerid]) CEF_FocusBrowser(playerid, CEF_UI_HUD, false);
+    if (!gCefAuth[playerid]) CEF_FocusBrowser(playerid, CEF_UI_AUTH, false);
     return 1;
 }
 stock RW_CefClose(playerid)
@@ -380,6 +392,7 @@ public RW_CefClick(playerid, browserid, id)
     if (gCefMode[playerid] == CEF_MODE_CRIME) return RW_CrimeCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_FAMILY) return RW_FamilyCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_GOV) return RW_GovCefClick(playerid, id);
+    if (gCefMode[playerid] == CEF_MODE_GPS) return RW_GpsAction(playerid, id, true);
     if (gCefMode[playerid] == CEF_MODE_INVENTORY) return RW_InvCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_GARAGE) return RW_GarageCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_KEYS) return RW_KeyMenuCefClick(playerid, id);
@@ -489,6 +502,14 @@ stock RW_CefInputClose(playerid)
     RW_CefFocusRelease(playerid);
     CEF_SetBrowserVisible(playerid, CEF_UI_MENU, false);
     CEF_EmitEvent(playerid, CEF_UI_MENU, "ui:close");
+    return 1;
+}
+
+/* Навигатор: метка стоит на карте, а HUD показывает, сколько осталось. */
+stock RW_CefHudGps(playerid, const text[])
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_EmitEvent(playerid, CEF_UI_HUD, "hud:gps", CEF_STR(text));
     return 1;
 }
 

@@ -35,6 +35,7 @@
 #define UI_FAMILY 28
 #define UI_GOV 29
 #define UI_INPUT 30                /* поле ввода: цена, ставка, сумма */
+#define UI_GPS 31                  /* навигатор: куда ехать            */
 /* Тексдрав-превью удалено: машину в карточке рисует страница. */
 new bool:gUIInput[MAX_PLAYERS];
 new bool:gUIRussianDialogs[MAX_PLAYERS];   /* старый переключатель, оставлен для совместимости */
@@ -145,6 +146,7 @@ stock RW_UI_CefMode(mode)
     if (mode == UI_STORY) return CEF_MODE_STORY;
     if (mode == UI_MARKET) return CEF_MODE_MARKET;
     if (mode == UI_INPUT) return CEF_MODE_INPUT;
+    if (mode == UI_GPS) return CEF_MODE_GPS;
     if (mode == UI_CRIME) return CEF_MODE_CRIME;
     if (mode == UI_FAMILY) return CEF_MODE_FAMILY;
     if (mode == UI_GOV) return CEF_MODE_GOV;
@@ -202,6 +204,7 @@ stock RW_UI_Close(playerid, bool:keepSelection = false)
     gUIMode[playerid] = 0;
     gControlMode[playerid] = 0;
     gUIInput[playerid] = false;
+    gCefAuth[playerid] = false;
     if (gLogged[playerid] && GetPlayerState(playerid) == PLAYER_STATE_DRIVER) RW_UI_SpeedoShow(playerid, GetPlayerVehicleID(playerid));
     return 1;
 }
@@ -211,7 +214,12 @@ stock RW_UI_OpenAuth(playerid)
     if (!gLogged[playerid]) {
         new authNick[MAX_PLAYER_NAME];
         RW_GetNick(playerid, authNick);
-        if (RW_CefAuthOpen(playerid, !RW_DB_AccountExists(authNick), authNick, "")) return 1;
+        if (RW_CefAuthOpen(playerid, !RW_DB_AccountExists(authNick), authNick, "")) {
+            gCefAuth[playerid] = true;
+            /* Диалог-запасник больше не нужен: иначе он висит поверх окна. */
+            ShowPlayerDialog(playerid, -1, 0, "", "", "", "");
+            return 1;
+        }
         /* Браузера нет: логин и пароль спрашивает нативный диалог. */
         gUIMode[playerid] = UI_AUTH;
         return RW_ShowLoginDialog(playerid);

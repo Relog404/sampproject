@@ -137,6 +137,15 @@
     hud.classList.toggle('mouse', !!on);
   });
 
+  /* Навигатор: метка на карте, расстояние — цифрами. Пустая строка гасит. */
+  var gps = document.getElementById('gps');
+  RW.on('hud:gps', function (text) {
+    if (!gps) return;
+    if (!text) { gps.className = 'gps'; gps.textContent = ''; return; }
+    gps.textContent = text;
+    gps.className = 'gps on';
+  });
+
   /* Local preview: hud.html?fake=1 shows everything a player sees, and a
      dark backdrop stands in for the game picture behind the glass. */
   if (RW.demo()) {

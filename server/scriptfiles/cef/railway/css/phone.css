@@ -6,6 +6,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Подложка во весь экран лежит слоем выше меню, поэтому ловить клики
+     должен только сам телефон: иначе пустое место съедает нажатия. */
+  pointer-events: none;
 }
 
 .device {
@@ -20,6 +23,9 @@
   transform: translateY(18px) scale(0.96);
   transition: opacity 420ms var(--ease), transform 520ms var(--spring);
 }
+.device { pointer-events: auto; }
+/* Выключенный телефон не ловит ничего: он прозрачный, но всё ещё на экране. */
+.device:not(.on) { pointer-events: none; }
 .device.on { opacity: 1; transform: translateY(0) scale(1); }
 
 .screen {

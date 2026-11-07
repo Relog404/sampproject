@@ -22,6 +22,21 @@ def pawn(path):
     return path.read_text(encoding='cp1251')
 
 CEFUI_SRC = pawn(CEFUI)
+
+
+def block(src, signature):
+    start = src.index(signature)
+    depth = 0
+    for i in range(start + len(signature) - 1, len(src)):
+        if src[i] == '{':
+            depth += 1
+        elif src[i] == '}':
+            depth -= 1
+            if depth == 0:
+                return src[start:i + 1]
+    raise AssertionError('не закрыт блок: %s' % signature)
+
+
 def strings(code):
     return re.findall(r'"([^"\r\n]+)"', code)
 
@@ -66,8 +81,28 @@ class PluginWiringTest(unittest.TestCase):
     def test_readiness_is_polled_not_assumed(self):
         """SA-MP builds may never fire OnCefReady, so we poll the plugin."""
         self.assertIn('SetTimer("RW_CefPulse", 1000, true);', CEFUI_SRC)
-        self.assertIn('if (CEF_PlayerHasPlugin(p)) RW_CefStart(p);', CEFUI_SRC)
+        self.assertIn('if (!CEF_PlayerHasPlugin(p)) continue;', CEFUI_SRC)
+        self.assertIn('RW_CefStart(p);', CEFUI_SRC)
         self.assertIn('public OnCefReady(playerid)', CEFUI_SRC)
+
+    def test_the_browser_starts_before_the_login(self):
+        """Раньше CEF поднимался только после входа, поэтому окно
+        авторизации всегда оставалось нативным диалогом: auth.html из
+        игры видно не было."""
+        pulse = block(CEFUI_SRC, 'public RW_CefPulse()')
+        self.assertIn('if (gCefReady[p] || !IsPlayerConnected(p)) continue;', pulse)
+        self.assertIn('if (!gLogged[p]) RW_UI_OpenAuth(p);', pulse)
+        self.assertNotIn('!gLogged[p]) continue;', pulse)
+
+    def test_a_window_of_its_own_keeps_the_focus(self):
+        """Вход, телефон и поле ввода держат фокус сами: страховка от
+        застрявшего курсора не должна его вырывать."""
+        pulse = block(CEFUI_SRC, 'public RW_CefPulse()')
+        self.assertIn('if (gCefAuth[p] || gPhoneShown[p] || RW_InputBusy(p)) continue;', pulse)
+        release = block(CEFUI_SRC, 'stock RW_CefFocusRelease(playerid)')
+        self.assertIn('if (!gPhoneShown[playerid]) CEF_FocusBrowser(playerid, CEF_UI_PHONE, false);', release)
+        self.assertIn('if (!gHudMouse[playerid]) CEF_FocusBrowser(playerid, CEF_UI_HUD, false);', release)
+        self.assertIn('if (!gCefAuth[playerid]) CEF_FocusBrowser(playerid, CEF_UI_AUTH, false);', release)
 
     def test_missing_plugin_leaves_the_native_interface(self):
         """The probe runs first; if it aborts, CEF stays off and nothing calls it."""

@@ -252,6 +252,8 @@ stock RW_UI_Click(playerid, row)
         return RW_FamilyClick(playerid, row);
     } else if (mode == UI_GOV) {
         return RW_GovClick(playerid, row);
+    } else if (mode == UI_GPS) {
+        return RW_GpsAction(playerid, row, false);
     } else if (mode == UI_DONATE) {
         return RW_DonateClick(playerid, row);
     } else if (mode == UI_STORY) {

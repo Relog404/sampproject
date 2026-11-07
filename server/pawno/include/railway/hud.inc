@@ -20,7 +20,6 @@
 #define HUD_CLOCK_UNKNOWN   (-99)       /* сдвиг ещё не посчитан       */
 
 new bool:gHudOn[MAX_PLAYERS];           /* HUD включён                     */
-new bool:gHudMouse[MAX_PLAYERS];        /* курсор включён командой /mouse  */
 new gHudTick[MAX_PLAYERS];              /* счётчик пакетов радара          */
 new gClockShift = HUD_CLOCK_UNKNOWN;    /* сдвиг локального времени к UTC  */
 new gHudBank[MAX_PLAYERS];              /* что уже показано: деньги        */
@@ -113,6 +112,7 @@ public RW_HudPulse()
 {
     for (new playerid; playerid < MAX_PLAYERS; playerid++) {
         if (!IsPlayerConnected(playerid) || !gLogged[playerid]) continue;
+        RW_GpsPulse(playerid);
         if (!RW_CefOn(playerid) || !gHudOn[playerid]) continue;
         gHudTick[playerid]++;
         if (gHudTick[playerid] % 4 == 0) RW_HudHints(playerid);

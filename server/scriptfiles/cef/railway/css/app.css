@@ -209,6 +209,9 @@ html, body {
   position: fixed;
   left: 50%;
   bottom: 96px;
+  /* Самый верхний слой: уведомление читают, а не нажимают, поэтому
+     клики сквозь него должны идти дальше — в меню под ним. */
+  pointer-events: none;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column-reverse;
@@ -329,6 +332,15 @@ body.fake { background: #16191f radial-gradient(circle at 22% 96%, #2a2f38 0, #1
                    transition: width .12s linear; }
 
 
+/* ------------------------------ навигатор ------------------------------- */
+.gps { position: fixed; left: 50%; top: 74px; transform: translateX(-50%);
+       padding: 5px 12px; border-radius: 999px; opacity: 0;
+       font: 600 12.5px/1 "Segoe UI", Roboto, sans-serif; color: #16191F;
+       background: linear-gradient(180deg, #F7C77E, #E9A44A);
+       box-shadow: 0 6px 18px rgba(0,0,0,.35); pointer-events: none;
+       transition: opacity .18s ease; }
+.gps.on { opacity: .96; }
+
 /* ------------------------------ авторизация ----------------------------- */
 .auth-body { background: transparent; overflow: hidden; }
 .auth { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
@@ -365,3 +377,10 @@ body.fake { background: #16191f radial-gradient(circle at 22% 96%, #2a2f38 0, #1
 .auth-link { border: 0; background: none; cursor: pointer; padding: 0; font: inherit;
              color: #F5B04C; text-decoration: underline; }
 .auth-foot { margin-top: 12px; font-size: 10px; line-height: 1.4; color: rgba(242,244,248,.4); }
+
+/* ------------------- скроллбар: прокрутка есть, полосы нет -------------- */
+/* CEF рисует полосу поверх игры: она цепляет взгляд и закрывает пол-экрана.
+   Прокручивать колесом и таскать можно и без неё. */
+* { scrollbar-width: none; -ms-overflow-style: none; }
+*::-webkit-scrollbar { width: 0; height: 0; display: none; }
+html, body { overscroll-behavior: none; }

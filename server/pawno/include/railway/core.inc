@@ -34,6 +34,8 @@ forward RW_PropTaxTick(playerid);
 forward RW_PropPulse();
 forward RW_PropSale(playerid, price);
 forward RW_HudPulse();
+/* Навигатор: метка на карте и расстояние до неё. Живёт в city.inc. */
+forward RW_GpsPulse(playerid);
 /* Ввод в браузере: цена, ставка, сумма. Клик вместо команды в чате. */
 forward RW_CefInputSubmit(playerid, browserid, const value[]);
 forward RW_InputOpen(playerid, kind, arg, const title[], const subtitle[], const hint[]);
@@ -142,6 +144,7 @@ forward RW_LawyerCallFor(playerid, target);
 #define CEF_MODE_BIND               (25)
 #define CEF_MODE_MAP                (26)
 #define CEF_MODE_INPUT            (27)
+#define CEF_MODE_GPS              (28)
 
 /*  ------------------------------ поле ввода ------------------------------ */
 #define INPUT_NONE          (0)
@@ -278,6 +281,7 @@ forward RW_LawyerCallFor(playerid, target);
 #define DIALOG_REGISTER_CONFIRM      (9102)
 #define DIALOG_NATIVE_MENU           (9103)
 #define RW_MAP_ICON                  (99)
+#define GPS_ICON                 (98)      /* метка навигатора               */
 
 /* ------------------------------------------------------------------ слоты авто */
 enum E_VEHICLE_SLOT
@@ -347,7 +351,9 @@ new gArmourObject[MAX_PLAYERS];     /* server object used for a custom TXD    */
 new bool:gArmourFitting[MAX_PLAYERS];
 new gArmourFitSkin[MAX_PLAYERS], gArmourFitUid[MAX_PLAYERS];
 new bool:gCefEnabled;                /* the CEF plugin answered the probe    */
-new bool:gCefReady[MAX_PLAYERS];     /* browsers created for this player     */
+new bool:gCefReady[MAX_PLAYERS];
+new bool:gCefAuth[MAX_PLAYERS];        /* окно входа открыто в браузере        */
+new bool:gHudMouse[MAX_PLAYERS];        /* мышь включена командой /mouse     */
 new gCefMode[MAX_PLAYERS];           /* which CEF screen is open             */
 new gCabinVehicle[MAX_PLAYERS];
 new gCabinSeat[MAX_PLAYERS];

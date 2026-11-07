@@ -122,3 +122,147 @@ stock RW_CityWelcome(playerid)
     return 1;
 }
 stock RW_CityReset(playerid) { gCityWelcomed[playerid] = false; return 1; }
+
+/*  -------------------------------- навигатор ----------------------------- */
+/*  /gps ставит метку на карте и ведёт до неё: метка видна на радаре, а HUD
+    показывает, сколько осталось. Ехать надо самому — это не телепорт.       */
+#define GPS_ARRIVE              25.0    /* приехали                        */
+#define GPS_MAX_PLACES          10
+
+static const Float:gGpsPlace[GPS_MAX_PLACES][3] = {
+    { 1742.9, -1862.6, 13.6 },      /* вокзал Unity Station               */
+    { 1175.8, -1324.7, 15.4 },      /* больница All Saints                */
+    { 1544.6, -1675.5, 13.6 },      /* полиция, Pershing Square           */
+    { 1352.4, -1759.4, 13.5 },      /* мэрия, Даунтаун                    */
+    { 2244.4, -1665.4, 13.5 },      /* магазин 24/7, Гантон               */
+    { 1004.0, -939.0, 42.2 },       /* банкомат и заправка, Темпл         */
+    { 1595.5, -2235.9, 13.5 },      /* заправка, Оушен-Докс               */
+    { 2745.0, -2372.0, 13.6 },      /* биржа труда, Оушен-Докс            */
+    { 1635.0, -1700.0, 13.6 },      /* штрафстоянка                       */
+    { 1833.4, -1842.4, 13.5 }       /* магазин 24/7, Юнити                */
+};
+static const gGpsPlaceName[GPS_MAX_PLACES][] = {
+    "Вокзал", "Больница", "Полиция", "Мэрия", "Магазин Гантон",
+    "Банк Темпл", "Заправка Оушен-Докс", "Биржа труда", "Штрафстоянка", "Магазин Юнити"
+};
+
+new bool:gGpsOn[MAX_PLAYERS];
+new Float:gGpsX[MAX_PLAYERS], Float:gGpsY[MAX_PLAYERS], Float:gGpsZ[MAX_PLAYERS];
+new gGpsLabel[MAX_PLAYERS][32];
+new gGpsLeft[MAX_PLAYERS];
+
+stock RW_GpsCount() { return GPS_MAX_PLACES; }
+
+stock RW_GpsClear(playerid)
+{
+    if (!gGpsOn[playerid]) return 0;
+    gGpsOn[playerid] = false;
+    gGpsLeft[playerid] = 0;
+    gGpsLabel[playerid][0] = 0;
+    RemovePlayerMapIcon(playerid, GPS_ICON);
+    RW_CefHudGps(playerid, "");
+    return 1;
+}
+
+stock RW_GpsSet(playerid, index)
+{
+    if (index < 0 || index >= GPS_MAX_PLACES) return RW_Error(playerid, "Нет такого места: /gps без названия покажет список.");
+    gGpsOn[playerid] = true;
+    gGpsX[playerid] = gGpsPlace[index][0];
+    gGpsY[playerid] = gGpsPlace[index][1];
+    gGpsZ[playerid] = gGpsPlace[index][2];
+    format(gGpsLabel[playerid], 32, "%s", gGpsPlaceName[index]);
+    SetPlayerMapIcon(playerid, GPS_ICON, gGpsX[playerid], gGpsY[playerid], gGpsZ[playerid], 0, 0xF5B04CFF, MAPICON_GLOBAL);
+    RW_GpsPulse(playerid);
+    return RW_Ok(playerid, "Метка стоит: езжайте за ней. Снять — /gps off.");
+}
+
+/* Ищем место по началу названия: «вокз» найдёт «Вокзал». */
+stock RW_GpsFind(const text[])
+{
+    for (new i; i < GPS_MAX_PLACES; i++) if (strfind(gGpsPlaceName[i], text, true) == 0) return i;
+    for (new i; i < GPS_MAX_PLACES; i++) if (strfind(gGpsPlaceName[i], text, true) >= 0) return i;
+    return -1;
+}
+
+stock RW_GpsCommand(playerid, const params[])
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
+    new arg[32];
+    RW_MarketArgs(params, arg, sizeof arg, arg, sizeof arg, arg, sizeof arg);
+    if (!arg[0]) return RW_GpsOpen(playerid);
+    if (!strcmp(arg, "off", true) || !strcmp(arg, "сброс", true) || !strcmp(arg, "выкл", true)) {
+        if (!gGpsOn[playerid]) return RW_Info(playerid, "Метки и нет.");
+        RW_GpsClear(playerid);
+        return RW_Info(playerid, "Метка снята.");
+    }
+    new index = RW_GpsFind(arg);
+    if (index < 0) return RW_Error(playerid, "Нет такого места: /gps без названия покажет список.");
+    return RW_GpsSet(playerid, index);
+}
+
+stock RW_GpsRows(playerid)
+{
+    new row[64];
+    for (new i; i < GPS_MAX_PLACES; i++) {
+        format(row, sizeof row, "%s", gGpsPlaceName[i]);
+        RW_GpsRowOut(playerid, i, row, gGpsOn[playerid] ? "стоит" : "ехать", "target");
+    }
+    return 1;
+}
+stock RW_GpsRowOut(playerid, row, const text[], const arg[], const icon[])
+{
+    #if RAILWAY_CEF
+        if (RW_CefOn(playerid)) { RW_CefRow(playerid, row, text, arg, icon); return 1; }
+    #else
+        #pragma unused arg, icon
+    #endif
+    new line[160];
+    format(line, sizeof line, "%s / %s", text, arg);
+    RW_UI_Row(playerid, row, line);
+    return 1;
+}
+
+stock RW_GpsOpen(playerid)
+{
+    new subtitle[80];
+    format(subtitle, sizeof subtitle, "Куда ехать: %d мест", GPS_MAX_PLACES);
+    #if RAILWAY_CEF
+        if (RW_CefOpen(playerid, CEF_MODE_GPS, "Навигатор", subtitle)) {
+            RW_GpsRows(playerid);
+            RW_CefAction(playerid, 8, "Закрыть", "danger");
+            return RW_CefEnd(playerid);
+        }
+    #endif
+    RW_UI_Panel(playerid, UI_GPS, "Навигатор", subtitle);
+    RW_GpsRows(playerid);
+    RW_UI_Row(playerid, 7, "Закрыть");
+    return 1;
+}
+
+stock RW_GpsAction(playerid, row, bool:cef)
+{
+    if (row == (cef ? 8 : 7)) return RW_UI_Close(playerid);
+    if (row < 0 || row >= GPS_MAX_PLACES) return 1;
+    RW_GpsSet(playerid, row);
+    return RW_UI_Close(playerid);
+}
+
+/* Раз в секунду: сколько осталось и не приехали ли. */
+public RW_GpsPulse(playerid)
+{
+    if (!gGpsOn[playerid]) return 0;
+    new Float:x, Float:y, Float:z;
+    GetPlayerPos(playerid, x, y, z);
+    new left = floatround(floatsqroot((x - gGpsX[playerid]) * (x - gGpsX[playerid])
+        + (y - gGpsY[playerid]) * (y - gGpsY[playerid])));
+    if (left <= GPS_ARRIVE) {
+        RW_GpsClear(playerid);
+        return RW_Ok(playerid, "Вы на месте.");
+    }
+    if (left == gGpsLeft[playerid]) return 1;
+    gGpsLeft[playerid] = left;
+    new text[48];
+    format(text, sizeof text, "%s: %d м", gGpsLabel[playerid], left);
+    return RW_CefHudGps(playerid, text);
+}

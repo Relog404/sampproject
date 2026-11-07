@@ -409,6 +409,7 @@ stock RW_CommandProcess(playerid, cmdtext[])
     if (!strcmp(cmd, "bid", true)) return RW_PropBidCommand(playerid, params);
     if (!strcmp(cmd, "rob", true)) return RW_PropRobCommand(playerid);
     if (!strcmp(cmd, "hud", true)) return RW_HudCommand(playerid);
+    if (!strcmp(cmd, "gps", true)) return RW_GpsCommand(playerid, params);
     if (!strcmp(cmd, "mouse", true)) return RW_HudMouseCommand(playerid);
     if (!strcmp(cmd, "settings", true)) return RW_SettingsCommand(playerid);
     if (!strcmp(cmd, "set", true)) return RW_SetCommand(playerid, params);
