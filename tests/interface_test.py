@@ -67,9 +67,12 @@ class HudKeysTest(unittest.TestCase):
 
     def test_hints_change_with_the_situation(self):
         hints = block(HUD, 'stock RW_HudHints(playerid)')
-        self.assertIn('"N:engine;H:doors;"', hints)
+        # в машине — только двигатель: сесть в машину и открыть двери
+        # ситуативны, поэтому в подсказки не идут, а двигатель — глобальный.
+        self.assertIn('"N:engine;"', hints)
+        self.assertNotIn('H:doors;', hints)
         self.assertIn('"Y:interaction;"', hints)
-        self.assertIn('"AltY:mouse;"', hints)
+        self.assertIn('"AltBracket:phone;AltU:inventory;AltY:mouse;"', hints)
         self.assertNotIn('F2', HUD)
 
     def test_the_page_shows_the_hints_in_russian(self):
@@ -92,8 +95,10 @@ class HudKeysTest(unittest.TestCase):
         self.assertIn('forward RW_HudMouseToggle(playerid);', CORE)
         self.assertIn('stock RW_HudMouseToggle(playerid)', HUD)
         self.assertIn('stock RW_HudMouseCommand(playerid) { return RW_HudMouseToggle(playerid); }', HUD)
-        self.assertIn('"AltY:mouse;"', HUD)
+        self.assertIn('"AltBracket:phone;AltU:inventory;AltY:mouse;"', HUD)
         self.assertIn("mouse: 'Мышь'", SCRIPT)
+        self.assertIn("AltBracket: 'Alt + ['", SCRIPT)
+        self.assertIn("AltU: 'Alt + U'", SCRIPT)
         self.assertIn('Alt + Y - курсор мыши', CMDS)
 
     def test_the_mouse_is_hidden_until_the_player_asks_for_it(self):

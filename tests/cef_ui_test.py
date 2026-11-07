@@ -38,7 +38,8 @@ class PluginWiringTest(unittest.TestCase):
         cef = pawn(CEF)
         for native in ('CEF_AddResource', 'CEF_CreateBrowser', 'CEF_SetBrowserLayer',
                        'CEF_SetBrowserVisible', 'CEF_FocusBrowser', 'CEF_DestroyBrowser',
-                       'CEF_RegisterEvent', 'CEF_EmitEvent', 'CEF_PlayerHasPlugin'):
+                       'CEF_RegisterEvent', 'CEF_EmitEvent', 'CEF_PlayerHasPlugin',
+                       'CEF_SetKeyCapture', 'CEF_EnableKey', 'CEF_IsChatInputOpen'):
             self.assertRegex(cef, r'\bnative\s+(?:bool:)?%s\(' % native)
 
     def test_pluginless_build_is_possible(self):
@@ -185,6 +186,56 @@ class CursorFocusTest(unittest.TestCase):
         page = (PAGES / 'js/ui.js').read_text(encoding='utf-8')
         self.assertIn('if (RW.demo()) demo();', page)
         self.assertNotIn('if (!RW.ready()) demo();', page)
+
+
+class CapturedKeyTest(unittest.TestCase):
+    """Телефон и инвентарь открываются клавишами, которых SA-MP не отдаёт.
+
+    `[` и `U` сервер через OnPlayerKeyStateChange не видит, поэтому их
+    перехватывает плагин на уровне окна игры: OnCefPressKey приходит и без
+    фокуса браузера, то есть курсор для этого не нужен.
+    """
+
+    def setUp(self):
+        src = CEFUI_SRC
+        i = src.index('public OnCefPressKey(')
+        self.handler = src[i:src.index('\n}\n', i)]
+
+    def test_the_capture_is_switched_on_with_the_browsers(self):
+        self.assertIn('CEF_SetKeyCapture(playerid, true);', CEFUI_SRC)
+        self.assertIn('CEF_EnableKey(playerid, CEF_VK_BRACKET, true);', CEFUI_SRC)
+        self.assertIn('CEF_EnableKey(playerid, CEF_VK_U, true);', CEFUI_SRC)
+        self.assertIn('RW_CefKeys(playerid);', CEFUI_SRC)
+        reset = CEFUI_SRC.split('stock RW_CefReset(playerid)')[1].split('\n}')[0]
+        self.assertIn('CEF_SetKeyCapture(playerid, false);', reset)
+
+    def test_the_scan_codes_are_layout_proof(self):
+        """Скан-код физической клавиши одинаков на любой раскладке."""
+        self.assertIn('#define CEF_SCAN_BRACKET    (26)', CEFUI_SRC)
+        self.assertIn('#define CEF_SCAN_U          (22)', CEFUI_SRC)
+        self.assertIn('#define CEF_MOD_ALT         (8)', CEFUI_SRC)
+        self.assertIn('if (scancode == CEF_SCAN_BRACKET)', self.handler)
+        self.assertIn('if (scancode == CEF_SCAN_U)', self.handler)
+        self.assertNotIn('if (key ==', self.handler)
+
+    def test_alt_opens_the_phone_and_the_inventory(self):
+        self.assertIn('if (!(modifiers & CEF_MOD_ALT)) return 1;', self.handler)
+        self.assertIn('if (gPhoneShown[playerid]) return RW_PhoneClose(playerid);', self.handler)
+        self.assertIn('return RW_PhoneOpen(playerid);', self.handler)
+        self.assertIn('return RW_InvOpen(playerid);', self.handler)
+
+    def test_only_a_fresh_press_counts(self):
+        """Отпускание и автоповтор не должны дёргать панели."""
+        self.assertIn('if (!down || repeat) return 1;', self.handler)
+        self.assertIn('if (!gLogged[playerid] || !RW_CefOn(playerid)) return 1;', self.handler)
+        self.assertIn('if (CEF_IsChatInputOpen(playerid)) return 1;', self.handler)
+
+    def test_the_hints_name_both_keys(self):
+        hud = pawn(INC / 'railway' / 'hud.inc')
+        self.assertIn('"AltBracket:phone;AltU:inventory;AltY:mouse;"', hud)
+        script = (PAGES / 'js/hud.js').read_text(encoding='utf-8')
+        self.assertIn("AltBracket: 'Alt + ['", script)
+        self.assertIn("AltU: 'Alt + U'", script)
 
 
 class FallbackTest(unittest.TestCase):

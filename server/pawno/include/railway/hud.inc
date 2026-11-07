@@ -39,9 +39,9 @@ stock RW_HudHints(playerid)
     new hints[96];
     hints[0] = 0;
     if (!RW_SettingsOn(playerid, SET_HINTS)) return RW_CefHudHint(playerid, hints);
-    if (GetPlayerVehicleID(playerid) > 0) strcat(hints, "N:engine;H:doors;");
+    if (GetPlayerVehicleID(playerid) > 0) strcat(hints, "N:engine;");
     else strcat(hints, "Y:interaction;");
-    strcat(hints, "AltY:mouse;");
+    strcat(hints, "AltBracket:phone;AltU:inventory;AltY:mouse;");
     return RW_CefHudHint(playerid, hints);
 }
 stock RW_HudShow(playerid, bool:on)

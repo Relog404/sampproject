@@ -37,6 +37,15 @@
 
   var hud = document.getElementById('hud');
   var hints = document.getElementById('hints');
+  /* Клавиши сервер шлёт короткими именами, страница показывает их по-людски. */
+  var KEYS = {
+    AltBracket: 'Alt + [',
+    AltU: 'Alt + U',
+    AltY: 'Alt + Y'
+  };
+  function keyName(key) {
+    return KEYS[key] || key;
+  }
   function translate(key) {
     return WORDS[key] || key;
   }
@@ -48,7 +57,7 @@
     for (var i = 0; i < parts.length; i++) {
       var p = parts[i].split(':');
       if (p.length < 2 || !p[0]) continue;
-      html += '<div class="hint"><b>' + p[0] + '</b><span>' + translate(p[1]) + '</span></div>';
+      html += '<div class="hint"><b>' + keyName(p[0]) + '</b><span>' + translate(p[1]) + '</span></div>';
     }
     hints.innerHTML = html;
   });

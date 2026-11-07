@@ -35,6 +35,17 @@
 #define CEF_TOAST_OK        (1)
 #define CEF_TOAST_ERROR     (2)
 
+/*   лавиши телефона и инвентар€. SA-MP не отдаЄт серверу ни Ђ[ї, ни ЂUї Ч
+    их перехватывает плагин на уровне окна игры (CEF_SetKeyCapture), и ловит
+    он их независимо от фокуса браузера. —вер€ем скан-код, а не виртуальный
+    код клавиши: скан-код один и тот же на любой раскладке, а вот виртуальный
+    код у русской и английской отличаетс€. Alt Ч бит EVENTFLAG_ALT_DOWN. */
+#define CEF_SCAN_BRACKET    (26)
+#define CEF_SCAN_U          (22)
+#define CEF_MOD_ALT         (8)
+#define CEF_VK_BRACKET      (0xDB)
+#define CEF_VK_U            (0x55)
+
 forward RW_CefPulse();
 forward RW_CefClick(playerid, browserid, id);
 forward RW_CefClosed(playerid, browserid);
@@ -50,6 +61,8 @@ forward RW_CefPhoneTariff(playerid, browserid, tariff);
 forward RW_CefPhoneSet(playerid, browserid, const wallpaper[], const ringtone[], dnd);
 forward RW_CefPhone911(playerid, browserid, reason);
 forward RW_CefPhoneClosed(playerid, browserid);
+/*  browser-independent: the plugin forwards keys even with no focus */
+forward OnCefPressKey(playerid, key, scancode, modifiers, bool:down, bool:repeat);
 
 /*  ------------------------------- lifecycle ------------------------------- */
 // A missing plugin aborts this call, which leaves CEF switched off.
@@ -97,11 +110,22 @@ stock RW_CefStart(playerid)
     CEF_CreateBrowser(playerid, CEF_UI_AUTH, CEF_UI_AUTH_URL, false, true);
     CEF_SetBrowserLayer(playerid, CEF_UI_AUTH, 300);
     CEF_SetBrowserVisible(playerid, CEF_UI_AUTH, false);
+    RW_CefKeys(playerid);
+    return 1;
+}
+/*  «ахват клавиш включаетс€ один раз и навсе: плагин шлЄт на сервер только
+    те клавиши, которые разрешены здесь, так что лишнего трафика нет. */
+stock RW_CefKeys(playerid)
+{
+    CEF_SetKeyCapture(playerid, true);
+    CEF_EnableKey(playerid, CEF_VK_BRACKET, true);
+    CEF_EnableKey(playerid, CEF_VK_U, true);
     return 1;
 }
 stock RW_CefReset(playerid)
 {
     if (gCefReady[playerid]) {
+        CEF_SetKeyCapture(playerid, false);
         CEF_DestroyBrowser(playerid, CEF_UI_MENU);
         CEF_DestroyBrowser(playerid, CEF_UI_NOTIFY);
         CEF_DestroyBrowser(playerid, CEF_UI_PHONE);
@@ -139,6 +163,24 @@ public OnCefInitialize(playerid, bool:success, E_CEF_INIT_REASON:reason, const m
 public OnCefBrowserCreated(playerid, browserid, bool:success, E_CEF_CREATE_STATUS:code, const reason[])
 {
     if (!success) printf("[cef] player %d: browser %d failed (%d): %s", playerid, browserid, _:code, reason);
+    return 1;
+}
+
+/*  Alt + [ Ч телефон, Alt + U Ч инвентарь. ѕовторное нажатие закрывает.
+     лавиша приходит и тогда, когда браузер не в фокусе, поэтому курсор дл€
+    этого не нужен; пока открыт чат, нажатие уходит в чат. */
+public OnCefPressKey(playerid, key, scancode, modifiers, bool:down, bool:repeat)
+{
+    #pragma unused key
+    if (!down || repeat) return 1;
+    if (!gLogged[playerid] || !RW_CefOn(playerid)) return 1;
+    if (!(modifiers & CEF_MOD_ALT)) return 1;
+    if (CEF_IsChatInputOpen(playerid)) return 1;
+    if (scancode == CEF_SCAN_BRACKET) {
+        if (gPhoneShown[playerid]) return RW_PhoneClose(playerid);
+        return RW_PhoneOpen(playerid);
+    }
+    if (scancode == CEF_SCAN_U) return RW_InvOpen(playerid);
     return 1;
 }
 
