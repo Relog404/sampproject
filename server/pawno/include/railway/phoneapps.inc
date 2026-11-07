@@ -157,6 +157,7 @@ stock RW_RadioCommand(playerid) { return RW_PhoneAppOpen(playerid, PHONE_APP_RAD
 /* Y на стоянке такси: заказ машины, как по строке в приложении. */
 public RW_TaxiRankCall(playerid)
 {
+    RW_StoryEvent(playerid, STORY_EV_TAXI);
     if (!gLogged[playerid]) return 0;
     for (new i; i < sizeof gTaxiRanks; i++)
         if (IsPlayerInRangeOfPoint(playerid, TAXI_RANK_RANGE, gTaxiRanks[i][0], gTaxiRanks[i][1], gTaxiRanks[i][2])) {

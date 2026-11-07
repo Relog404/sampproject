@@ -49,6 +49,7 @@
 #include <railway/hud>
 #include <railway/donate>
 #include <railway/city>
+#include <railway/story>
 #include <railway/commands>
 
 /* ------------------------------------------------------------------ запуск */
@@ -111,6 +112,7 @@ public OnGameModeInit()
     if (!RW_HudSchema()) print("[hud] Bonus table unavailable; starter bonuses are disabled.");
     if (!RW_DonateSchema()) print("[donate] Donate table unavailable; points are not kept.");
     RW_CityInit();
+    if (!RW_StorySchema()) print("[story] Story table unavailable; progress is not kept.");
     if (!RW_PhoneAppsSchema()) print("[phoneapps] News table unavailable; the Weazel News app is disabled.");
     RW_WeatherSet(1);
     RW_EconomyInit();
@@ -181,6 +183,8 @@ public OnPlayerConnect(playerid)
     RW_HudReset(playerid);
     RW_DonateSave(playerid);
     RW_DonateReset(playerid);
+    RW_StorySave(playerid);
+    RW_StoryReset(playerid);
     RW_CityReset(playerid);
     RW_PropReset(playerid);
     RW_PhoneAppsReset(playerid);
@@ -240,8 +244,10 @@ public OnPlayerDisconnect(playerid, reason)
     RW_PoliceReset(playerid);
     RW_HudSave(playerid);
     RW_DonateSave(playerid);
+    RW_StorySave(playerid);
     RW_HudReset(playerid);
     RW_DonateReset(playerid);
+    RW_StoryReset(playerid);
     RW_CityReset(playerid);
     RW_ClearRegisterPassword(playerid);
     RW_SaveAccount(playerid);

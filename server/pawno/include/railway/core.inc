@@ -42,6 +42,10 @@ forward RW_DonateClick(playerid, row);
 forward RW_DonateCefClick(playerid, id);
 forward RW_DonateBonus(playerid, amount);
 forward RW_CityOpen(playerid);
+forward RW_StoryEvent(playerid, event);
+forward RW_StoryTask(playerid);
+forward RW_StoryClick(playerid, row);
+forward RW_StoryCefClick(playerid, id);
 forward RW_PropClick(playerid, row);
 forward RW_JobHandOver(playerid);
 forward RW_UberOrder(playerid);
@@ -83,6 +87,16 @@ forward RW_LawyerCallFor(playerid, target);
 #define CEF_MODE_APP                (12)
 #define CEF_MODE_PROPERTY           (13)
 #define CEF_MODE_DONATE             (14)
+#define CEF_MODE_STORY              (15)
+/* —обыти€ сюжетной линии: их шлют все модули, поэтому они лежат здесь. */
+#define STORY_EV_JOB        (1)         /* устроилс€ на работу              */
+#define STORY_EV_TASK       (2)         /* закрыл рабочее задание           */
+#define STORY_EV_TAXI       (3)         /* вызвал такси                     */
+#define STORY_EV_PROPERTY   (4)         /* купил дом                        */
+#define STORY_EV_BUSINESS   (5)         /* купил бизнес                     */
+#define STORY_EV_ROB        (6)         /* ограбил кассу                    */
+#define STORY_EV_PAYDAY     (7)         /* получил зарплату                 */
+#define STORY_EV_NIGHT      (8)         /* закрыл задание ночью             */
 /* вкладки планшета служб: полици€ видит 0-3 и 5, скора€ Ч вызовы */
 #define MDT_CALLS                   (4)
 /* топливо */

@@ -718,6 +718,7 @@ stock RW_JobHire(playerid, job)
     if (gJobStage[playerid] > 0) RW_JobTaskCancel(playerid, true);
     gJob[playerid] = job;
     if (gJobLevel[playerid] < 1) gJobLevel[playerid] = 1;
+    RW_StoryEvent(playerid, STORY_EV_JOB);
     RW_EconomySave(playerid);
     RW_UI_Close(playerid);
     new name[24], message[160];
@@ -902,6 +903,8 @@ stock RW_JobTaskDone(playerid)
     RW_AddMoney(playerid, pay);
     gJobTasks[playerid]++;
     gJobEarned[playerid] += pay;
+    RW_StoryTask(playerid);
+    RW_StoryEarned(playerid, pay);
     gJobExp[playerid]++;
     RW_JobTaskCancel(playerid, true);
     RW_EconomySave(playerid);
@@ -1010,6 +1013,7 @@ stock RW_EconomyPayday(playerid)
 {
     /* Недвижимость: налог списывается со счёта, иначе копится долг. */
     RW_PropTaxTick(playerid);
+    RW_StoryEvent(playerid, STORY_EV_PAYDAY);
     new salary = RW_DonateBonus(playerid, RW_JobSalary(gJob[playerid]) * gJobLevel[playerid]);
     new interest = gBank[playerid] * BANK_INTEREST_PERCENT / 100;
     if (interest > BANK_INTEREST_MAX) interest = BANK_INTEREST_MAX;

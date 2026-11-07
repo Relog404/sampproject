@@ -433,6 +433,7 @@ stock RW_LoginSuccess(playerid, accid, skin, money, admin)
     RW_EconomyLoad(playerid);
     RW_HudLoad(playerid);
     RW_DonateLoad(playerid);
+    RW_StoryLoad(playerid);
     RW_UI_CloseAuth(playerid);
 
     RW_SpawnPlayer(playerid);

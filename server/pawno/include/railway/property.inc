@@ -166,6 +166,11 @@ stock RW_PropCredit(account, amount)
     format(query, sizeof query, "UPDATE bank_accounts SET balance=balance+%d WHERE player_id=%d", amount, account);
     return RW_DB_Exec(query);
 }
+stock RW_PropIsBiz(id)
+{
+    if (id < 0 || id >= PROP_MAX) return 0;
+    return (gPropInfo[id][0] == PROP_KIND_BIZ) ? 1 : 0;
+}
 stock RW_PropSave(id)
 {
     new query[200];
@@ -350,6 +355,7 @@ stock RW_PropBuy(playerid, id)
     gPropMissed[id] = 0;
     RW_GetNick(playerid, gPropOwnerName[id], MAX_PLAYER_NAME+1);
     RW_PropSave(id);
+    RW_StoryEvent(playerid, (gPropInfo[id][0] == PROP_KIND_BIZ) ? STORY_EV_BUSINESS : STORY_EV_PROPERTY);
     RW_UI_Close(playerid);
     new sum[32], message[160];
     RW_FormatMoney(price, sum, sizeof sum);
@@ -640,6 +646,8 @@ stock RW_PropRob(playerid, id)
     gPropCash[id] = gPropCash[id] - take;
     RW_AddMoney(playerid, take);
     RW_PropSave(id);
+    RW_StoryEvent(playerid, STORY_EV_ROB);
+    RW_StoryEarned(playerid, take);
     format(message, sizeof message, "Alarm at %s (%d, %d): %s is robbing the till.", gPropNames[id], floatround(x), floatround(y), nick);
     for (new i; i < MAX_PLAYERS; i++)
         if (IsPlayerConnected(i) && gLogged[i] && RW_PoliceOnDuty(i) && RW_PoliceBadge(i) > 0) RW_Error(i, message);

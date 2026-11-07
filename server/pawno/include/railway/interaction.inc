@@ -238,6 +238,8 @@ stock RW_UI_Click(playerid, row)
         return RW_PropClick(playerid, row);
     } else if (mode == UI_DONATE) {
         return RW_DonateClick(playerid, row);
+    } else if (mode == UI_STORY) {
+        return RW_StoryClick(playerid, row);
     } else if (mode == UI_PHONE_APP) {
         return RW_PhoneAppClick(playerid, row);
     } else if (mode == UI_PHONE || mode == UI_PHONE_CONT) {
