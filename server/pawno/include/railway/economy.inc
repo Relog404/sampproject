@@ -30,7 +30,8 @@
 #define JOB_POST                9
 #define JOB_BUS                 10
 #define JOB_TAXI                11
-#define JOB_COUNT               12
+#define JOB_STASHER             12      /* закладчик: тайники для семьи */
+#define JOB_COUNT               13
 #define JOB_MAX_LEVEL           5
 #define JOB_EXP_PER_LEVEL       10          /* заданий до следующего уровня  */
 #define JOB_TASK_SECONDS        240         /* срок на один этап задания     */
@@ -87,7 +88,8 @@ static const Float:gJobHire[][4] = {
     { 8.0, -2170.0, -2385.0, 30.0 }, /* лесоруб: Angel Pine, Whetstone        */
     { 9.0,  1950.0, -1750.0, 13.5 }, /* почтальон: Idlewood, почта            */
     { 10.0, 1850.0, -1880.0, 13.5 }, /* водитель: El Corona, автобусный парк  */
-    { 11.0, 1900.0, -2280.0, 13.5 }  /* таксист: LS International, стоянка    */
+    { 11.0, 1900.0, -2280.0, 13.5 }, /* таксист: LS International, стоянка    */
+    { 12.0, 1755.0, -1855.0, 13.6 }  /* закладчик: площадка восточнее Юнити   */
 };
 
 /* Ящики у причалов Ocean Docks и склад. */
@@ -143,6 +145,16 @@ static const Float:gMushroomSpots[][3] = {
     { 2320.0,  50.0, 26.0 }
 };
 static const Float:gMushroomBuyer[3] = { 2270.0, 70.0, 26.0 };
+/* Тайники закладчика: дворы тех же районов, где семьи держат территории. */
+static const Float:gStashSpots[][3] = {
+    {  2244.4, -1665.4, 13.5 },     /* Гантон            */
+    {  2503.4, -1722.4, 13.4 },     /* Лас-Колинас       */
+    {  1944.3, -1772.5, 13.4 },     /* Иствуд, заправка  */
+    {  1833.4, -1842.4, 13.5 },     /* Юнити             */
+    {  2202.2, -1965.0, 13.6 },     /* Уиллоуфилд        */
+    {  2645.6, -2020.3, 13.5 }      /* Локо Лоу Ко       */
+};
+#define JOB_STASHER_HIRE       11      /* строка найма в gJobHire */
 
 /* Карьерщик: жилы Hunter Quarry и дробилка. */
 static const Float:gQuarryVeins[][3] = {
@@ -584,6 +596,7 @@ stock RW_JobName(job, dest[], size = sizeof dest)
     else if (job == JOB_QUARRY) format(dest, size, "Quarry worker");
     else if (job == JOB_LUMBER) format(dest, size, "Lumberjack");
     else if (job == JOB_POST) format(dest, size, "Postman");
+    else if (job == JOB_STASHER) format(dest, size, "Закладчик");
     else if (job == JOB_BUS) format(dest, size, "Bus driver");
     else if (job == JOB_TAXI) format(dest, size, "Taxi driver");
     else format(dest, size, "Unemployed");
@@ -601,6 +614,7 @@ stock RW_JobTitle(job, dest[], size = sizeof dest)
     else if (job == JOB_QUARRY) format(dest, size, "Quarry worker: Hunter Quarry");
     else if (job == JOB_LUMBER) format(dest, size, "Lumberjack: Angel Pine forest");
     else if (job == JOB_POST) format(dest, size, "Postman: boxes across the city");
+    else if (job == JOB_STASHER) format(dest, size, "Закладчик: тайники по районам");
     else if (job == JOB_BUS) format(dest, size, "Bus driver: the city ring route");
     else if (job == JOB_TAXI) format(dest, size, "Taxi driver: fares from Uber Drive");
     else format(dest, size, "Unemployed");
@@ -632,6 +646,7 @@ stock RW_JobBasePay(job)
     if (job == JOB_QUARRY) return 220;
     if (job == JOB_LUMBER) return 230;
     if (job == JOB_POST) return 140;
+    if (job == JOB_STASHER) return 210;
     if (job == JOB_BUS) return 260;
     return 0;                                   /* таксист получает по счётчику */
 }
@@ -649,6 +664,7 @@ stock RW_JobSalary(job)
     if (job == JOB_POST) return 330;
     if (job == JOB_BUS) return 420;
     if (job == JOB_TAXI) return 300;
+    if (job == JOB_STASHER) return 360;
     return 0;
 }
 // Индекс биржи, у которой стоит игрок: -1, если рядом нет ни одной.
@@ -804,6 +820,12 @@ stock RW_JobPoint(playerid, job, stage, &Float:x, &Float:y, &Float:z)
         x = gPostOffice[0]; y = gPostOffice[1]; z = gPostOffice[2];
         return 1;
     }
+    if (job == JOB_STASHER) {
+        if (stage == 1) { x = gJobHire[JOB_STASHER_HIRE][1]; y = gJobHire[JOB_STASHER_HIRE][2]; z = gJobHire[JOB_STASHER_HIRE][3]; return 1; }
+        index = random(sizeof gStashSpots);
+        x = gStashSpots[index][0]; y = gStashSpots[index][1]; z = gStashSpots[index][2];
+        return 1;
+    }
     if (stage == 1) { x = gJobHire[1][1]; y = gJobHire[1][2]; z = gJobHire[1][3]; return 1; }
     x = gCourierPoints[index][0]; y = gCourierPoints[index][1]; z = gCourierPoints[index][2];
     return 1;
@@ -897,6 +919,7 @@ stock RW_JobTimeBonus(job)
     gettime(hour, minute, second);
     #pragma unused second
     if (job == JOB_GARBAGE && hour >= 6 && hour < 13) return 15;   /* утренний вывоз   */
+    if (job == JOB_STASHER && (hour >= 22 || hour < 6)) return 20; /* ночь, тихо */
     if (job == JOB_POST && hour >= 9 && hour < 18) return 10;      /* рабочий день     */
     if (job == JOB_BUS) {
         /* Часы пик: 07:00-09:30 и 17:00-19:30. */
@@ -909,6 +932,16 @@ stock RW_JobTimeBonus(job)
 }
 stock RW_JobTaskDone(playerid)
 {
+    /* Закладчик работает на семью: часть уходит в её склад и кассу. */
+    if (gJob[playerid] == JOB_STASHER && gFamily[playerid] != FAMILY_NONE) {
+        if (RW_FamilyStash(gFamily[playerid], ITEM_CHEM, 0, 1)) {
+            RW_FamilyAddMoney(gFamily[playerid], 30);
+            RW_Info(playerid, "Закладка легла: прекурсор и 30 — в семью.");
+        } else {
+            RW_Info(playerid, "Склад семьи забит: прекурсор остался у вас.");
+            RW_FamilyAddMoney(gFamily[playerid], 30);
+        }
+    }
     new pay = RW_JobBasePay(gJob[playerid]) + gJobPay[playerid];
     pay = pay + floatround(float(pay) * 0.15 * float(gJobLevel[playerid] - 1));
     new weatherBonus = RW_WeatherBonus(gJob[playerid]);

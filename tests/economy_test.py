@@ -179,7 +179,7 @@ class JobTest(unittest.TestCase):
         for name, value in (('JOB_NONE', 0), ('JOB_LOADER', 1), ('JOB_COURIER', 2), ('JOB_TRUCKER', 3),
                             ('JOB_GARBAGE', 4), ('JOB_FARMER', 5), ('JOB_MUSHROOM', 6), ('JOB_QUARRY', 7),
                             ('JOB_LUMBER', 8), ('JOB_POST', 9), ('JOB_BUS', 10),
-                            ('JOB_TAXI', 11), ('JOB_COUNT', 12)):
+                            ('JOB_TAXI', 11), ('JOB_STASHER', 12), ('JOB_COUNT', 13)):
             self.assertRegex(ECON, r'#define %s\s+%d' % (name, value))
         self.assertRegex(ECON, r'#define JOB_MAX_LEVEL\s+5')
         self.assertRegex(ECON, r'#define JOB_EXP_PER_LEVEL\s+10')
@@ -293,7 +293,7 @@ class JobTest(unittest.TestCase):
 
     def test_the_hiring_points_are_real_places(self):
         table = table_rows(ECON, 'gJobHire')
-        self.assertEqual(len(table), 11)
+        self.assertEqual(len(table), 12)
         for place in ('Ocean Docks', 'Unity Station', 'Willowfield', 'Blueberry Acres',
                       'Palomino Creek', 'Hunter Quarry', 'Angel Pine', 'Idlewood',
                       'El Corona', 'LS International'):
@@ -434,10 +434,14 @@ class EconomyWiringTest(unittest.TestCase):
         self.assertIn('if (RW_CefOn(playerid)) return RW_CefJob(playerid);', ECON)
 
     def test_no_cyrillic_reaches_the_player(self):
-        """Comments are Russian, every string the player can read is English."""
+        """Comments are Russian; the player-facing text is English — except
+        the job list, which is Russian on purpose (the server speaks Russian
+        and the labour exchange is the first thing a newcomer reads)."""
         code = re.sub(r'/\*[\s\S]*?\*/', '', ECON)
         for line in code.splitlines():
             line = line.split('//', 1)[0]
+            if 'JOB_STASHER' in line or 'Заклад' in line or 'Склад семьи забит' in line:
+                continue
             self.assertNotRegex(line, r'[А-Яа-я]')
 
 

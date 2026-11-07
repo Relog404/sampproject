@@ -60,6 +60,10 @@ forward RW_FamilyPulse();
 forward RW_FamilyTick(playerid);
 forward RW_FamilyClick(playerid, row);
 forward RW_FamilyCefClick(playerid, id);
+#define FAMILY_NONE             0
+new gFamily[MAX_PLAYERS];           /* семь€ игрока, 0 Ч без семьи            */
+forward RW_FamilyStash(family, type, data, amount);
+forward RW_FamilyAddMoney(family, amount);
 forward RW_GovClick(playerid, row);
 forward RW_GovCefClick(playerid, id);
 forward RW_ContractCall(client);

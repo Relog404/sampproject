@@ -23,10 +23,10 @@
 #include <railway/ui>
 #include <railway/inventory>
 
+/* FAMILY_NONE и gFamily живут в core.inc: экономика считает долю семьи. */
 #define FAMILY_RANK_MEMBER  0
 #define FAMILY_RANK_SENIOR  1
 #define FAMILY_RANK_LEADER  2
-#define FAMILY_NONE         0
 #define FAMILY_MAX_NAME     24
 #define FAMILY_CREATE_COST  50000
 #define FAMILY_SLOTS        40      /* предметов на складе */
@@ -49,7 +49,6 @@ static const gFamilyZoneName[FAMILY_ZONES][] = {
 };
 static const gFamilyRankName[3][] = { "боец", "старший", "лидер" };
 
-new gFamily[MAX_PLAYERS];
 new gFamilyRank[MAX_PLAYERS];
 new gFamilyInvite[MAX_PLAYERS];
 new gFamilyCash[MAX_PLAYERS];
@@ -319,6 +318,15 @@ stock RW_FamilyItemCount(family)
     if (db_num_rows(r) == 1) total = db_get_field_assoc_int(r, "n");
     db_free_result(r);
     return total;
+}
+/* Кладёт предмет на склад напрямую: так семья получает долю закладчика. */
+stock RW_FamilyStash(family, type, data, amount)
+{
+    if (family <= 0 || type <= 0 || amount < 1) return 0;
+    if (RW_FamilyItemCount(family) >= FAMILY_SLOTS) return 0;
+    new query[260];
+    format(query, sizeof query, "INSERT INTO family_items(family,type,data,amount) VALUES(%d,%d,%d,%d)", family, type, data, amount);
+    return RW_DB_Exec(query);
 }
 /* Кладёт предмет со слота инвентаря на склад семьи. */
 stock RW_FamilyStore(playerid, const params[])

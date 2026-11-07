@@ -131,7 +131,7 @@ class JobMapTest(unittest.TestCase):
 
     def test_every_job_hires_in_its_own_place(self):
         rows = table(ECON, 'gJobHire')
-        self.assertEqual(len(rows), 11)
+        self.assertEqual(len(rows), 12)
         block = ECON.split('static const Float:gJobHire', 1)[1].split('};', 1)[0]
         for place in ('Ocean Docks', 'Unity Station', 'Willowfield', 'Blueberry Acres',
                       'Palomino Creek', 'Hunter Quarry', 'Angel Pine', 'Idlewood',
