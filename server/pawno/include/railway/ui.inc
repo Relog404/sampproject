@@ -211,7 +211,7 @@ stock PlayerText:RW_TD_Box(playerid, Float:x, Float:y, Float:w, Float:h, color)
 }
 stock RW_UI_Init()
 {
-    SetTimer("RW_UITick", 100, true);
+    /* Тосты рисует браузер: тексдрав-уведомлений больше нет, таймер не нужен. */
     return 1;
 }
 stock RW_UI_Create(playerid)
@@ -402,34 +402,17 @@ stock RW_UI_SpeedoUpdate(playerid, speed, gear, rpm, flags)
     PlayerTextDrawShow(playerid, gUI[playerid][18]);
     return 1;
 }
-// Notices use the same Russian/Latin conversion as every other label.
-// kind: 0 plain, 1 ok, 2 error. With the browser UI the toast is drawn by
-// CEF; the TextDraw one stays for players without the plugin.
+// Notices: kind 0 plain, 1 ok, 2 error. The text already went to the chat in
+// RW_Info / RW_Ok / RW_Error, so the notice is only the browser toast — no
+// TextDraw pops up over the screen, not even before the browser is ready.
 stock RW_UI_Notify(playerid, const text[], kind = 0)
 {
-    if (RW_CefToast(playerid, text, kind)) return 1;
-    RW_UI_Create(playerid);
-    RW_UI_Text(playerid, 20, text);
-    gToastStart[playerid] = GetTickCount(); gToastActive[playerid] = true;
-    return 1;
+    return RW_CefToast(playerid, text, kind);
 }
+/* Тосты рисуются только в браузере: таймер оставлен на случай старых
+   сборок, сам он больше ничего не показывает. */
 public RW_UITick()
 {
-    for (new p; p < MAX_PLAYERS; p++) {
-        if (!IsPlayerConnected(p) || !gUICreated[p] || !gToastActive[p]) continue;
-        new elapsed = GetTickCount()-gToastStart[p];
-        if (elapsed >= 3000) {
-            gToastActive[p] = false;
-            for (new i = 19; i < 22; i++) PlayerTextDrawHide(p, gUI[p][i]);
-            continue;
-        }
-        new alpha = elapsed < 200 ? elapsed*255/200 : (elapsed > 2700 ? (3000-elapsed)*255/300 : 255);
-        PlayerTextDrawColor(p, gUI[p][19], 0x171B2300 | (alpha*239/255));
-        PlayerTextDrawColor(p, gUI[p][20], 0xEEECE700 | alpha);
-        PlayerTextDrawColor(p, gUI[p][21], 0xD8C39B00 | alpha);
-        PlayerTextDrawTextSize(p, gUI[p][21], 220.0*float(3000-elapsed)/3000.0, 2.0);
-        for (new i = 19; i < 22; i++) PlayerTextDrawShow(p, gUI[p][i]);
-    }
     return 1;
 }
 stock RW_UI_Reset(playerid)

@@ -100,12 +100,15 @@ class NativeInterfaceTest(unittest.TestCase):
         self.assertIn('if (gUIMode[playerid] != 0) return 1', update)
         self.assertIn('gSpeedoShown[playerid] = false', self.ui)
 
-    def test_native_notifications_expire_and_shrink(self):
+    def test_notifications_never_touch_a_textdraw(self):
+        """Уведомления рисует браузер; тексдравов-всплывашек больше нет.
+        RW_UITick оставлен пустым на случай старых сборок."""
         tick = body(self.ui, 'public RW_UITick', 'stock RW_UI_Reset')
-        self.assertIn('elapsed >= 3000', tick)
-        self.assertIn('float(3000-elapsed)/3000.0', tick)
-        self.assertIn('PlayerTextDrawColor', tick)
-        self.assertIn('PlayerTextDrawHide', tick)
+        self.assertNotIn('PlayerTextDrawShow', tick)
+        self.assertNotIn('PlayerTextDrawColor', tick)
+        notify = body(self.ui, 'stock RW_UI_Notify', 'public RW_UITick')
+        self.assertIn('RW_CefToast', notify)
+        self.assertNotIn('RW_UI_Create', notify)
 
     def test_map_teleport_is_textdraw_confirmed_and_rechecked(self):
         click = body(self.main, 'public OnPlayerClickMap', 'public OnPlayerClickPlayerTextDraw')

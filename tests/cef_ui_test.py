@@ -140,10 +140,15 @@ class ProtocolTest(unittest.TestCase):
 class FallbackTest(unittest.TestCase):
     """Players without the plugin keep the TextDraw interface."""
 
-    def test_notify_prefers_cef_and_keeps_the_textdraw(self):
+    def test_notify_is_the_browser_only_and_never_a_textdraw(self):
+        """Текст уведомления уже ушёл в чат, всплывашка рисуется только
+        в браузере: тексдрав больше не всплывает над экраном — особенно
+        на входе, когда браузер ещё не готов."""
         notify = pawn(UI).split('stock RW_UI_Notify')[1].split('\nstock ')[0]
-        self.assertIn('if (RW_CefToast(playerid, text, kind)) return 1;', notify)
-        self.assertIn('RW_UI_Text(playerid, 20, text);', notify)
+        self.assertIn('return RW_CefToast(playerid, text, kind);', notify)
+        self.assertNotIn('RW_UI_Text', notify)
+        self.assertNotIn('gToastActive', notify)
+        self.assertNotIn('SetTimer("RW_UITick"', pawn(UI))
 
     def test_toast_kind_follows_the_message_type(self):
         core = pawn(CORE)
