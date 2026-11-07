@@ -130,7 +130,6 @@ stock RW_UI_Vehicle(playerid)
         RW_UI_Row(playerid, 5, label);
     }
     RW_UI_Row(playerid, 7, "Refresh status");
-    RW_UI_PreviewShow(playerid, GetVehicleModel(v), 480.0, 155.0, 130.0, 100.0);
     return 1;
 }
 stock RW_UI_Passengers(playerid)
@@ -391,6 +390,7 @@ stock RW_CefVehicle(playerid)
         format(label, sizeof label, "%s (%d / %d)", RW_CabinInside(playerid) ? ("Leave cabin") : ("Board cabin"), RW_CabinCount(v), CABIN_MAX);
         RW_CefRow(playerid, 5, label, "", "plane");
     }
+    RW_CefPreview(playerid, GetVehicleModel(v), name);
     RW_CefAction(playerid, 7, "Refresh", "");
     RW_CefAction(playerid, 8, "Close", "danger");
     return RW_CefEnd(playerid);

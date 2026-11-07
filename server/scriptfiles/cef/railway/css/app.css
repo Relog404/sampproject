@@ -89,6 +89,15 @@ html, body {
   overflow: hidden;
 }
 
+/* -------------------------------------------------------------- preview */
+.preview { display: none; padding: 18px 16px 16px; text-align: center;
+  box-shadow: inset 0 -1px 0 0 var(--hair); }
+.preview.on { display: block; }
+.preview-art { width: 92px; margin: 0 auto; color: var(--accent); }
+.preview-art svg { width: 100%; height: auto; stroke-width: 1.1; }
+.preview-name { margin-top: 6px; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.preview-model { margin-top: 2px; font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+
 /* ---------------------------------------------------------------- rows */
 .rows { padding: 4px 0; }
 

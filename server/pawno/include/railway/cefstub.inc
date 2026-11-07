@@ -74,6 +74,11 @@ stock RW_CefAction(playerid, id, const label[], const style[] = "")
     #pragma unused playerid, id, label, style
     return 0;
 }
+stock RW_CefPreview(playerid, model, const name[])
+{
+    #pragma unused playerid, model, name
+    return 0;
+}
 stock RW_CefEnd(playerid)
 {
     #pragma unused playerid

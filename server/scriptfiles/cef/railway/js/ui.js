@@ -40,6 +40,7 @@
   var elSheet = document.getElementById('sheet');
   var elTitle = document.getElementById('title');
   var elSub = document.getElementById('subtitle');
+  var elPreview = document.getElementById('preview');
   var elRows = document.getElementById('rows');
   var elActions = document.getElementById('actions');
 
@@ -99,7 +100,23 @@
     elSub.textContent = subtitle || '';
     elRows.innerHTML = '';
     elActions.innerHTML = '';
+    if (elPreview) { elPreview.className = 'preview'; elPreview.innerHTML = ''; }
     show(true);
+  });
+
+  /* Машину в карточке рисует страница: сервер шлёт модель и название. */
+  RW.on('ui:preview', function (model, name) {
+    if (!elPreview) return;
+    if (!model || model < 400 || model > 611) {
+      elPreview.className = 'preview';
+      elPreview.innerHTML = '';
+      return;
+    }
+    elPreview.innerHTML =
+      '<div class="preview-art">' + svg('car') + '</div>' +
+      '<div class="preview-name">' + escapeHtml(name || '') + '</div>' +
+      '<div class="preview-model">' + String(model) + '</div>';
+    elPreview.className = 'preview on';
   });
 
   RW.on('ui:row', function (id, label, value, icon, note, valueClass) {
@@ -131,6 +148,7 @@
   /* Local preview: index.html?fake=1, or just opening the file in a browser. */
   function demo() {
     RW.fake('ui:open', ['Infernus', 'Your car']);
+    RW.fake('ui:preview', [411, 'Infernus']);
     RW.fake('ui:row', [0, 'Doors', 'locked', 'door']);
     RW.fake('ui:row', [1, 'Engine', 'off', 'engine', '', 'state-off']);
     RW.fake('ui:row', [2, 'Key', 'inside', 'key', '', 'state-on']);

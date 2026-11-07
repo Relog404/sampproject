@@ -60,7 +60,6 @@ stock RW_GarageInit()
 stock RW_GarageHide(playerid)
 {
     if (gGarageCreated[playerid]) for (new i; i < 13; i++) PlayerTextDrawHide(playerid, gGarageTD[playerid][i]);
-    RW_UI_PreviewHide(playerid);
     return 1;
 }
 stock RW_GarageReset(playerid)
@@ -127,7 +126,6 @@ stock RW_GarageOpen(playerid, bool:resetPage = true)
         if (RW_CefOn(playerid)) return RW_GarageCef(playerid);
     #endif
     for (new i; i < 13; i++) PlayerTextDrawShow(playerid, gGarageTD[playerid][i]);
-    new previewModel;
     for (new row; row < 6; row++) {
         new idx = gGaragePage[playerid]*6+row;
         if (idx >= gGarageCount[playerid]) { PlayerTextDrawHide(playerid, gGarageTD[playerid][3+row]); continue; }
@@ -137,13 +135,10 @@ stock RW_GarageOpen(playerid, bool:resetPage = true)
             r = db_query(gDB, query);
             if (r != DBResult:0) { model = db_get_field_assoc_int(r, "model"); db_free_result(r); }
         } else for (new s; s < VEHICLE_SLOTS; s++) if (gVeh[s][vsUsed] && gVehKeyUid[s] == -id) model = gVeh[s][vsModel];
-        if (row == 0) previewModel = model;
         RW_VehicleName(model, name, sizeof name);
         format(label, sizeof label, "%s / %s", name, id > 0 ? ("OWNED") : ("TEMP"));
         PlayerTextDrawSetString(playerid, gGarageTD[playerid][3+row], label);
     }
-    if (previewModel >= 400 && previewModel <= 611) RW_UI_PreviewShow(playerid, previewModel, 445.0, 100.0, 110.0, 150.0);
-    else RW_UI_PreviewHide(playerid);
     new label[80]; format(label, sizeof label, "%d CARS / PAGE %d", gGarageCount[playerid], gGaragePage[playerid]+1);
     PlayerTextDrawSetString(playerid, gGarageTD[playerid][12], label);
     RW_UI_SelectBegin(playerid);
@@ -165,17 +160,19 @@ stock RW_GarageCefModel(playerid, index, name[], size = sizeof name)
 }
 stock RW_GarageCef(playerid)
 {
-    new subtitle[64], label[128], name[48];
+    new subtitle[64], label[128], name[48], previewName[48], previewModel;
     format(subtitle, sizeof subtitle, "%d машин / страница %d", gGarageCount[playerid], gGaragePage[playerid] + 1);
     if (!RW_CefOpen(playerid, CEF_MODE_GARAGE, "Гараж", subtitle)) return 0;
     for (new row; row < 6; row++) {
         new idx = gGaragePage[playerid] * 6 + row;
         if (idx >= gGarageCount[playerid]) continue;
         name[0] = EOS;
-        RW_GarageCefModel(playerid, idx, name, sizeof name);
+        new model = RW_GarageCefModel(playerid, idx, name, sizeof name);
+        if (row == 0) { previewModel = model; format(previewName, sizeof previewName, "%s", name); }
         format(label, sizeof label, "%s", name);
         RW_CefRow(playerid, row, label, gGarageList[playerid][idx] > 0 ? ("в собственности") : ("временный ключ"), "car");
     }
+    if (previewModel >= 400 && previewModel <= 611) RW_CefPreview(playerid, previewModel, previewName);
     if (gGaragePage[playerid] > 0) RW_CefAction(playerid, CEF_GARAGE_PREV, "Назад", "");
     if ((gGaragePage[playerid] + 1) * 6 < gGarageCount[playerid]) RW_CefAction(playerid, CEF_GARAGE_NEXT, "Вперёд", "");
     RW_CefAction(playerid, CEF_GARAGE_CLOSE, "Закрыть", "danger");

@@ -21,6 +21,10 @@ INTER = pawn('interaction')
 PAGE = (ROOT / 'server/scriptfiles/cef/railway/js/inventory.js').read_text(encoding='utf-8')
 CMDS = pawn('commands')
 MAIN = (ROOT / 'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
+CEFUI = pawn('cefui')
+CEFSTUB = pawn('cefstub')
+UIPAGE = (ROOT / 'server/scriptfiles/cef/railway/js/ui.js').read_text(encoding='utf-8')
+INDEX = (ROOT / 'server/scriptfiles/cef/railway/index.html').read_text(encoding='utf-8')
 
 
 class CabinSourceTest(unittest.TestCase):
@@ -114,16 +118,24 @@ class CompactGridTest(unittest.TestCase):
         self.assertNotIn('gInvTD', INV)
 
     def test_car_preview_helpers(self):
-        self.assertIn('stock RW_UI_PreviewShow(playerid, model, Float:x, Float:y, Float:w, Float:h)', UI)
-        self.assertIn('stock RW_UI_PreviewHide(playerid)', UI)
-        self.assertIn('RW_UI_PreviewShow(playerid, GetVehicleModel(v), 480.0, 155.0, 130.0, 100.0);', INTER)
-        self.assertIn('PlayerTextDrawSetPreviewRot(playerid, gUIPreview[playerid], -16.0, 0.0, -35.0, 0.9);', UI)
-        self.assertIn('RW_UI_PreviewHide(playerid);', UI.split('stock RW_UI_Close')[1][:400])
+        """Превью машины шлёт браузер: в ui.inc не осталось ни одного тексдрава."""
+        self.assertIn('stock RW_CefPreview(playerid, model, const name[])', CEFUI)
+        self.assertIn('"ui:preview"', CEFUI)
+        self.assertIn('stock RW_CefPreview(playerid, model, const name[])', CEFSTUB)
+        for marker in ('RW_UI_PreviewShow', 'RW_UI_PreviewHide', 'gUIPreview', 'PlayerTextDrawSetPreviewModel'):
+            self.assertNotIn(marker, UI)
+            self.assertNotIn(marker, GARAGE)
+            self.assertNotIn(marker, INTER)
+        # страница умеет показать и скрыть превью
+        self.assertIn('class="preview" id="preview"', INDEX)
+        self.assertIn("RW.on('ui:preview', function (model, name)", UIPAGE)
+        self.assertIn("elPreview.className = 'preview on'", UIPAGE)
+        self.assertIn("elPreview.className = 'preview'", UIPAGE)
 
 
 class CardPreviewTest(unittest.TestCase):
     def test_vehicle_card_shows_the_car(self):
-        self.assertIn('RW_UI_PreviewShow(playerid, GetVehicleModel(v), 480.0, 155.0, 130.0, 100.0);', INTER)
+        self.assertIn('RW_CefPreview(playerid, GetVehicleModel(v), name);', INTER)
         # карточка машины открывается в браузере: UI_VEHICLE знает свой режим
         self.assertIn('if (mode == UI_VEHICLE) return CEF_MODE_VEHICLE;', UI)
 
@@ -135,11 +147,10 @@ class CardPreviewTest(unittest.TestCase):
         self.assertNotIn('19.0*slot', UI)
 
     def test_garage_card_shows_the_car(self):
-        self.assertIn('RW_UI_PreviewShow(playerid, previewModel, 445.0, 100.0, 110.0, 150.0);', GARAGE)
-        self.assertIn('PlayerTextDrawTextSize(playerid, gGarageTD[playerid][0], 370.0, 272.0);', GARAGE)
-        self.assertIn('if (row == 0) previewModel = model;', GARAGE)
-        hide = GARAGE.split('stock RW_GarageHide')[1].split('\nstock ')[0]
-        self.assertIn('RW_UI_PreviewHide(playerid);', hide)
+        self.assertIn('RW_CefPreview(playerid, previewModel, previewName);', GARAGE)
+        self.assertIn('if (row == 0) { previewModel = model; format(previewName, sizeof previewName, "%s", name); }', GARAGE)
+        self.assertNotIn('RW_UI_PreviewShow', GARAGE)
+        self.assertNotIn('RW_UI_PreviewHide', GARAGE)
 
 
 class GiveItemTest(unittest.TestCase):

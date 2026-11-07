@@ -175,6 +175,13 @@ stock RW_CefAction(playerid, id, const label[], const style[] = "")
     CEF_EmitEvent(playerid, CEF_UI_MENU, "ui:action", CEF_INT(id), CEF_STR(label), CEF_STR(style));
     return 1;
 }
+/* Превью машины в карточке: страница рисует силуэт по номеру модели. */
+stock RW_CefPreview(playerid, model, const name[])
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_EmitEvent(playerid, CEF_UI_MENU, "ui:preview", CEF_INT(model), CEF_STR(name));
+    return 1;
+}
 stock RW_CefEnd(playerid)
 {
     if (!RW_CefOn(playerid)) return 0;
