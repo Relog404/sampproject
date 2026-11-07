@@ -115,7 +115,7 @@ class HudKeysTest(unittest.TestCase):
         self.assertIn('.hint {', CSS)
         self.assertIn('.hints {', CSS)
         self.assertIn('backdrop-filter', CSS)
-        for colour in ('rgba(255,255,255,.05)', 'rgba(14,18,26,.45)'):
+        for colour in ('rgba(255,255,255,.10)', 'rgba(14,18,26,.45)'):
             self.assertIn(colour, CSS)
 
     def test_the_browser_is_created_and_destroyed(self):

@@ -121,6 +121,11 @@ class NoFullScreenMenuTest(unittest.TestCase):
             self.assertNotIn(name, CEFUI)
             self.assertNotIn(name, STUB)
 
+    def test_the_dead_menu_styles_are_gone(self):
+        self.assertNotIn('.menu-row', CSS)
+        self.assertNotIn('.menu-tab', CSS)
+        self.assertNotIn('.menu-logo', CSS)
+
     def test_the_page_and_its_script_are_gone(self):
         self.assertNotIn('menu:action', CEFUI)
         self.assertNotIn('menu:action', MENU)

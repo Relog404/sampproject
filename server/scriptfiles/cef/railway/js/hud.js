@@ -137,6 +137,16 @@
     hud.classList.toggle('mouse', !!on);
   });
 
+  /* Local preview: hud.html?fake=1 shows everything a player sees, and a
+     dark backdrop stands in for the game picture behind the glass. */
+  if (RW.demo()) {
+    document.body.classList.add('fake');
+    RW.fake('hud:hint', ['Y:interaction;AltBracket:phone;AltU:inventory;AltY:mouse;']);
+    RW.fake('hud:wallet', [128400, 6420, 14, 7]);
+    RW.fake('hud:speedo', [1, 'Infernus', 128, 4, 5200, 3]);
+    RW.fake('hud:ground', [1, '<b>Аптечка</b><small>Y — подобрать</small>']);
+  }
+
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') { e.preventDefault(); RW.emit('hud:mousetoggle', 0); }
     if (e.altKey && (e.code === 'KeyY' || e.key === 'y' || e.key === 'Y' || e.key === 'ы')) {

@@ -180,4 +180,24 @@
   RW.on('inv:end', function () { if (grid) grid.style.opacity = '1'; });
 
   RW.on('ui:close', function () { show(false); });
+
+  /* Local preview: index.html?fake=inv renders the grid without the game,
+     so the layout can be checked in a plain browser. */
+  function demo() {
+    RW.fake('inv:open', ['Инвентарь', '12.4 / 50 кг']);
+    var names = ['Аптечка', 'Отмычка', 'Ключи', 'Фотоаппарат', 'Сим-карта', 'Нож'];
+    for (var i = 0; i < 80; i++) {
+      var filled = i % 5 !== 3;
+      RW.fake('inv:cell', [i, filled ? names[i % names.length] : '', '', filled ? 1 + (i % 4) : 0,
+        i === 7, filled ? '' : (i >= 50 ? 'locked' : 'empty')]);
+    }
+    RW.fake('inv:cell', [131, 'Рюкзак', '', 1, 0, '']);
+    RW.fake('inv:cell', [132, 'Пистолет', '', 34, 0, '']);
+    RW.fake('inv:cell', [133, 'Броня', '', 1, 0, '']);
+    RW.fake('inv:end', []);
+    RW.fake('inv:context', [7, names[1], 'Открывает замок без ключа. Одноразовая.', 'Вес: 120 г']);
+    RW.fake('inv:action', [0, 'Использовать', 'ok']);
+    RW.fake('inv:action', [1, 'Выбросить', 'danger']);
+  }
+  if (window.location.search.indexOf('fake=inv') >= 0) demo();
 })();
