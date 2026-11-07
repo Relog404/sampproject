@@ -96,6 +96,10 @@ forward RW_LawyerCallFor(playerid, target);
 /* Номера действий в браузерном меню: не должны пересекаться со строками. */
 #define CEF_JOB_QUIT                20
 #define CEF_JOB_CLOSE               21
+/* Гараж: кнопки не должны попадать в номера строк 0..5. */
+#define CEF_GARAGE_PREV             20
+#define CEF_GARAGE_NEXT             21
+#define CEF_GARAGE_CLOSE            22
 
 /* ------------------------------------------------------------------ настройки */
 #define SPCAR_MIN_ADMIN_LEVEL       (0)      /* 0 — /spcar доступна всем игрокам */
@@ -123,6 +127,7 @@ forward RW_LawyerCallFor(playerid, target);
 #define CEF_MODE_FAMILY             (18)
 #define CEF_MODE_GOV                (19)
 #define CEF_MODE_INVENTORY          (20)
+#define CEF_MODE_GARAGE             (21)
 /* Настройки интерфейса: их читают модули, подключённые раньше menu.inc. */
 #define SET_HUD             (1)         /* экранный интерфейс              */
 #define SET_HINTS           (2)         /* подсказки клавиш                */
