@@ -151,6 +151,9 @@ forward RW_LawyerCallFor(playerid, target);
 #define INPUT_TILL_PUT      (4)     /* положить в кассу                 */
 #define INPUT_TILL_TAKE     (5)     /* взять из кассы                   */
 #define INPUT_PROP_BID      (6)     /* ставка на аукционе недвижимости  */
+#define INPUT_BANK_PUT      (7)     /* положить на счёт                 */
+#define INPUT_BANK_TAKE     (8)     /* снять наличными                  */
+#define INPUT_BANK_SUM      (9)     /* перевод игроку: сумма            */
 
 #define INPUT_MAX_TEXT      96      /* столько берём из поля            */
 

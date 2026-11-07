@@ -267,7 +267,8 @@ stock RW_PropRows(playerid)
         RW_AppRowProp(playerid, 3, row, "tax", "wallet");
     } else {
         RW_AppRowProp(playerid, 2, "The owner opens the doors", "", "info");
-        RW_AppRowProp(playerid, 3, "Tax per payday: %s", "", "info");
+        format(row, sizeof row, "Tax per payday: %s (the owner pays)", tax);
+        RW_AppRowProp(playerid, 3, row, "", "info");
     }
     if (gPropAt[playerid] >= 0) RW_AppRowProp(playerid, 4, "Go outside", "exit", "door");
     else RW_AppRowProp(playerid, 4, "Go inside", "enter", "door");
@@ -343,6 +344,10 @@ stock RW_PropAction(playerid, row, bool:cef)
         return RW_PropBuy(playerid, id);
     }
     if (row == 2) return RW_PropToggleDoors(playerid, id);
+    if (row == 3) {
+        if (!RW_PropMine(playerid, id)) return RW_Error(playerid, "Only the owner pays the tax.");
+        return RW_PropPayTax(playerid, id);
+    }
     if (row == 4) {
         if (gPropAt[playerid] >= 0) return RW_PropExit(playerid);
         return RW_PropEnter(playerid, id);

@@ -123,22 +123,44 @@ stock RW_InputApply(playerid, kind, arg, arg2, const text[])
     if (kind == INPUT_SELL_HOURS) {
         new hours = RW_InputNumber(text);
         if (hours < 1) return RW_Error(playerid, "—рок Ч числом, от 5 до 24 часов.");
-        return RW_MarketSell(playerid, arg, arg2, hours);
+        RW_MarketSell(playerid, arg, arg2, hours);
+        return RW_MarketOpen(playerid);
     }
     if (kind == INPUT_BID) {
         new amount = RW_InputNumber(text);
         if (amount < 1) return RW_Error(playerid, "—тавка Ч числом, и не меньше минимальной.");
-        return RW_MarketBid(playerid, arg, amount);
+        RW_MarketBid(playerid, arg, amount);
+        return RW_MarketOpen(playerid);
     }
     if (kind == INPUT_PROP_BID) {
         new amount = RW_InputNumber(text);
         if (amount < 1) return RW_Error(playerid, "—тавка Ч числом, и выше текущей.");
-        return RW_PropBid(playerid, arg, amount);
+        RW_PropBid(playerid, arg, amount);
+        return RW_PropRender(playerid);
+    }
+    if (kind == INPUT_BANK_PUT) {
+        new amount = RW_InputNumber(text);
+        if (amount < 1) return RW_Error(playerid, "—умма Ч числом, больше нул€.");
+        RW_BankDeposit(playerid, amount);
+        return RW_BankRender(playerid);
+    }
+    if (kind == INPUT_BANK_TAKE) {
+        new amount = RW_InputNumber(text);
+        if (amount < 1) return RW_Error(playerid, "—умма Ч числом, больше нул€.");
+        RW_BankWithdraw(playerid, amount);
+        return RW_BankRender(playerid);
+    }
+    if (kind == INPUT_BANK_SUM) {
+        new amount = RW_InputNumber(text);
+        if (amount < 1) return RW_Error(playerid, "—умма Ч числом, больше нул€.");
+        RW_BankTransfer(playerid, arg, amount);
+        return RW_BankRender(playerid);
     }
     if (kind == INPUT_TILL_PUT || kind == INPUT_TILL_TAKE) {
         new amount = RW_InputNumber(text);
         if (amount < 1) return RW_Error(playerid, "—умма Ч числом, больше нул€.");
-        return RW_PropTillAmount(playerid, arg, amount, kind == INPUT_TILL_PUT);
+        RW_PropTillAmount(playerid, arg, amount, kind == INPUT_TILL_PUT);
+        return RW_PropRender(playerid);
     }
     return 1;
 }

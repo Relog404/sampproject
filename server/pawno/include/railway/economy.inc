@@ -48,6 +48,8 @@
 #define BANK_INTEREST_PERCENT   1
 #define BANK_INTEREST_MAX       2000
 #define BANK_MIN_TRANSFER       50
+#define BANK_TRANSFER_RANGE     15.0    /* кому видно перевод в списке   */
+#define BANK_NEAR_SLOTS         4       /* сколько игроков показываем   */
 
 /* Товары 24/7: тип, data, amount, цена. */
 static const gShopItems[][4] = {
@@ -199,6 +201,7 @@ static const gTruckerNames[][] = {
 static const gBusModels[] = { 431, 437 };
 static const gTaxiModels[] = { 420, 438 };
 new gBank[MAX_PLAYERS];               /* деньги на счету                   */
+new gBankIds[MAX_PLAYERS][BANK_NEAR_SLOTS];   /* рядом с банкоматом: кому перевод */
 new gJob[MAX_PLAYERS];                /* JOB_NONE…JOB_POST                 */
 new gJobLevel[MAX_PLAYERS];
 new gJobExp[MAX_PLAYERS];
@@ -344,15 +347,37 @@ stock RW_BankSubtitle(playerid, dest[], size = sizeof dest)
     format(dest, size, "Cash %s / Account %s", cash, acc);
 }
 
+/* Список тех, кто стоит рядом с банкоматом: перевод — по имени в списке,
+   а не по id, который ещё надо узнать. Строки 4..7 только в браузере. */
+stock RW_BankNearRows(playerid)
+{
+    new row = 4, name[MAX_PLAYER_NAME], label[64];
+    for (new slot; slot < BANK_NEAR_SLOTS; slot++) gBankIds[playerid][slot] = INVALID_PLAYER_ID;
+    for (new p; p < MAX_PLAYERS && row < 4 + BANK_NEAR_SLOTS; p++) {
+        if (p == playerid || !IsPlayerConnected(p) || !gLogged[p]) continue;
+        new Float:x, Float:y, Float:z;
+        GetPlayerPos(p, x, y, z);
+        if (!IsPlayerInRangeOfPoint(playerid, BANK_TRANSFER_RANGE, x, y, z)) continue;
+        GetPlayerName(p, name, sizeof name);
+        gBankIds[playerid][row - 4] = p;
+        format(label, sizeof label, "Send to %s (id %d)", name, p);
+        RW_CefRow(playerid, row, label, "transfer", "users");
+        row++;
+    }
+    if (row == 4) RW_CefRow(playerid, 4, "No one nearby to send money to", "stand closer", "info");
+    return row;
+}
+
 stock RW_CefBank(playerid)
 {
     new subtitle[80];
     RW_BankSubtitle(playerid, subtitle, sizeof subtitle);
     if (!RW_CefOpen(playerid, CEF_MODE_BANK, "Bank", subtitle)) return RW_BankPanel(playerid);
     RW_CefRow(playerid, 0, "Put all cash on the account", "all", "wallet");
-    RW_CefRow(playerid, 1, "Put 1 000 on the account", "1000", "wallet");
-    RW_CefRow(playerid, 2, "Take 1 000 in cash", "1000", "cash");
-    RW_CefRow(playerid, 3, "Transfer: /transfer <id> <sum>", "chat", "users");
+    RW_CefRow(playerid, 1, "Put another sum on the account", "sum", "wallet");
+    RW_CefRow(playerid, 2, "Take cash from the account", "sum", "cash");
+    RW_CefRow(playerid, 3, "Transfer: pick a player below", "nearby", "users");
+    RW_BankNearRows(playerid);
     RW_CefAction(playerid, 8, "Close", "danger");
     return RW_CefEnd(playerid);
 }
@@ -375,9 +400,23 @@ stock RW_BankAction(playerid, row, bool:cef)
     if (row == (cef ? 8 : 7)) return RW_UI_Close(playerid);
     if (!RW_BankNear(playerid)) return RW_Error(playerid, "Step away from the ATM: the session is closed.");
     if (row == 0) return RW_BankDeposit(playerid, gMoney[playerid]);
+    if (cef && row == 1) return RW_InputOpen(playerid, INPUT_BANK_PUT, 0, "Bank",
+        "How much to put on the account: from your cash", "For example: 5000");
+    if (cef && row == 2) return RW_InputOpen(playerid, INPUT_BANK_TAKE, 0, "Bank",
+        "How much to take: cash into your pocket", "For example: 5000");
     if (row == 1) return RW_BankDeposit(playerid, 1000);
     if (row == 2) return RW_BankWithdraw(playerid, 1000);
     if (row == 3) return RW_Info(playerid, "Use: /transfer <player id> <sum>. The money leaves your account.");
+    if (cef && row >= 4 && row < 4 + BANK_NEAR_SLOTS) {
+        new target = gBankIds[playerid][row - 4];
+        if (target == INVALID_PLAYER_ID || !IsPlayerConnected(target) || !gLogged[target])
+            return RW_Error(playerid, "That player has walked away: open the ATM again.");
+        new name[MAX_PLAYER_NAME], title[64];
+        GetPlayerName(target, name, sizeof name);
+        format(title, sizeof title, "Transfer to %s", name);
+        return RW_InputOpen(playerid, INPUT_BANK_SUM, target, title,
+            "How much to send from your account", "For example: 5000");
+    }
     return 1;
 }
 

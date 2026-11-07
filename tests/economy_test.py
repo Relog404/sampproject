@@ -121,7 +121,16 @@ class BankTest(unittest.TestCase):
         self.assertIn('RW_UI_Row(playerid, 1, "Put 1 000 on the account");', ECON)
         self.assertIn('RW_UI_Row(playerid, 2, "Take 1 000 in cash");', ECON)
         self.assertIn('RW_CefRow(playerid, 0, "Put all cash on the account", "all", "wallet");', ECON)
-        self.assertIn('RW_CefRow(playerid, 3, "Transfer: /transfer <id> <sum>", "chat", "users");', ECON)
+        self.assertIn('RW_CefRow(playerid, 3, "Transfer: pick a player below", "nearby", "users");', ECON)
+        near = block(ECON, 'stock RW_BankNearRows(playerid)')
+        self.assertIn('gBankIds[playerid][row - 4] = p;', near)
+        self.assertIn('"Send to %s (id %d)"', near)
+        self.assertIn('"No one nearby to send money to"', near)
+        action = block(ECON, 'stock RW_BankAction(playerid, row, bool:cef)')
+        self.assertIn('if (cef && row == 1) return RW_InputOpen(playerid, INPUT_BANK_PUT, 0', action)
+        self.assertIn('if (cef && row == 2) return RW_InputOpen(playerid, INPUT_BANK_TAKE, 0', action)
+        self.assertIn('RW_InputOpen(playerid, INPUT_BANK_SUM, target', action)
+        self.assertIn('"No one nearby to send money to"', ECON)
 
     def test_every_write_is_saved_at_once(self):
         add = block(ECON, 'stock RW_BankAdd(playerid, amount)')

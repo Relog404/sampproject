@@ -37,6 +37,7 @@ UI = pawn('ui')
 INV = pawn('inventory')
 MARKET = pawn('market')
 PROP = pawn('property')
+ECON = pawn('economy')
 MAIN = (ROOT / 'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
 SCRIPT = (PAGES / 'js/input.js').read_text(encoding='utf-8')
 HTML = (PAGES / 'index.html').read_text(encoding='utf-8')
@@ -177,6 +178,74 @@ class TillByClickTest(unittest.TestCase):
                 continue
             for char in text:
                 self.assertLess(ord(char), 128, text)
+
+
+class MarketByClickTest(unittest.TestCase):
+    """Покупка, снятие и выдача — кнопками витрины, а не командами."""
+
+    def test_the_row_under_the_list_tells_what_the_lot_can_do(self):
+        rows = block(MARKET, 'stock RW_MarketRows(playerid)')
+        self.assertIn('"Снять лот №%d с витрины"', rows)
+        self.assertIn('"Купить лот №%d"', rows)
+        self.assertIn('"Поднять ставку: лот №%d"', rows)
+        self.assertIn('"Выберите лот: нажмите на строку выше"', rows)
+        self.assertIn('"Лот закрыт: выберите другой"', rows)
+
+    def test_the_action_follows_the_lot_not_the_habit(self):
+        action = block(MARKET, 'stock RW_MarketAction(playerid, row, bool:cef)')
+        self.assertIn('return RW_MarketUnsell(playerid, pick);', action)
+        self.assertIn('return RW_MarketBuy(playerid, pick);', action)
+        self.assertIn('if (row == 9 && cef) return RW_MarketClaim(playerid);', action)
+
+    def test_the_browser_needs_no_second_click(self):
+        action = block(MARKET, 'stock RW_MarketAction(playerid, row, bool:cef)')
+        self.assertIn('if (cef) { RW_MarketRefresh(playerid); return RW_Info', action)
+        self.assertIn('return RW_Info(playerid, "Нажмите на эту строку ещё раз, чтобы купить.");', action)
+
+    def test_the_commands_are_one_liners_over_the_same_functions(self):
+        self.assertIn('return RW_MarketUnsell(playerid, strval(params));', MARKET)
+        self.assertIn('stock RW_TakeCommand(playerid) { return RW_MarketClaim(playerid); }', MARKET)
+        self.assertIn('stock RW_CefBank(playerid)', ECON)
+
+
+class BankByClickTest(unittest.TestCase):
+    """Банкомат: суммы и перевод — по клику, а не по id из головы."""
+
+    def test_the_atm_asks_for_the_sum(self):
+        action = block(ECON, 'stock RW_BankAction(playerid, row, bool:cef)')
+        self.assertIn('INPUT_BANK_PUT, 0, "Bank"', action)
+        self.assertIn('INPUT_BANK_TAKE, 0, "Bank"', action)
+        apply_block = block(INPUT, 'stock RW_InputApply(playerid, kind, arg, arg2, const text[])')
+        self.assertIn('RW_BankDeposit(playerid, amount);', apply_block)
+        self.assertIn('RW_BankWithdraw(playerid, amount);', apply_block)
+        self.assertIn('RW_BankTransfer(playerid, arg, amount);', apply_block)
+
+    def test_the_transfer_picks_a_player_standing_nearby(self):
+        near = block(ECON, 'stock RW_BankNearRows(playerid)')
+        self.assertIn('BANK_TRANSFER_RANGE', near)
+        self.assertIn('if (p == playerid || !IsPlayerConnected(p) || !gLogged[p]) continue;', near)
+        action = block(ECON, 'stock RW_BankAction(playerid, row, bool:cef)')
+        self.assertIn('"That player has walked away: open the ATM again."', action)
+
+    def test_the_panel_comes_back_with_the_new_numbers(self):
+        apply_block = block(INPUT, 'stock RW_InputApply(playerid, kind, arg, arg2, const text[])')
+        self.assertIn('return RW_BankRender(playerid);', apply_block)
+        self.assertIn('return RW_MarketOpen(playerid);', apply_block)
+        self.assertIn('return RW_PropRender(playerid);', apply_block)
+
+
+class PropertyByClickTest(unittest.TestCase):
+    """Налог по клику и честная строка налога у чужого объекта."""
+
+    def test_the_tax_row_answers(self):
+        action = block(PROP, 'stock RW_PropAction(playerid, row, bool:cef)')
+        self.assertIn('if (row == 3) {', action)
+        self.assertIn('return RW_PropPayTax(playerid, id);', action)
+
+    def test_a_strangers_tax_row_shows_the_sum_not_the_format(self):
+        rows = block(PROP, 'stock RW_PropRows(playerid)')
+        self.assertNotIn('RW_AppRowProp(playerid, 3, "Tax per payday: %s"', rows)
+        self.assertIn('"Tax per payday: %s (the owner pays)"', rows)
 
 
 if __name__ == '__main__':

@@ -240,14 +240,24 @@ stock RW_MarketRows(playerid)
     }
     db_free_result(r);
     if (!index) RW_MarketRowOut(playerid, 0, "Лотов нет", "Вернитесь позже или выставите свой: /sell", "info");
-    /* Строка 7 только в браузере: в диалоге под этим номером «Закрыть». */
+    /* Строка 7 только в браузере: в диалоге под этим номером «Закрыть».
+       Она же — действие над выбранным лотом, поэтому второго нажатия
+       на строку лота не нужно. */
     if (RW_CefOn(playerid) && gCefMode[playerid] == CEF_MODE_MARKET) {
-        new pick = gMarketPick[playerid];
-        if (pick > 0 && RW_MarketLotField(pick, "status") == MARKET_AUCTION) {
-            new label[64];
+        new pick = gMarketPick[playerid], label[64];
+        if (pick <= 0) RW_MarketRowOut(playerid, 7, "Выберите лот: нажмите на строку выше",
+            "Здесь появится покупка, ставка или снятие", "info");
+        else if (RW_MarketLotField(pick, "status") == MARKET_OPEN
+                 && RW_MarketLotField(pick, "seller") == gAccountId[playerid]) {
+            format(label, sizeof label, "Снять лот №%d с витрины", pick);
+            RW_MarketRowOut(playerid, 7, label, "Комиссия склада не возвращается", "wallet");
+        } else if (RW_MarketLotField(pick, "status") == MARKET_OPEN) {
+            format(label, sizeof label, "Купить лот №%d", pick);
+            RW_MarketRowOut(playerid, 7, label, "Наличными, деньги уйдут продавцу на счёт", "ok");
+        } else if (RW_MarketLotField(pick, "status") == MARKET_AUCTION) {
             format(label, sizeof label, "Поднять ставку: лот №%d", pick);
-            RW_MarketRowOut(playerid, 7, label, "Нажмите, чтобы ввести сумму", "wallet");
-        } else RW_MarketRowOut(playerid, 7, "Ставка: выберите лот на аукционе", "Нажмите на лот, потом сюда", "info");
+            RW_MarketRowOut(playerid, 7, label, "Минимум — на 5 процентов выше текущей", "wallet");
+        } else RW_MarketRowOut(playerid, 7, "Лот закрыт: выберите другой", "", "info");
     }
     return index;
 }
@@ -268,11 +278,12 @@ stock RW_MarketOpen(playerid)
     if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
     new subtitle[120];
     new count = RW_MarketCount();
-    format(subtitle, sizeof subtitle, "Лотов на витрине: %d. Страница %d. /sell, /buy, /bid", count, gMarketPage[playerid] + 1);
+    format(subtitle, sizeof subtitle, "Лотов на витрине: %d. Страница %d. Выберите лот — действие появится ниже", count, gMarketPage[playerid] + 1);
     #if RAILWAY_CEF
         if (RW_CefOpen(playerid, CEF_MODE_MARKET, "Маркетплейс", subtitle)) {
             RW_MarketRows(playerid);
             RW_CefAction(playerid, 6, "Дальше", "");
+            RW_CefAction(playerid, 9, "Забрать со склада", "wallet");
             RW_CefAction(playerid, 8, "Закрыть", "danger");
             return RW_CefEnd(playerid);
         }
@@ -320,17 +331,24 @@ stock RW_MarketAction(playerid, row, bool:cef)
     if (row == 7 && cef) {
         new pick = gMarketPick[playerid];
         if (pick <= 0) return RW_Error(playerid, "Сначала выберите лот: нажмите на него.");
-        if (RW_MarketLotField(pick, "status") != MARKET_AUCTION) return RW_Error(playerid, "Ставки принимаются только на аукционе.");
-        return RW_InputOpen(playerid, INPUT_BID, pick, "Аукцион: лот №" , "Ваша ставка наличными",
-            "Минимум — на 5 процентов выше текущей");
+        new status = RW_MarketLotField(pick, "status");
+        if (status == MARKET_OPEN && RW_MarketLotField(pick, "seller") == gAccountId[playerid])
+            return RW_MarketUnsell(playerid, pick);
+        if (status == MARKET_OPEN) return RW_MarketBuy(playerid, pick);
+        if (status == MARKET_AUCTION)
+            return RW_InputOpen(playerid, INPUT_BID, pick, "Аукцион: лот №" , "Ваша ставка наличными",
+                "Минимум — на 5 процентов выше текущей");
+        return RW_Error(playerid, "Этот лот уже закрыт: выберите другой.");
     }
+    if (row == 9 && cef) return RW_MarketClaim(playerid);
     new lot = gMarketIds[playerid][row];
     if (lot <= 0) return 1;
     if (GetTickCount() - gMarketTick[playerid] < 250) return 1;
     gMarketTick[playerid] = GetTickCount();
     if (gMarketPick[playerid] != lot) {
         gMarketPick[playerid] = lot;
-        if (cef) return RW_Info(playerid, "Нажмите на лот ещё раз, чтобы купить. Ставка на аукционе: /bid <лот> <сумма>.");
+        /* В браузере второе нажатие не нужно: ниже появится кнопка. */
+        if (cef) { RW_MarketRefresh(playerid); return RW_Info(playerid, "Лот выбран. Действие — кнопкой под списком."); }
         return RW_Info(playerid, "Нажмите на эту строку ещё раз, чтобы купить.");
     }
     gMarketPick[playerid] = 0;
@@ -425,21 +443,27 @@ stock RW_BidCommand(playerid, const params[])
 
 /*  --------------------------- снятие и получение -------------------------- */
 
-stock RW_CancelCommand(playerid, const params[])
+/* Снять свой лот с витрины: и команда /cancel, и кнопка в браузере. */
+stock RW_MarketUnsell(playerid, lot)
 {
-    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
-    if (!params[0]) return RW_Info(playerid, "Использование: /cancel <номер лота>. Комиссия склада не возвращается.");
-    new lot = strval(params);
     if (lot <= 0) return RW_Error(playerid, "Нет такого лота.");
     if (RW_MarketLotField(lot, "seller") != gAccountId[playerid]) return RW_Error(playerid, "Это не ваш лот.");
     if (RW_MarketLotField(lot, "status") != MARKET_OPEN) return RW_Error(playerid, "Лот уже на аукционе или закрыт.");
     new query[200];
     format(query, sizeof query, "UPDATE market_lots SET status=%d,claim=%d WHERE id=%d AND status=%d", MARKET_CLAIM, gAccountId[playerid], lot, MARKET_OPEN);
     RW_DB_Exec(query);
-    return RW_Ok(playerid, "Лот снят с витрины. Заберите предмет: /take.");
+    return RW_Ok(playerid, "Лот снят с витрины. Заберите предмет: кнопка «Забрать со склада» или /claim.");
+}
+
+stock RW_CancelCommand(playerid, const params[])
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
+    if (!params[0]) return RW_Info(playerid, "Использование: /cancel <номер лота>. Комиссия склада не возвращается.");
+    return RW_MarketUnsell(playerid, strval(params));
 }
 /* Отдаёт всё, что ждёт игрока на складе выдачи. */
-stock RW_TakeCommand(playerid)
+/* Забрать всё со склада выдачи: и команда /claim, и кнопка в браузере. */
+stock RW_MarketClaim(playerid)
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
     if (!gInvLoaded[playerid]) return RW_Error(playerid, "Инвентарь ещё загружается.");
@@ -475,6 +499,8 @@ stock RW_TakeCommand(playerid)
     format(message, sizeof message, "Получено со склада (%d): %s.", taken, names);
     return RW_Ok(playerid, message);
 }
+
+stock RW_TakeCommand(playerid) { return RW_MarketClaim(playerid); }
 
 /*  --------------------------------- таймер -------------------------------- */
 /* Склад живёт своё время, потом лот сам уходит на аукцион. */

@@ -158,17 +158,17 @@ class MarketClaimTest(unittest.TestCase):
     """Cancelling and collecting: nothing is lost."""
 
     def test_a_cancelled_lot_waits_on_the_shelf_for_its_owner(self):
-        cancel = block(MARKET, 'stock RW_CancelCommand(playerid, const params[])')
+        cancel = block(MARKET, 'stock RW_MarketUnsell(playerid, lot)')
         self.assertIn('status=%d,claim=%d WHERE id=%d AND status=%d', cancel)
         self.assertIn('RW_MarketLotField(lot, "seller") != gAccountId[playerid]', cancel)
 
     def test_only_the_owner_may_take_the_item_back(self):
-        take = block(MARKET, 'stock RW_TakeCommand(playerid)')
+        take = block(MARKET, 'stock RW_MarketClaim(playerid)')
         self.assertIn('WHERE status=%d AND claim=%d', take)
         self.assertIn('gAccountId[playerid]', take)
 
     def test_a_full_inventory_keeps_the_lot_for_later(self):
-        take = block(MARKET, 'stock RW_TakeCommand(playerid)')
+        take = block(MARKET, 'stock RW_MarketClaim(playerid)')
         self.assertIn('if (RW_MarketGive(playerid, type, data, amount) <= 0)', take)
         self.assertIn('остался на складе выдачи', take)
 
