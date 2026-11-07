@@ -453,7 +453,7 @@ class TransportWiringTest(unittest.TestCase):
                            ('repair', 'RW_RepairCommand'), ('tow', 'RW_TowCommand'), ('tune', 'RW_TuneCommand'),
                            ('impound', 'RW_ImpoundList'), ('unimpound', 'RW_UnimpoundCommand')):
             self.assertIn('if (!strcmp(cmd, "%s", true)) return %s(playerid' % (cmd, stock), CMDS)
-        self.assertIn('Transport: /fuel, /refuel, /trunk, /tune, /repair, /tow, /impound, /unimpound; Y on a car.', CMDS)
+        self.assertIn('Транспорт: /fuel, /refuel, /trunk, /tune, /repair, /tow, /impound, /unimpound; Y на машине.', CMDS)
 
     def test_every_menu_has_a_text_draw_twin(self):
         for cef, td in (('RW_CefTrunk', 'RW_TrunkPanel'), ('RW_CefPick', 'RW_PickPanel'), ('RW_CefService', 'RW_ServicePanel')):

@@ -52,7 +52,7 @@ stock RW_CityInit()
         gCityActor[i] = CreateActor(gCityActorSkin[i], gCityActorPos[i][0], gCityActorPos[i][1], gCityActorPos[i][2], gCityActorPos[i][3]);
         SetActorInvulnerable(gCityActor[i], true);
         new text[96];
-        format(text, sizeof text, "%s\n/talk", gCityActorName[i]);
+        format(text, sizeof text, "%s\n/talk - заговорить", gCityActorName[i]);
         gCityLabel[i] = Create3DTextLabel(text, 0xF5B04CFF, gCityActorPos[i][0], gCityActorPos[i][1], gCityActorPos[i][2] + 1.1, 12.0, 0, 0);
     }
     return 1;
@@ -111,14 +111,14 @@ stock RW_CityWelcome(playerid)
 {
     new nick[MAX_PLAYER_NAME];
     RW_GetNick(playerid, nick);
-    RW_Accent(playerid, "--- Welcome to Unity Station ---");
-    RW_Info(playerid, "This is a role-play server: play a role, speak in character and use /b for out of character chat.");
-    RW_Info(playerid, "Start: /job at the El Corona yard, then /work for a task. Money comes on payday: /payday.");
-    RW_Info(playerid, "The bonus card in the corner gives free cash: click it or /bonus. F2 or /donate - the donate menu.");
+    RW_Accent(playerid, "--- Добро пожаловать на Unity Station ---");
+    RW_Info(playerid, "Это ролевой сервер: играйте роль, говорите от лица персонажа, а /b - для разговора вне роли.");
+    RW_Info(playerid, "Начало: /job во дворе Эль-Корона, затем /work - задание. Деньги приходят на /payday.");
+    RW_Info(playerid, "Карточка в углу даёт бесплатные деньги: нажмите её или /bonus. F2 или /donate - донат-меню.");
     if (gMoney[playerid] <= 0 && gBank[playerid] <= 0) {
         RW_AddMoney(playerid, CITY_START_CASH);
         RW_BankAdd(playerid, CITY_START_BANK);
-        RW_Ok(playerid, "A newcomer's start: 3 000 in cash and 2 000 on the account. Good luck.");
+        RW_Ok(playerid, "Подъёмные новичку: 3 000 наличными и 2 000 на счёт. Удачи в городе.");
     }
     return 1;
 }

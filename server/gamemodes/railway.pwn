@@ -223,9 +223,9 @@ public OnPlayerConnect(playerid)
     RW_UI_Create(playerid);
     RW_UI_OpenAuth(playerid);
 
-    format(string, sizeof string, "%s {F5B04C}%s{FFFFFF}, welcome to Unity Station!", RW_TAG, nick);
+    format(string, sizeof string, "%s {F5B04C}%s{FFFFFF}, добро пожаловать на вокзал Unity Station!", RW_TAG, nick);
     SendClientMessage(playerid, COLOR_WHITE, string);
-    SendClientMessage(playerid, COLOR_GREY, "Interface: /uiru - native dialogs; /uitd - compact TextDraw panels. All text is English.");
+    SendClientMessage(playerid, COLOR_GREY, "Интерфейс: /uiru - обычные диалоги; /uitd - компактные панели. Команды - /help.");
 
     return 1;
 }
@@ -313,7 +313,7 @@ public OnPlayerSpawn(playerid)
     RW_Veh_OnPlayerSpawn(playerid);
     RW_InvAttach(playerid,true);
 
-    format(string, sizeof string, "%s Welcome to the station. {F5B04C}/spcar 411{FFFFFF} - temporary car; /inv - inventory.", RW_TAG);
+    format(string, sizeof string, "%s Вы на вокзале. {F5B04C}/spcar 411{FFFFFF} - временная машина; /inv - инвентарь; /help - команды.", RW_TAG);
     SendClientMessage(playerid, COLOR_WHITE, string);
 
     return 1;

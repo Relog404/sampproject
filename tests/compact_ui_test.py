@@ -59,14 +59,14 @@ class CompactRussianUiTest(unittest.TestCase):
             self.assertIn(text, self.control)
 
     def test_auth_card_hides_for_password_dialog_and_uses_two_steps(self):
-        self.assertIn('Welcome', self.ui)
+        self.assertIn('С возвращением', self.ui)
         self.assertIn('Login', self.ui)
         begin = self.ui.split('stock RW_UI_PasswordBegin', 1)[1].split('\n}', 1)[0]
         self.assertIn('PlayerTextDrawHide', begin)
         self.assertIn('gUIInput[playerid] = true', begin)
         account = source('accounts')
-        self.assertIn('Register 1/2', account)
-        self.assertIn('Register 2/2', account)
+        self.assertIn('Регистрация 1/2', account)
+        self.assertIn('Регистрация 2/2', account)
         self.assertIn('DIALOG_REGISTER_CONFIRM, DIALOG_STYLE_PASSWORD', account)
         confirm = self.main.split('if (dialogid == DIALOG_REGISTER_CONFIRM) {', 1)[1].split('\n    }', 1)[0]
         self.assertIn('!gRegPending[playerid]', confirm)

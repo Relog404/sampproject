@@ -276,13 +276,20 @@ class CityTest(unittest.TestCase):
             self.assertIn('"%s", true' % command, CMDS)
 
 
-class InterfaceEnglishTest(unittest.TestCase):
-    """The server speaks keys: Cyrillic lives on the pages, not in Pawn."""
+class InterfaceLanguageTest(unittest.TestCase):
+    """Keys stay ASCII, the text a player reads is Russian."""
 
-    def test_pawn_sources_have_no_cyrillic_literals(self):
-        for name, source in (('hud', HUD), ('donate', DONATE), ('city', CITY)):
+    def test_hud_keys_stay_ascii_so_the_page_can_translate_them(self):
+        for source in (HUD, CITY):
             for text in re.findall(r'"([^"\r\n]*)"', source):
-                self.assertFalse(re.search(r'[Ѐ-ӿ]', text), (name, text))
+                if re.match(r'^[A-Za-z0-9]+:[a-zA-Z]+(;[A-Za-z0-9]+:[a-zA-Z]+)*;$', text):
+                    self.assertTrue(text.isascii(), text)
+        self.assertIn('"Y:interaction;"', HUD)
+
+    def test_the_auth_and_the_welcome_speak_russian(self):
+        self.assertIn('С возвращением', UI)
+        self.assertIn('добро пожаловать на вокзал', MAIN)
+        self.assertIn('Здравствуйте, {F5B04C}%s{FFFFFF}!', ACCOUNTS)
 
     def test_the_pages_are_russian(self):
         self.assertIn('Скрыть', PAGE)

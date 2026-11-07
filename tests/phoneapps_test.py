@@ -323,7 +323,7 @@ class PhoneAppWiringTest(unittest.TestCase):
             self.assertIn('if (!strcmp(cmd, "%s", true)) return %s(playerid, params);' % (cmd, stock), CMDS)
         self.assertIn('if (!strcmp(cmd, "uber", true)) return RW_PhoneAppOpen(playerid, PHONE_APP_UBER);', CMDS)
         self.assertIn('if (!strcmp(cmd, "auto", true)) return RW_PhoneAppOpen(playerid, PHONE_APP_AUTO);', CMDS)
-        self.assertIn('Phone apps: /apps, /weather, /group, /g <text>, /ginvite, /taxi, /uber, /news, /ad, /auto, /deliver, /snap, /photo, /lawcall, /radio.', CMDS)
+        self.assertIn('Приложения: /apps, /weather, /group, /g <текст>, /ginvite, /taxi, /uber, /news, /ad, /auto, /deliver, /snap, /photo, /lawcall, /radio.', CMDS)
 
     def test_no_cyrillic_reaches_the_player(self):
         """Comments are Russian, every string the player can read is English."""

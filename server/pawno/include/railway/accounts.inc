@@ -235,6 +235,15 @@ stock bool:RW_AccountOnline(accountid, exceptid)
 stock RW_Respond(playerid, bool:ok, const code[])
 {
     gAuthBusy[playerid] = false;
+    if (!gLogged[playerid]) {
+        new authNick[MAX_PLAYER_NAME], authText[192];
+        RW_GetNick(playerid, authNick);
+        RW_AuthCodeText(code, authText, sizeof authText);
+        if (RW_CefAuthOpen(playerid, !RW_DB_AccountExists(authNick), authNick, ok ? ("") : (authText))) {
+            if (ok) RW_CefAuthClose(playerid);
+            return 1;
+        }
+    }
     return RW_AuthDialogRespond(playerid, ok, code);
 }
 
@@ -434,19 +443,20 @@ stock RW_LoginSuccess(playerid, accid, skin, money, admin)
     RW_HudLoad(playerid);
     RW_DonateLoad(playerid);
     RW_StoryLoad(playerid);
+    RW_CefAuthClose(playerid);
     RW_UI_CloseAuth(playerid);
 
     RW_SpawnPlayer(playerid);
 
-    format(string, sizeof string, "Welcome, {F5B04C}%s{FFFFFF}! You are at %s.", nick, STATION_NAME);
+    format(string, sizeof string, "Здравствуйте, {F5B04C}%s{FFFFFF}! Вы на станции %s.", nick, STATION_NAME);
     SendClientMessage(playerid, COLOR_WHITE, string);
 
     RW_FormatMoney(money, moneyFmt, sizeof moneyFmt);
-    format(string, sizeof string, "Balance: {7BD88F}%s{FFFFFF} rub. /spcar {AAAAAA}<id>{FFFFFF} - temporary car /help - commands", moneyFmt);
+    format(string, sizeof string, "Баланс: {7BD88F}%s{FFFFFF} руб. /spcar {AAAAAA}<id>{FFFFFF} - временная машина; /help - команды", moneyFmt);
     SendClientMessage(playerid, COLOR_GREY, string);
 
     if (admin > 0) {
-        format(string, sizeof string, "Logged in as administrator (level %d). /ahelp - admin commands.", admin);
+        format(string, sizeof string, "Вы вошли как администратор (уровень %d). /ahelp - команды администратора.", admin);
         RW_Accent(playerid, string);
     }
 
@@ -543,33 +553,33 @@ stock RW_StartAuthCamera(playerid)
 stock RW_AuthCodeText(const code[], dest[], size)
 {
     if (!strcmp(code, "ok:register", true)) {
-        format(dest, size, "Account created.");
+        format(dest, size, "Аккаунт создан.");
     } else if (!strcmp(code, "ok:login", true)) {
-        format(dest, size, "Logged in.");
+        format(dest, size, "Вы вошли в аккаунт.");
     } else if (!strcmp(code, "err:short", true)) {
-        format(dest, size, "Password too short (minimum 6 characters).");
+        format(dest, size, "Пароль слишком короткий: минимум 6 символов.");
     } else if (!strcmp(code, "err:long", true)) {
-        format(dest, size, "Password too long (maximum 64 characters).");
+        format(dest, size, "Пароль слишком длинный: максимум 64 символа.");
     } else if (!strcmp(code, "err:chars", true)) {
-        format(dest, size, "Password contains unsupported characters.");
+        format(dest, size, "В пароле есть недопустимые символы.");
     } else if (!strcmp(code, "err:mismatch", true)) {
-        format(dest, size, "Passwords do not match.");
+        format(dest, size, "Пароли не совпадают.");
     } else if (!strcmp(code, "err:exists", true)) {
-        format(dest, size, "This account name is already registered.");
+        format(dest, size, "Такое имя уже зарегистрировано.");
     } else if (!strcmp(code, "err:noaccount", true)) {
-        format(dest, size, "Account not found.");
+        format(dest, size, "Аккаунт не найден.");
     } else if (!strcmp(code, "err:inuse", true)) {
-        format(dest, size, "This account is already online.");
+        format(dest, size, "Этот аккаунт уже в игре.");
     } else if (!strcmp(code, "err:nick", true)) {
-        format(dest, size, "Invalid account name.");
+        format(dest, size, "Некорректное имя аккаунта.");
     } else if (!strcmp(code, "err:db", true)) {
-        format(dest, size, "Database error. Try again later.");
+        format(dest, size, "Ошибка базы данных. Попробуйте позже.");
     } else if (!strcmp(code, "err:badpass", true, 11)) {
-        format(dest, size, "Wrong password. Check your keyboard layout and Caps Lock.");
+        format(dest, size, "Неверный пароль. Проверьте раскладку и Caps Lock.");
     } else if (!strcmp(code, "err:cooldown", true)) {
-        format(dest, size, "Too fast. Wait a second.");
+        format(dest, size, "Слишком часто. Подождите секунду.");
     } else if (!strcmp(code, "err:attempts", true)) {
-        format(dest, size, "Too many login attempts.");
+        format(dest, size, "Слишком много попыток входа.");
     } else {
         format(dest, size, "%s", code);
     }
@@ -597,13 +607,13 @@ stock RW_ShowAuthDialog(playerid, bool:registerMode, const note[])
     registerMode = !RW_DB_AccountExists(nick);
     if (registerMode) {
         format(info, sizeof info,
-            "%s{D8C39B}RAILWAY / CREATE ACCOUNT{FFFFFF}\n\nName: {D8C39B}%s{FFFFFF}\nChoose a password of 6 to 64 characters.\nRepeat it on the next step.\n\n{939BA6}Do not reuse a password from another service.",
+            "%s{D8C39B}ЖЕЛЕЗНАЯ ДОРОГА / РЕГИСТРАЦИЯ{FFFFFF}\n\nИмя: {D8C39B}%s{FFFFFF}\nПридумайте пароль: от 6 до 64 символов.\nНа следующем шаге повторите его.\n\n{939BA6}Не используйте пароль от других сервисов.",
             head, nick);
-        ShowPlayerDialog(playerid, DIALOG_REGISTER, DIALOG_STYLE_PASSWORD, "Railway | Register 1/2", info, "Next", "Quit");
+        ShowPlayerDialog(playerid, DIALOG_REGISTER, DIALOG_STYLE_PASSWORD, "Железная дорога | Регистрация 1/2", info, "Далее", "Выход");
     } else {
         format(info, sizeof info,
-            "%s{D8C39B}RAILWAY / WELCOME BACK{FFFFFF}\n\nName: {D8C39B}%s{FFFFFF}\nEnter your password to continue.\n\n{939BA6}Input is hidden. Check your keyboard layout and Caps Lock.", head, nick);
-        ShowPlayerDialog(playerid, DIALOG_LOGIN, DIALOG_STYLE_PASSWORD, "Railway | Login", info, "Login", "Quit");
+            "%s{D8C39B}ЖЕЛЕЗНАЯ ДОРОГА / С ВОЗВРАЩЕНИЕМ{FFFFFF}\n\nИмя: {D8C39B}%s{FFFFFF}\nВведите пароль, чтобы продолжить.\n\n{939BA6}Ввод скрыт. Проверьте раскладку и Caps Lock.", head, nick);
+        ShowPlayerDialog(playerid, DIALOG_LOGIN, DIALOG_STYLE_PASSWORD, "Железная дорога | Вход", info, "Войти", "Выход");
     }
     return 1;
 }
@@ -645,7 +655,7 @@ stock RW_ClearRegisterPassword(playerid)
 stock RW_ShowRegisterConfirm(playerid)
 {
     RW_UI_PasswordBegin(playerid);
-    ShowPlayerDialog(playerid, DIALOG_REGISTER_CONFIRM, DIALOG_STYLE_PASSWORD, "Railway | Register 2/2",
-        "{D8C39B}CONFIRM PASSWORD{FFFFFF}\n\nRepeat your new password.\nYour account will be saved after confirmation.\n\n{939BA6}Your password is hidden and never logged.", "Create", "Back");
+    ShowPlayerDialog(playerid, DIALOG_REGISTER_CONFIRM, DIALOG_STYLE_PASSWORD, "Железная дорога | Регистрация 2/2",
+        "{D8C39B}ПОДТВЕРЖДЕНИЕ{FFFFFF}\n\nПовторите новый пароль.\nПосле подтверждения аккаунт будет сохранён.\n\n{939BA6}Пароль скрыт и никогда не пишется в логи.", "Создать", "Назад");
     return 1;
 }

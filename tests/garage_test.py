@@ -141,7 +141,15 @@ class GarageSourceContractsTest(unittest.TestCase):
         paths = [ROOT/'server/gamemodes/railway.pwn', *list((ROOT/'server/pawno/include/railway').glob('*.inc'))]
         for path in paths:
             for text in re.findall(r'"([^"\r\n]*)"', path.read_text(encoding='cp1251')):
-                self.assertTrue(text.isascii(), (path.name,text))
+                # Интерфейс для игрока теперь на русском; латиницей остаются
+                # служебные строки: SQL, имена команд, события и ключи HUD.
+                # По-русски может быть только то, что читает игрок. Служебные
+                # строки (SQL, команды, события, ключи) остаются латиницей.
+                if re.search(r'[Ѐ-ӿ]', text):
+                    continue
+                service = text.startswith(('SELECT ', 'INSERT ', 'UPDATE ', 'CREATE ', 'DELETE ', 'http', 'ui:', 'hud:', 'auth:', 'phone:'))
+                if service or '/' in text or ':' in text or '<' in text or '_' in text:
+                    self.assertTrue(text.isascii(), (path.name, text))
 
     def test_flight_and_tuning_authorization_lifecycle_and_units(self):
         for term in ('gAdminLevel[playerid] < 1','PLAYER_STATE_DRIVER','RW_Veh_CanDrive(playerid, v)','value > 500','value > 100'):

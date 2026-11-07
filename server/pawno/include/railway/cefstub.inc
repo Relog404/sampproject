@@ -59,3 +59,13 @@ stock RW_CefHudShow(playerid, on)
     #pragma unused playerid, on
     return 0;
 }
+stock RW_CefAuthOpen(playerid, bool:registerMode, const nick[], const message[])
+{
+    #pragma unused playerid, registerMode, nick, message
+    return 0;
+}
+stock RW_CefAuthClose(playerid)
+{
+    #pragma unused playerid
+    return 0;
+}

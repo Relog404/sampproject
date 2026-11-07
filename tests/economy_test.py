@@ -415,7 +415,7 @@ class EconomyWiringTest(unittest.TestCase):
             self.assertIn('if (!strcmp(cmd, "%s", true)) return %s(playerid)' % (cmd, stock), CMDS)
         for cmd, stock in (('deposit', 'RW_DepositCommand'), ('withdraw', 'RW_WithdrawCommand'), ('transfer', 'RW_TransferCommand')):
             self.assertIn('if (!strcmp(cmd, "%s", true)) return %s(playerid, params);' % (cmd, stock), CMDS)
-        self.assertIn('Money: /shop, /bank, /balance, /deposit, /withdraw, /transfer <id> <sum>, /job, /work, /quitjob, /payday.', CMDS)
+        self.assertIn('Деньги: /shop, /bank, /balance, /deposit, /withdraw, /transfer <id> <сумма>, /job, /work, /quitjob, /payday.', CMDS)
 
     def test_the_points_are_marked_in_the_world(self):
         init = block(ECON, 'stock RW_EconomyInit()')

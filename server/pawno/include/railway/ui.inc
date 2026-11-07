@@ -329,6 +329,13 @@ stock RW_UI_Close(playerid, bool:keepSelection = false)
 }
 stock RW_UI_OpenAuth(playerid)
 {
+    /* Зависший курсор мешает войти: сначала убираем выбор текстов. */
+    RW_UI_SelectEnd(playerid);
+    if (!gLogged[playerid]) {
+        new authNick[MAX_PLAYER_NAME];
+        RW_GetNick(playerid, authNick);
+        if (RW_CefAuthOpen(playerid, !RW_DB_AccountExists(authNick), authNick, "")) return 1;
+    }
     if (gUIRussianDialogs[playerid]) {
         RW_UI_Create(playerid);
         gUIMode[playerid] = UI_AUTH;
@@ -336,11 +343,11 @@ stock RW_UI_OpenAuth(playerid)
     }
     new nick[MAX_PLAYER_NAME]; RW_GetNick(playerid, nick);
     new bool:exists = RW_DB_AccountExists(nick);
-    RW_UI_Panel(playerid, UI_AUTH, exists ? ("Welcome back") : ("Welcome"), nick);
-    RW_UI_Row(playerid, 0, exists ? ("Login") : ("Create account"));
-    RW_UI_Row(playerid, 1, exists ? ("Account found") : ("Begin your Railway story"));
-    RW_UI_Row(playerid, 2, exists ? ("Enter password to continue") : ("Registration takes a minute"));
-    RW_UI_Row(playerid, 3, "Password input is hidden");
+    RW_UI_Panel(playerid, UI_AUTH, exists ? ("С возвращением") : ("Добро пожаловать"), nick);
+    RW_UI_Row(playerid, 0, exists ? ("Войти") : ("Создать аккаунт"));
+    RW_UI_Row(playerid, 1, exists ? ("Аккаунт найден") : ("Начните свою историю"));
+    RW_UI_Row(playerid, 2, exists ? ("Введите пароль, чтобы продолжить") : ("Регистрация займёт минуту"));
+    RW_UI_Row(playerid, 3, "Пароль не показывается на экране");
     for (new i = 1; i <= 3; i++) {
         PlayerTextDrawSetSelectable(playerid, gUI[playerid][3+i], 0);
         PlayerTextDrawUseBox(playerid, gUI[playerid][3+i], 0);

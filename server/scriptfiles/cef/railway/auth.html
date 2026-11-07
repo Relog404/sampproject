@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Железная дорога — вход</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body class="auth-body">
+<div class="auth" id="auth">
+  <div class="auth-card">
+    <div class="auth-mark">ЖД</div>
+    <div class="auth-title">Железная дорога</div>
+    <div class="auth-sub">Unity Station · Лос-Сантос</div>
+
+    <div class="auth-nick" id="nick"></div>
+
+    <label class="auth-field">
+      <span>Пароль</span>
+      <input id="password" type="password" autocomplete="off" placeholder="Введите пароль">
+    </label>
+
+    <label class="auth-field" id="repeatWrap">
+      <span>Пароль ещё раз</span>
+      <input id="repeat" type="password" autocomplete="off" placeholder="Повторите пароль">
+    </label>
+
+    <div class="auth-note" id="note"></div>
+
+    <button class="auth-go" id="go" type="button">Войти</button>
+    <div class="auth-help">
+      <span id="hint"></span>
+      <button class="auth-link" id="switch" type="button">Создать аккаунт</button>
+    </div>
+    <div class="auth-foot">Пароль скрыт и не попадает в логи. Играть без браузера: наберите /uiru.</div>
+  </div>
+</div>
+<script src="js/bridge.js"></script>
+<script src="js/auth.js"></script>
+</body>
+</html>

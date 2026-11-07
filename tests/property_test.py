@@ -191,7 +191,7 @@ class PropertyWiringTest(unittest.TestCase):
         for command in ('property', 'enter', 'exit', 'doors', 'paytax', 'till', 'bid', 'rob'):
             self.assertIn('"%s", true' % command, CMDS)
         help_text = block(CMDS, 'stock RW_CommandHelp(playerid)')
-        self.assertIn('Property: /property', help_text)
+        self.assertIn('Недвижимость: /property', help_text)
         for command in ('/till', '/bid', '/rob'):
             self.assertIn(command, help_text)
 

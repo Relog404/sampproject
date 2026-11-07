@@ -47,28 +47,28 @@ stock RW_ParseCommand(const cmdtext[], cmd[], cmdSize, params[], paramsSize)
 stock RW_CommandHelp(playerid)
 {
     RW_Accent(playerid, "--- {F5B04C}Unity Station{FFFFFF} ---");
-    SendClientMessage(playerid, COLOR_GREY, "/inv - inventory. Click an item for its description and actions.");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}Y{FFFFFF} - car under the crosshair, player nearby (call), else the phone /vmenu; {F5B04C}N{FFFFFF} - engine; {F5B04C}H{FFFFFF} - doors. /settings");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/phone{FFFFFF} - phone; /call, /sms, /contacts, /addcontact, /911, /topup, /tariff, /sim.");
-    SendClientMessage(playerid, COLOR_GREY, "Police: /duty, /mdt, /cuff, /escort, /wall, /wanted, /arrest, /release, /fine, /track; Y on a player.");
-    SendClientMessage(playerid, COLOR_GREY, "Lawyer: /lawyer, /bailrequest, /endcase, /lawprice; Y on a detained player to take the case.");
-    SendClientMessage(playerid, COLOR_GREY, "Ambulance: /revive, /heal, /carry, /load, /admit, /ems, /calls, /take <id>; Y on a downed player.");
-    SendClientMessage(playerid, COLOR_GREY, "Transport: /fuel, /refuel, /trunk, /tune, /repair, /tow, /impound, /unimpound; Y on a car.");
-    SendClientMessage(playerid, COLOR_GREY, "Money: /shop, /bank, /balance, /deposit, /withdraw, /transfer <id> <sum>, /job, /work, /quitjob, /payday.");
-    SendClientMessage(playerid, COLOR_GREY, "Property: /property, /doors, /enter, /exit, /paytax, /till put|take <sum>, /bid <sum>, /rob (12:00-01:00).");
-    SendClientMessage(playerid, COLOR_GREY, "Story: /story - eight chapters with xp and money; /profile - level, xp and the whole record.");
-    SendClientMessage(playerid, COLOR_GREY, "Interface: /hud - head-up display, /bonus - free cash, F2 or /donate - donate menu, /talk - a person nearby.");
-    SendClientMessage(playerid, COLOR_GREY, "Phone apps: /apps, /weather, /group, /g <text>, /ginvite, /taxi, /uber, /news, /ad, /auto, /deliver, /snap, /photo, /lawcall, /radio.");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/spcar <id>{FFFFFF} - temporary car (400-611). /garage - station garage.");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} - unlock/lock the aimed car; its key must be in /inv.");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/key{FFFFFF} - insert/remove key; N - engine.");
-    SendClientMessage(playerid, COLOR_GREY, "Map: ESC > Map > right click. /tpm - confirm teleport; /delmark - remove marker.");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/armfit{FFFFFF} - admin with worn armour: adjust the vest for your skin.");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/skin [id txd texture]{FFFFFF} - textures from the client arm/ folder.");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/board{FFFFFF} - board the aimed plane (up to 20 people); {F5B04C}/unboard{FFFFFF} - leave.");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/mycar{FFFFFF} - temporary car status.");
-    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/stats{FFFFFF} - account /admins - online administrators");
-    SendClientMessage(playerid, COLOR_DARK_GREY, "Doors must be open to enter. With a key left in the ignition, any driver can start the engine.");
+    SendClientMessage(playerid, COLOR_GREY, "/inv - инвентарь. Нажмите предмет, чтобы увидеть описание и действия.");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}Y{FFFFFF} - машина под прицелом, игрок рядом (позвать), иначе телефон /vmenu; {F5B04C}N{FFFFFF} - двигатель; {F5B04C}H{FFFFFF} - двери. /settings");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/phone{FFFFFF} - телефон; /call, /sms, /contacts, /addcontact, /911, /topup, /tariff, /sim.");
+    SendClientMessage(playerid, COLOR_GREY, "Полиция: /duty, /mdt, /cuff, /escort, /wall, /wanted, /arrest, /release, /fine, /track; Y на игроке.");
+    SendClientMessage(playerid, COLOR_GREY, "Адвокатура: /lawyer, /bailrequest, /endcase, /lawprice; Y на задержанном, чтобы взять дело.");
+    SendClientMessage(playerid, COLOR_GREY, "Скорая: /revive, /heal, /carry, /load, /admit, /ems, /calls, /take <id>; Y на упавшем игроке.");
+    SendClientMessage(playerid, COLOR_GREY, "Транспорт: /fuel, /refuel, /trunk, /tune, /repair, /tow, /impound, /unimpound; Y на машине.");
+    SendClientMessage(playerid, COLOR_GREY, "Деньги: /shop, /bank, /balance, /deposit, /withdraw, /transfer <id> <сумма>, /job, /work, /quitjob, /payday.");
+    SendClientMessage(playerid, COLOR_GREY, "Недвижимость: /property, /doors, /enter, /exit, /paytax, /till put|take <сумма>, /bid <сумма>, /rob (12:00-01:00).");
+    SendClientMessage(playerid, COLOR_GREY, "Сюжет: /story - восемь глав с опытом и деньгами; /profile - уровень, опыт и вся статистика.");
+    SendClientMessage(playerid, COLOR_GREY, "Интерфейс: /hud - экранный интерфейс, /bonus - бесплатный бонус, F2 или /donate - донат, /talk - заговорить с неписем.");
+    SendClientMessage(playerid, COLOR_GREY, "Приложения: /apps, /weather, /group, /g <текст>, /ginvite, /taxi, /uber, /news, /ad, /auto, /deliver, /snap, /photo, /lawcall, /radio.");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/spcar <id>{FFFFFF} - временная машина (400-611). /garage - гараж вокзала.");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/door{FFFFFF} - открыть/закрыть машину под прицелом; ключ должен быть в /inv.");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/key{FFFFFF} - вставить/вынуть ключ; N - двигатель.");
+    SendClientMessage(playerid, COLOR_GREY, "Карта: ESC > Карта > правая кнопка. /tpm - подтвердить телепорт; /delmark - убрать метку.");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/armfit{FFFFFF} - администратор в бронежилете: подогнать жилет под скин.");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/skin [id txd texture]{FFFFFF} - текстуры из папки arm/ клиента.");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/board{FFFFFF} - сесть в самолёт под прицелом (до 20 человек); {F5B04C}/unboard{FFFFFF} - выйти.");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/mycar{FFFFFF} - состояние временной машины.");
+    SendClientMessage(playerid, COLOR_GREY, "{F5B04C}/stats{FFFFFF} - аккаунт; /admins - администраторы в сети");
+    SendClientMessage(playerid, COLOR_DARK_GREY, "Чтобы сесть, двери должны быть открыты. С ключом в замке зажигания мотор заведёт любой водитель.");
     return 1;
 }
 

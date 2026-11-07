@@ -24,10 +24,12 @@
 #define CEF_UI_NOTIFY       (101)
 #define CEF_UI_PHONE        (102)
 #define CEF_UI_HUD          (103)
+#define CEF_UI_AUTH         (104)
 #define CEF_UI_MENU_URL     "http://cef/railway/index.html"
 #define CEF_UI_TOAST_URL    "http://cef/railway/notify.html"
 #define CEF_UI_PHONE_URL    "http://cef/railway/phone.html"
 #define CEF_UI_HUD_URL      "http://cef/railway/hud.html"
+#define CEF_UI_AUTH_URL     "http://cef/railway/auth.html"
 
 #define CEF_TOAST_PLAIN     (0)
 #define CEF_TOAST_OK        (1)
@@ -73,6 +75,7 @@ stock RW_CefInit()
     CEF_RegisterEvent("hud:bonus", "RW_HudBonusClick", Argument_Integer);
     CEF_RegisterEvent("hud:bonushide", "RW_HudBonusHideEvent", Argument_Integer);
     CEF_RegisterEvent("hud:donate", "RW_HudDonateEvent", Argument_Integer);
+    CEF_RegisterEvent("auth:submit", "RW_CefAuthSubmit", Argument_String, Argument_String);
     SetTimer("RW_CefPulse", 1000, true);
     print("[cef] browser interface ready (resource railway).");
     return 1;
@@ -93,6 +96,9 @@ stock RW_CefStart(playerid)
     CEF_SetBrowserVisible(playerid, CEF_UI_PHONE, false);
     CEF_CreateBrowser(playerid, CEF_UI_HUD, CEF_UI_HUD_URL, true, false);
     CEF_SetBrowserLayer(playerid, CEF_UI_HUD, 90);
+    CEF_CreateBrowser(playerid, CEF_UI_AUTH, CEF_UI_AUTH_URL, false, true);
+    CEF_SetBrowserLayer(playerid, CEF_UI_AUTH, 300);
+    CEF_SetBrowserVisible(playerid, CEF_UI_AUTH, false);
     return 1;
 }
 stock RW_CefReset(playerid)
@@ -102,6 +108,7 @@ stock RW_CefReset(playerid)
         CEF_DestroyBrowser(playerid, CEF_UI_NOTIFY);
         CEF_DestroyBrowser(playerid, CEF_UI_PHONE);
         CEF_DestroyBrowser(playerid, CEF_UI_HUD);
+        CEF_DestroyBrowser(playerid, CEF_UI_AUTH);
     }
     gCefReady[playerid] = false; gCefMode[playerid] = CEF_MODE_NONE;
     return 1;
@@ -330,6 +337,33 @@ stock RW_CefHudShow(playerid, on)
     if (!RW_CefOn(playerid)) return 0;
     CEF_EmitEvent(playerid, CEF_UI_HUD, "hud:show", CEF_INT(on));
     return 1;
+}
+
+/*  --------------------------- авторизаци€ -------------------------------- */
+/*  ¬ход и регистраци€ в браузере: страница отдаЄт пароль, решает сервер.     */
+stock RW_CefAuthOpen(playerid, bool:registerMode, const nick[], const message[])
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_SetBrowserVisible(playerid, CEF_UI_AUTH, true);
+    CEF_FocusBrowser(playerid, CEF_UI_AUTH, true);
+    CEF_EmitEvent(playerid, CEF_UI_AUTH, "auth:open", CEF_INT(registerMode ? 1 : 0), CEF_STR(nick), CEF_STR(message));
+    return 1;
+}
+stock RW_CefAuthClose(playerid)
+{
+    if (!RW_CefOn(playerid)) return 0;
+    CEF_SetBrowserVisible(playerid, CEF_UI_AUTH, false);
+    CEF_FocusBrowser(playerid, CEF_UI_AUTH, false);
+    CEF_EmitEvent(playerid, CEF_UI_AUTH, "auth:close");
+    return 1;
+}
+public RW_CefAuthSubmit(playerid, browserid, const password[], const confirm[])
+{
+    #pragma unused browserid
+    if (!IsPlayerConnected(playerid) || gLogged[playerid]) return 0;
+    new nick[MAX_PLAYER_NAME];
+    RW_GetNick(playerid, nick);
+    return RW_AuthSubmit(playerid, !RW_DB_AccountExists(nick), password, confirm);
 }
 
 /*  ------------------------------ phone events ----------------------------- */
