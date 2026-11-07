@@ -3,7 +3,7 @@
  *  Build without the omp-cef plugin: RAILWAY_CEF 0 in railway.pwn.
  *
  *  Same entry points as cefui.inc, all switched off, so the rest of the
- *  gamemode compiles unchanged and simply keeps the TextDraw interface.
+ *  gamemode compiles unchanged and simply opens native SA-MP dialogs.
  *  ========================================================================= */
 
 #if defined _railway_cefstub_included

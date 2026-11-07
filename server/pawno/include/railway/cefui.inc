@@ -3,7 +3,7 @@
  *  Browser UI on top of omp-cef. The pages live in scriptfiles/cef/railway
  *  and are downloaded by the client itself (http://cef/railway/...).
  *
- *  Players without the plugin keep the native TextDraw interface: every CEF
+ *  Players without the plugin keep the native dialogs: every CEF
  *  entry point here is only used when RW_CefOn(playerid) is true.
  *
  *  Readiness: SA-MP builds of the plugin may never fire OnCefReady, so the

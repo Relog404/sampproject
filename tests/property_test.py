@@ -1,7 +1,7 @@
 """Property: houses, businesses, doors, entering and taxes.
 
 Eight real addresses in Los Santos. Everything is calculated on the server:
-the browser menu and the TextDraw menu call the same stocks, the state lives
+the browser menu and the native dialog call the same stocks, the state lives
 in SQLite and survives a restart. SQL from the Pawn sources is executed here
 against a real SQLite database.
 """

@@ -3,7 +3,7 @@
 The marketplace is the kind of slice that has to survive a restart: an item
 leaves the seller's bag, the money lands on a bank account that may belong to
 an offline player, and the lot keeps its own clock. The tests below run the
-real table in SQLite and check both interfaces (browser and TextDraw) are
+real table in SQLite and check both interfaces (browser and native dialog) are
 wired to the same actions.
 """
 import re
@@ -179,7 +179,7 @@ class MarketClaimTest(unittest.TestCase):
 
 
 class MarketInterfaceTest(unittest.TestCase):
-    """The same shopfront in the browser and on TextDraw."""
+    """The same shopfront in the browser and in the native dialog."""
 
     def test_both_interfaces_are_wired(self):
         self.assertIn('#define CEF_MODE_MARKET             (16)', CORE)

@@ -138,7 +138,7 @@ class ProtocolTest(unittest.TestCase):
 
 
 class FallbackTest(unittest.TestCase):
-    """Players without the plugin keep the TextDraw interface."""
+    """Players without the plugin keep the native dialog interface."""
 
     def test_notify_is_the_browser_only_and_never_a_textdraw(self):
         """Текст уведомления уже ушёл в чат, всплывашка рисуется только

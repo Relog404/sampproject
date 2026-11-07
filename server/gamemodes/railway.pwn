@@ -1,14 +1,14 @@
 /*  ============================================================================
  *  railway.pwn Ч Ђ∆елезнодорожный вокзалї
- *  SA-MP 0.3.7 (R5-2) Х Windows server Х native TextDraw UI
+ *  SA-MP 0.3.7 (R5-2) Х Windows server Х интерфейс в браузере
  *
  *  ¬озможности:
  *    Х спавн на железнодорожном вокзале (Los Santos, Unity Station);
- *    Х регистраци€ и вход через красивый анимированный TextDraw-интерфейс;
+ *    Х регистраци€ и вход карточкой в браузере или русским диалогом;
  *    Х /spcar <id> Ч спавн стандартной машины, владелец Ч вызвавший;
  *    Х ездить может любой водитель со вставленным ключом и включЄнным мотором;
  *    Х двери открываютс€/закрываютс€ командой /door;
- *    Х при посадке за руль всегда показываетс€ TextDraw-спидометр с передачей.
+ *    Х при посадке за руль на HUD-странице по€вл€етс€ спидометр с передачей.
  *
  *   одировка исходников: Windows-1251.
  *  ========================================================================= */
@@ -16,7 +16,7 @@
 #pragma dynamic 32768
 
 /* Browser interface on the omp-cef plugin. Set to 0 to build a gamemode that
-   needs no plugin at all - the TextDraw interface is then the only one. */
+   needs no plugin at all - menus then open as native SA-MP dialogs. */
 #define RAILWAY_CEF             (1)
 
 #include <railway/core>
@@ -73,7 +73,7 @@ public OnGameModeInit()
     print(" ");
     print("  ============================================");
     print("   RAILWAY - Unity Station v" RW_VERSION);
-    print("   SA-MP 0.3.7 R5-2 / Native TextDraw interface");
+    print("   SA-MP 0.3.7 R5-2 / browser interface");
     print("  ============================================");
     print(" ");
 
@@ -293,7 +293,7 @@ public OnPlayerRequestClass(playerid, classid)
 {
     if (!gLogged[playerid] && !gUIInput[playerid]) RW_UI_OpenAuth(playerid);
     /*  лассический выбор класса отключЄн: игрок находитс€ в режиме камеры,
-       пока не войдЄт в аккаунт через TextDraw. */
+       пока не войдЄт в аккаунт. */
     return 1;
 }
 

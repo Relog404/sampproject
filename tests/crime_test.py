@@ -267,7 +267,7 @@ class CrimeItemTest(unittest.TestCase):
 
 
 class CrimeInterfaceTest(unittest.TestCase):
-    """The same panel in the browser and on TextDraw."""
+    """The same panel in the browser and in the native dialog."""
 
     def test_both_interfaces_are_wired(self):
         self.assertIn('#define CEF_MODE_CRIME              (17)', CORE)

@@ -51,7 +51,7 @@ stock RW_MedOpen(playerid)
     gUIMode[playerid] = UI_DOWNED;
     return RW_MedCef(playerid);
 }
-/* Текст таймера один для тексдрав-меню и для страницы. */
+/* Текст таймера один для диалога и для страницы. */
 stock RW_MedTimeLeft(playerid, dest[], size = sizeof dest)
 {
     new left = gDownEnd[playerid] - GetTickCount();

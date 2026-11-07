@@ -864,8 +864,8 @@ public RW_PolicePulse()
 }
 
 /*  ---------------------------------- меню --------------------------------- */
-/*  Одно меню на всё: браузер для тех, у кого плагин есть, TextDraw — для
- *  остальных. Идентификаторы строк одинаковые, поэтому обработчик один.     */
+/*  Одно меню на всё: браузер для тех, у кого плагин есть, нативный диалог —
+ *  для остальных. Идентификаторы строк одинаковые, поэтому обработчик один. */
 
 stock RW_PoliceMenuOpen(playerid, target)
 {
@@ -941,7 +941,7 @@ stock RW_CefPoliceRender(playerid)
     RW_CefAction(playerid, 8, "Close", "danger");
     return RW_CefEnd(playerid);
 }
-// Тот же список, но для PlayerTextDraw.
+// Тот же список, но нативным диалогом для тех, у кого браузера нет.
 stock RW_PolicePanel(playerid)
 {
     new target = gPoliceTarget[playerid];

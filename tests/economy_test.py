@@ -1,7 +1,7 @@
 """Economy: jobs, the 24/7 shop and the bank account.
 
 Money in the pocket and money on the account are different things, and every
-rule lives on the server: the browser menu and the TextDraw menu call the same
+rule lives on the server: the browser menu and the native dialog call the same
 stocks, and the state is kept in SQLite so it survives a restart. SQL from the
 Pawn sources is executed here against a real SQLite database.
 """

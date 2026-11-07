@@ -273,7 +273,7 @@ stock RW_CommandSetSkin(playerid, const params[])
     gSkinId[target] = skin;
     SetPlayerSkin(target, skin);
     RW_InvAttach(target,true);
-    /* Скин в инвентаре показывала тексдрав-сетка; страница обновится сама. */
+    /* Скин в инвентаре показывает страница: обновим её. */
     if (gUIMode[target] == UI_INVENTORY) RW_InvRender(target);
     new message[128]; format(message, sizeof message, "Your skin has been changed to %d by an administrator.", skin);
     RW_Ok(target, message);

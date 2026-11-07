@@ -192,8 +192,8 @@ class NativeInterfaceTest(unittest.TestCase):
         self.assertIn('RW_CefToast', notify)
         self.assertNotIn('RW_UI_Create', notify)
 
-    def test_map_teleport_is_textdraw_confirmed_and_rechecked(self):
-        click = body(self.main, 'public OnPlayerClickMap', 'public OnPlayerClickPlayerTextDraw')
+    def test_map_teleport_is_confirmed_and_rechecked(self):
+        click = body(self.main, 'public OnPlayerClickMap', 'public OnPlayerKeyStateChange')
         self.assertIn('RW_MapPrompt(playerid)', click)
         self.assertIn('RW_UI_Panel(playerid, UI_MAP', self.control)
         self.assertNotIn('ShowPlayerDialog', click)

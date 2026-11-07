@@ -2,7 +2,7 @@
  *  railway/property.inc
  *  Недвижимость: дома и бизнесы, двери, вход и налоги.
  *
- *  Как и везде, всё считает сервер: браузерное меню и TextDraw-меню вызывают
+ *  Как и везде, всё считает сервер: браузерное меню и нативный диалог вызывают
  *  одни и те же функции, состояние лежит в SQLite и переживает перезапуск.
  *  Деньги за покупку и налоги идут со счёта в банке, а не из кармана: клиент
  *  не может «заплатить» тем, чего у него нет.
@@ -240,7 +240,7 @@ stock RW_PropSubtitle(playerid, dest[], size = sizeof dest)
     format(dest, size, "For sale. Account %s", acc);
     return 1;
 }
-/* Строки меню: общие для браузера и TextDraw. */
+/* Строки меню: общие для браузера и нативного диалога. */
 stock RW_PropRows(playerid)
 {
     new id = gPropOpen[playerid], row[96], tax[32];
@@ -288,7 +288,7 @@ stock RW_PropRows(playerid)
     else RW_AppRowProp(playerid, 6, "One owner, one property", "", "info");
     return 1;
 }
-/* Обёртка строки: в браузер с иконкой, в TextDraw без неё. */
+/* Обёртка строки: в браузер с иконкой, в диалог без неё. */
 stock RW_AppRowProp(playerid, row, const text[], const arg[], const icon[])
 {
     #if RAILWAY_CEF

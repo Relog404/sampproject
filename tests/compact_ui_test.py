@@ -1,4 +1,4 @@
-"""Source/geometry contracts for native TextDraw rendering and native workflows.
+"""Source/geometry contracts for the native dialog fallback and native workflows.
 Actual GTA fonts and mouse hit boxes still need a Windows game test.
 """
 from pathlib import Path

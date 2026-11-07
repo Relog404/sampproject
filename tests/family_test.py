@@ -218,7 +218,7 @@ class FamilyCashTest(unittest.TestCase):
 
 
 class FamilyInterfaceTest(unittest.TestCase):
-    """The family panel in the browser and on TextDraw."""
+    """The family panel in the browser and in the native dialog."""
 
     def test_both_interfaces_are_wired(self):
         self.assertIn('#define CEF_MODE_FAMILY             (18)', CORE)

@@ -243,7 +243,7 @@ stock RW_UI_SpeedoUpdate(playerid, speed, gear, rpm, flags)
 }
 // Notices: kind 0 plain, 1 ok, 2 error. The text already went to the chat in
 // RW_Info / RW_Ok / RW_Error, so the notice is only the browser toast — no
-// TextDraw pops up over the screen, not even before the browser is ready.
+// Nothing pops up over the screen, not even before the browser is ready.
 stock RW_UI_Notify(playerid, const text[], kind = 0)
 {
     return RW_CefToast(playerid, text, kind);

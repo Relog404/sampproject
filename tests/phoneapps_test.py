@@ -2,7 +2,7 @@
 
 The icons and the settings tables already lived in phone.inc; this slice is
 what the apps DO. Every rule is on the server, the browser app and the
-TextDraw menu call the same stocks, and SQL from the Pawn sources is executed
+native dialog call the same stocks, and SQL from the Pawn sources is executed
 here against a real SQLite database.
 """
 from pathlib import Path

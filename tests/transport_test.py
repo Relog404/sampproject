@@ -1,6 +1,6 @@
 """Transport: fuel, trunks, breaking in, the mechanic service and tuning.
 
-Every rule lives on the server: the browser menu and the TextDraw menu call the
+Every rule lives on the server: the browser menu and the native dialog call the
 same stocks, and the state is kept in SQLite so it survives a restart. SQL from
 the Pawn sources is executed here against a real SQLite database.
 """

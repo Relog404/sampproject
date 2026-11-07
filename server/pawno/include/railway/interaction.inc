@@ -376,7 +376,7 @@ stock RW_UI_Language(playerid)
 
 #if RAILWAY_CEF
 /*  ============================================================================
- *  Browser card of the car (omp-cef). Same actions as the TextDraw panel.
+ *  Browser card of the car (omp-cef). Same actions as the native dialog.
  *  ========================================================================= */
 stock RW_CefVehicle(playerid)
 {

@@ -144,7 +144,6 @@ stock RW_GarageNative(playerid)
     RW_UI_Row(playerid, CEF_GARAGE_CLOSE, "Закрыть");
     return 1;
 }
-/* Перерисовать: браузер или тексдрав-меню для тех, у кого браузера нет. */
 /* Перерисовать: страница или нативный диалог. */
 stock RW_GarageRefresh(playerid)
 {
@@ -267,7 +266,7 @@ stock RW_KeyMenuBuild(playerid)
     if (gKeyPage[playerid]*6 >= gKeyCount[playerid]) gKeyPage[playerid] = 0;
     return 1;
 }
-/* Подпись строки одна и та же для тексдрав-меню и для страницы. */
+/* Подпись строки одна и та же для диалога и для страницы. */
 stock bool:RW_KeyMenuRow(playerid, row, label[], size = sizeof label)
 {
     new idx = gKeyPage[playerid]*6+row, entry, name[48];

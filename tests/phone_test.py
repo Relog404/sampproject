@@ -2,7 +2,7 @@
 
 The browser page (scriptfiles/cef/railway/phone.html) is only a face: every
 rule lives on the server, and players without the plugin use the chat
-commands and the TextDraw menu. SQL from the Pawn sources is executed here
+commands and the native dialog. SQL from the Pawn sources is executed here
 against a real SQLite database.
 """
 from pathlib import Path

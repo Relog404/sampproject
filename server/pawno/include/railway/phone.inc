@@ -3,7 +3,7 @@
  *  Телефон: сим-карта, номер, баланс, звонки, SMS, контакты, приложения, 911.
  *
  *  Интерфейс — браузер (cefui.inc, страница phone.html). У кого плагина нет,
- *  те же самые механики доступны командами чата и TextDraw-меню /phone.
+ *  те же самые механики доступны командами чата.
  *
  *  Кодировка исходников: Windows-1251.
  *  ========================================================================= */
@@ -50,7 +50,7 @@ new gPhoneBill[MAX_PLAYERS];            /* последнее списание за разговор      *
 new bool:gPhoneCaller[MAX_PLAYERS];     /* этот игрок набирал номер            */
 new bool:gPhoneShown[MAX_PLAYERS];      /* страница телефона открыта           */
 new gPhoneApp[PHONE_APPS];              /* флаги приложений текущего игрока    */
-new gPhoneContNum[PHONE_CONTACTS];      /* номера для TextDraw-списка          */
+new gPhoneContNum[PHONE_CONTACTS];      /* номера контактов на текущей странице */
 new gPhoneContCount;
 
 forward RW_PhonePulse();
@@ -588,7 +588,7 @@ stock RW_PhoneSms(playerid, number, const text[])
 }
 stock RW_PhoneHistory(playerid, number, dest[], size)
 {
-    /* Последние сообщения с этим номером — для TextDraw-экрана. */
+    /* Последние сообщения с этим номером — для экрана переписки. */
     dest[0] = EOS;
     if (gAccountId[playerid] <= 0 || gPhoneNum[playerid] <= 0) return 0;
     new query[256];
@@ -672,7 +672,7 @@ stock RW_PhoneClose(playerid)
     if (gUIMode[playerid] == UI_PHONE || gUIMode[playerid] == UI_PHONE_CONT) RW_UI_Close(playerid);
     return 1;
 }
-// TextDraw-версия: те же действия, что и в браузере.
+// Меню для тех, у кого браузера нет: те же действия, что и на странице.
 stock RW_PhoneMenu(playerid)
 {
     new title[48], balance[32], row[64];
@@ -720,7 +720,7 @@ stock RW_PhoneContactsMenu(playerid)
     if (!gPhoneContCount) RW_UI_Row(playerid, 0, "No contacts: /addcontact <name> <number>");
     return 1;
 }
-// Клик в TextDraw-меню телефона.
+// Клик по строке меню телефона.
 stock RW_PhoneClick(playerid, row, mode)
 {
     if (mode == UI_PHONE) {

@@ -123,7 +123,7 @@ class ContractTest(unittest.TestCase):
 
 
 class GovernmentInterfaceTest(unittest.TestCase):
-    """City Hall in the browser, on TextDraw and under Y."""
+    """City Hall in the browser, in the native dialog and under Y."""
 
     def test_both_interfaces_are_wired(self):
         self.assertIn('#define CEF_MODE_GOV                (19)', CORE)

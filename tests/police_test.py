@@ -2,7 +2,7 @@
 
 The Y menu, the tablet and the phone app are only faces: every rule lives on
 the server, and players without the browser plugin use the same functions
-through chat commands and TextDraw menus. SQL from the Pawn sources is
+through chat commands and native dialogs. SQL from the Pawn sources is
 executed here against a real SQLite database.
 """
 from pathlib import Path
