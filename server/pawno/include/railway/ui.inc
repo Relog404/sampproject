@@ -368,6 +368,7 @@ stock RW_UI_PasswordBegin(playerid)
 stock RW_UI_CloseAuth(playerid) { return RW_UI_Close(playerid); }
 stock RW_UI_SpeedoShow(playerid, vehicleid)
 {
+    if (!RW_SettingsOn(playerid, SET_SPEEDO)) return 0;
     RW_UI_Create(playerid);
     new name[48]; RW_VehicleName(GetVehicleModel(vehicleid), name, sizeof name);
     RW_UI_Text(playerid, 13, name);

@@ -87,7 +87,7 @@ stock RW_CitySpawn(playerid)
     if (gCityWelcomed[playerid]) return 0;
     gCityWelcomed[playerid] = true;
     RW_CityIntro(playerid);
-    RW_CityWelcome(playerid);
+    if (RW_SettingsOn(playerid, SET_WELCOME)) RW_CityWelcome(playerid);
     RW_HudShow(playerid, true);
     RW_HudBonusCard(playerid);
     return 1;

@@ -266,17 +266,26 @@ html, body {
 .hint b { min-width: 22px; text-align: center; font-size: 11px; font-weight: 600; color: #F5B04C; }
 .hint span { font-size: 12px; color: rgba(242,244,248,.88); }
 
-.bonus { position: absolute; right: 26px; top: 24px; width: 232px; padding: 14px 16px 14px 16px;
-         border-radius: 14px; background: rgba(14,18,26,.34);
-         box-shadow: inset 0 0 0 1px rgba(245,176,76,.28), 0 10px 26px rgba(0,0,0,.30);
-         backdrop-filter: blur(3px); pointer-events: auto; transition: opacity .18s ease, transform .18s ease; }
+.bonus { position: absolute; right: 26px; top: 24px; width: 300px; padding: 16px 18px 18px;
+         border-radius: 16px; background: rgba(14,18,26,.45);
+         box-shadow: inset 0 0 0 1px rgba(245,176,76,.30), 0 14px 34px rgba(0,0,0,.34);
+         backdrop-filter: blur(4px); pointer-events: auto; cursor: pointer;
+         transition: opacity .18s ease, transform .18s ease; }
 .bonus.off { opacity: 0; transform: translateY(-8px); pointer-events: none; }
-.bonus-title { font-size: 13px; font-weight: 600; color: #F5B04C; letter-spacing: .02em; }
-.bonus-text { margin: 6px 0 10px; font-size: 12px; color: rgba(242,244,248,.82); }
-.bonus-go { width: 100%; padding: 7px 10px; border: 0; border-radius: 9px; cursor: pointer;
-            font: inherit; font-size: 12px; font-weight: 600; color: #16191F;
+.bonus-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.bonus-head-title { font-size: 13px; font-weight: 600; letter-spacing: .02em; color: #F5B04C; }
+.bonus-min { width: 24px; height: 24px; padding: 0; border: 0; border-radius: 8px; cursor: pointer;
+             font: 600 16px/22px sans-serif; color: rgba(242,244,248,.75); background: rgba(255,255,255,.08); }
+.bonus-min:hover { color: #FFFFFF; background: rgba(255,255,255,.16); }
+.bonus-body { margin-top: 12px; }
+.bonus.min .bonus-body { display: none; }
+.bonus-art { display: block; width: 100%; height: 92px; margin-bottom: 12px; border-radius: 12px;
+             object-fit: cover; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.bonus-title { font-size: 15px; font-weight: 600; color: #F5B04C; letter-spacing: .02em; }
+.bonus-text { margin: 7px 0 12px; font-size: 13px; line-height: 1.4; color: rgba(242,244,248,.84); }
+.bonus-go { width: 100%; padding: 10px; border: 0; border-radius: 11px; cursor: pointer;
+            font: inherit; font-size: 14px; font-weight: 600; color: #16191F;
             background: linear-gradient(180deg, #F7C77E, #E9A44A); }
-.bonus-go:hover { filter: brightness(1.06); }
 .bonus-close { position: absolute; right: 8px; top: 6px; width: 20px; height: 20px; padding: 0;
                border: 0; border-radius: 50%; cursor: pointer; font: 600 14px/18px sans-serif;
                color: rgba(242,244,248,.7); background: rgba(255,255,255,.08); }
@@ -318,3 +327,35 @@ html, body {
 .auth-link { border: 0; background: none; cursor: pointer; padding: 0; font: inherit;
              color: #F5B04C; text-decoration: underline; }
 .auth-foot { margin-top: 12px; font-size: 10px; line-height: 1.4; color: rgba(242,244,248,.4); }
+/* ------------------------------- меню F3 -------------------------------- */
+.menu-body { background: transparent; overflow: hidden; }
+.menu { position: fixed; inset: 0; display: flex; font: 400 14px/1.45 "Segoe UI", Roboto, sans-serif;
+        color: #F2F4F8; background: radial-gradient(120% 120% at 20% 0%, rgba(12,16,24,.55), rgba(8,10,16,.78));
+        backdrop-filter: blur(3px); transition: opacity .18s ease; }
+.menu.off { opacity: 0; pointer-events: none; }
+.menu-logo { position: absolute; left: 40px; top: 32px; width: 260px; height: auto;
+             filter: drop-shadow(0 8px 22px rgba(0,0,0,.45)); }
+.menu-sheet { margin: 150px 0 0 40px; width: 520px; }
+.menu-title { font-size: 26px; font-weight: 600; letter-spacing: .04em; }
+.menu-sub { margin-top: 4px; font-size: 13px; color: rgba(242,244,248,.62); }
+.menu-tabs { display: flex; gap: 8px; margin: 18px 0 14px; }
+.menu-tab { padding: 9px 16px; border: 0; border-radius: 11px; cursor: pointer; font: inherit; font-size: 13px;
+            color: rgba(242,244,248,.86); background: rgba(255,255,255,.07);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.10); }
+.menu-tab:hover { color: #FFFFFF; background: rgba(255,255,255,.13); }
+.menu-rows { display: flex; flex-direction: column; gap: 6px; max-height: 46vh; overflow-y: auto; }
+.menu-row { text-align: left; padding: 11px 14px; border: 0; border-radius: 11px; cursor: pointer;
+            font: inherit; font-size: 13px; color: rgba(242,244,248,.90);
+            background: rgba(255,255,255,.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
+.menu-row:hover { background: rgba(255,255,255,.10); }
+.menu-row.on { color: #F5B04C; box-shadow: inset 0 0 0 1px rgba(245,176,76,.35); background: rgba(245,176,76,.10); }
+.menu-row.gold { color: #16191F; font-weight: 600; background: linear-gradient(180deg, #F7C77E, #E9A44A); }
+.menu-empty { padding: 10px 4px; font-size: 12px; color: rgba(242,244,248,.5); }
+.menu-quit { position: absolute; right: 0; top: 25%; height: 50%; width: 190px;
+             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+             border: 0; border-radius: 18px 0 0 18px; cursor: pointer;
+             font: 600 15px/1 sans-serif; color: #FFD9D9;
+             background: linear-gradient(90deg, rgba(120,28,32,.55), rgba(160,44,48,.75));
+             box-shadow: -10px 0 30px rgba(0,0,0,.35); }
+.menu-quit:hover { filter: brightness(1.08); }
+.menu-quit-ico { font-size: 22px; }

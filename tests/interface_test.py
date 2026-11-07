@@ -69,6 +69,7 @@ class HudRadarTest(unittest.TestCase):
         self.assertNotIn('gHudZone', HUD)
         self.assertNotIn('hud:radar', HUD)
         self.assertNotIn('id="radar"', PAGE)
+        self.assertIn('id="bonusArt"', PAGE)
         self.assertNotIn('.radar {', CSS)
         self.assertNotIn('hud:radar', SCRIPT)
 
@@ -143,6 +144,7 @@ class HudKeysTest(unittest.TestCase):
         self.assertIn('id="bonus"', PAGE)
         self.assertIn('id="bonusClose"', PAGE)
         self.assertNotIn('id="radar"', PAGE)
+        self.assertIn('id="bonusArt"', PAGE)
 
     def test_the_browser_menu_of_the_page_is_disabled(self):
         self.assertIn("document.addEventListener('contextmenu'", SCRIPT)
@@ -171,7 +173,7 @@ class HudKeysTest(unittest.TestCase):
         self.assertIn('.hint {', CSS)
         self.assertIn('.bonus {', CSS)
         self.assertIn('backdrop-filter', CSS)
-        for colour in ('rgba(10,14,20,.30)', 'rgba(14,18,26,.34)'):
+        for colour in ('rgba(255,255,255,.05)', 'rgba(14,18,26,.45)'):
             self.assertIn(colour, CSS)
 
     def test_the_browser_is_created_and_destroyed(self):
@@ -323,7 +325,7 @@ class InterfaceLanguageTest(unittest.TestCase):
         self.assertIn('Здравствуйте, {F5B04C}%s{FFFFFF}!', ACCOUNTS)
 
     def test_the_pages_are_russian(self):
-        self.assertIn('Скрыть', PAGE)
+        self.assertIn('Бонус', PAGE)
         self.assertIn('Взаимодействие', SCRIPT)
         self.assertIn('Железная дорога', (CEF / 'auth.html').read_text(encoding='utf-8'))
 

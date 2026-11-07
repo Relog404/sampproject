@@ -50,6 +50,7 @@
 #include <railway/donate>
 #include <railway/city>
 #include <railway/story>
+#include <railway/menu>
 #include <railway/commands>
 
 /* ------------------------------------------------------------------ запуск */
@@ -113,6 +114,7 @@ public OnGameModeInit()
     if (!RW_DonateSchema()) print("[donate] Donate table unavailable; points are not kept.");
     RW_CityInit();
     if (!RW_StorySchema()) print("[story] Story table unavailable; progress is not kept.");
+    if (!RW_MenuSchema()) print("[menu] Settings table unavailable; settings are not kept.");
     if (!RW_PhoneAppsSchema()) print("[phoneapps] News table unavailable; the Weazel News app is disabled.");
     RW_WeatherSet(1);
     RW_EconomyInit();
@@ -185,6 +187,8 @@ public OnPlayerConnect(playerid)
     RW_DonateReset(playerid);
     RW_StorySave(playerid);
     RW_StoryReset(playerid);
+    RW_MenuSave(playerid);
+    RW_MenuReset(playerid);
     RW_CityReset(playerid);
     RW_PropReset(playerid);
     RW_PhoneAppsReset(playerid);
@@ -554,6 +558,11 @@ public OnPlayerKeyStateChange(playerid, newkeys, oldkeys)
     if ((newkeys & KEY_YES) && (newkeys & KEY_WALK) && !(oldkeys & KEY_YES)) {
         gControlTick[playerid] = GetTickCount();
         return RW_HudMouseToggle(playerid);
+    }
+    /* Alt + N: полноэкранное меню, то же что F3 в браузере. */
+    if ((newkeys & KEY_NO) && (newkeys & KEY_WALK) && !(oldkeys & KEY_NO)) {
+        gControlTick[playerid] = GetTickCount();
+        return RW_MenuToggle(playerid);
     }
     if (GetTickCount()-gControlTick[playerid] < 250) return 1;
     for (new i; i < 3; i++) {

@@ -56,6 +56,7 @@
   var bonusText = document.getElementById('bonusText');
   var bonusGo = document.getElementById('bonusGo');
   var bonusClose = document.getElementById('bonusClose');
+  var head = document.getElementById('bonusHead');
 
   function translate(key) {
     return WORDS[key] || key;
@@ -81,6 +82,7 @@
     bonusTitle.textContent = card.title;
     bonusText.textContent = card.text;
     bonusGo.textContent = 'Забрать';
+    head.textContent = card.title;
     bonus.classList.remove('off');
   });
 
@@ -93,10 +95,21 @@
   document.addEventListener('contextmenu', function (e) { e.preventDefault(); return false; });
   document.addEventListener('selectstart', function (e) { e.preventDefault(); });
 
-  bonusGo.addEventListener('click', function () { RW.emit('hud:bonus', 1); });
-  bonusClose.addEventListener('click', function () {
-    bonus.classList.add('off');
-    RW.emit('hud:bonushide', 1);
+  /* Кнопка «Забрать»: своё имя события, чтобы не склеиваться с пакетом,
+     который сервер шлёт этой же странице. */
+  bonusGo.addEventListener('click', function () { RW.emit('hud:bonusclaim', 1); });
+
+  /* Свернуть и развернуть: крестика больше нет. */
+  function setMin(on) {
+    bonus.classList.toggle('min', on);
+    head.textContent = on ? 'Бонус (свёрнут)' : (bonusTitle.textContent || 'Бонус');
+  }
+  bonusClose.addEventListener('click', function (e) {
+    e.stopPropagation();
+    setMin(!bonus.classList.contains('min'));
+  });
+  bonus.addEventListener('click', function () {
+    if (bonus.classList.contains('min')) setMin(false);
   });
 
   /* Режим мыши: включается командой /mouse, иначе курсор не мешает играть. */
@@ -107,5 +120,11 @@
   /* F2 открывает донат-меню, когда окно в фокусе. */
   document.addEventListener('keydown', function (e) {
     if (e.key === 'F2') { e.preventDefault(); RW.emit('hud:donate', 1); }
+    if (e.key === 'F3') { e.preventDefault(); RW.emit('hud:menu', 1); }
+    if (e.key === 'Escape') { e.preventDefault(); RW.emit('hud:mousetoggle', 0); }
+    if (e.altKey && (e.code === 'KeyY' || e.key === 'y' || e.key === 'Y' || e.key === 'ы')) {
+      e.preventDefault();
+      RW.emit('hud:mousetoggle', 1);
+    }
   });
 })();

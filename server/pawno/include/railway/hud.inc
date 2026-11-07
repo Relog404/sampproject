@@ -94,6 +94,7 @@ stock RW_HudDailyBonus(day)
 stock RW_HudBonusCard(playerid)
 {
     if (!RW_CefOn(playerid) || !gHudOn[playerid]) return 0;
+    if (!RW_SettingsOn(playerid, SET_BONUS)) return RW_HudBonusEmit(playerid, "", 0, 0);
     if (gHudHidden[playerid]) return RW_HudBonusEmit(playerid, "", 0, 0);
     if (RW_HudDailyReady(playerid)) return RW_HudBonusEmit(playerid, "starter", RW_HudBonusAmount(playerid), gHudDay[playerid] + 1);
     if (RW_HudOnlineReady(playerid)) return RW_HudBonusEmit(playerid, "online", HUD_ONLINE_BONUS, gHudDay[playerid]);
@@ -141,6 +142,7 @@ stock RW_HudHints(playerid)
 {
     new hints[96];
     hints[0] = 0;
+    if (!RW_SettingsOn(playerid, SET_HINTS)) return RW_CefHudHint(playerid, hints);
     if (GetPlayerVehicleID(playerid) > 0) strcat(hints, "N:engine;H:doors;");
     else strcat(hints, "Y:interaction;");
     strcat(hints, "AltY:mouse;");
@@ -188,6 +190,22 @@ public RW_HudBonusHideEvent(playerid, browserid, arg)
     #pragma unused browserid, arg
     if (!gLogged[playerid]) return 0;
     return RW_HudBonusHide(playerid);
+}
+/* Курсор включают и выключают и клавишей, и страница: когда браузер в
+   фокусе, SA-MP может не отдать нажатие серверу. */
+public RW_HudMouseEvent(playerid, browserid, on)
+{
+    #pragma unused browserid
+    if (!gLogged[playerid]) return 0;
+    if (on && !gHudMouse[playerid]) return RW_HudMouseToggle(playerid);
+    if (!on && gHudMouse[playerid]) return RW_HudMouseToggle(playerid);
+    return 1;
+}
+public RW_HudMenuEvent(playerid, browserid, arg)
+{
+    #pragma unused browserid, arg
+    if (!gLogged[playerid]) return 0;
+    return RW_MenuOpen(playerid);
 }
 public RW_HudDonateEvent(playerid, browserid, arg)
 {

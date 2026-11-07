@@ -11,12 +11,18 @@
   <!-- Подсказки клавиш -->
   <div class="hints" id="hints"></div>
 
-  <!-- Карточка бонуса: её можно закрыть крестиком -->
+  <!-- Карточка бонуса: сворачивается кнопкой, разворачивается нажатием -->
   <div class="bonus" id="bonus">
-    <button class="bonus-close" id="bonusClose" type="button" title="Скрыть">×</button>
-    <div class="bonus-title" id="bonusTitle"></div>
-    <div class="bonus-text" id="bonusText"></div>
-    <button class="bonus-go" id="bonusGo" type="button"></button>
+    <div class="bonus-head">
+      <span class="bonus-head-title" id="bonusHead">Бонус</span>
+      <button class="bonus-min" id="bonusClose" type="button" title="Свернуть">–</button>
+    </div>
+    <div class="bonus-body">
+      <img class="bonus-art" id="bonusArt" src="img/bonus.png" alt="">
+      <div class="bonus-title" id="bonusTitle"></div>
+      <div class="bonus-text" id="bonusText"></div>
+      <button class="bonus-go" id="bonusGo" type="button"></button>
+    </div>
   </div>
 
 </div>

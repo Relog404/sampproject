@@ -38,6 +38,12 @@ forward RW_HudBonusClick(playerid, browserid, arg);
 forward RW_HudBonusHideEvent(playerid, browserid, arg);
 forward RW_HudDonateEvent(playerid, browserid, arg);
 forward RW_HudMouseToggle(playerid);
+forward RW_HudMouseEvent(playerid, browserid, on);
+forward RW_HudMenuEvent(playerid, browserid, arg);
+forward RW_MenuOpen(playerid);
+forward RW_MenuAction(playerid, browserid, const action[]);
+forward RW_SettingsOn(playerid, flag);
+forward RW_MenuToggle(playerid);
 forward RW_DonateOpen(playerid);
 forward RW_DonateClick(playerid, row);
 forward RW_DonateCefClick(playerid, id);
@@ -89,6 +95,15 @@ forward RW_LawyerCallFor(playerid, target);
 #define CEF_MODE_PROPERTY           (13)
 #define CEF_MODE_DONATE             (14)
 #define CEF_MODE_STORY              (15)
+/* Настройки интерфейса: их читают модули, подключённые раньше menu.inc. */
+#define SET_HUD             (1)         /* экранный интерфейс              */
+#define SET_HINTS           (2)         /* подсказки клавиш                */
+#define SET_BONUS           (4)         /* карточка бонуса                 */
+#define SET_SPEEDO          (8)         /* спидометр                       */
+#define SET_NAMES           (16)        /* имена над игроками              */
+#define SET_MARKERS         (32)        /* маркеры игроков                 */
+#define SET_WELCOME         (64)        /* приветствие при появлении       */
+#define SET_DEFAULT         (127)
 /* События сюжетной линии: их шлют все модули, поэтому они лежат здесь. */
 #define STORY_EV_JOB        (1)         /* устроился на работу              */
 #define STORY_EV_TASK       (2)         /* закрыл рабочее задание           */
