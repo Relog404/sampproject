@@ -13,6 +13,7 @@
 #define ITEM_ARMOUR  7
 #define INV_TYPE_MAX 20
 #define INV_NEAR 50
+#define INV_QUICK_SLOTS     3       /* быстрых слотов под персонажем */
 #define INV_WORLD 500
 #define ITEM_BACKPACK 1
 #define ITEM_CAR_KEY 2
@@ -26,6 +27,7 @@ new gInv[MAX_PLAYERS][INV_SLOTS][E_INV_ITEM];
 new gGround[INV_WORLD][E_INV_GROUND];
 new bool:gInvLoaded[MAX_PLAYERS], bool:gInvReady;
 new gInvNear[MAX_PLAYERS][INV_NEAR], gInvSelected[MAX_PLAYERS], bool:gInvFromGround[MAX_PLAYERS];
+new gInvQuick[MAX_PLAYERS][INV_QUICK_SLOTS];   /* быстрые слоты: uid предметов */
 new gInvTick[MAX_PLAYERS];
 new bool:gInvContext[MAX_PLAYERS];
 new gInvEquipped[MAX_PLAYERS];
@@ -242,6 +244,7 @@ stock RW_InvReset(playerid)
     for (new i; i < INV_NEAR; i++) gInvNear[playerid][i] = 0;
     gInvLoaded[playerid] = false;
     return 1;
+    for (new i; i < INV_QUICK_SLOTS; i++) gInvQuick[playerid][i] = 0;
 }
 
 stock RW_InvGrant(playerid, type, data = 0, amount = 1)
@@ -457,6 +460,11 @@ stock RW_InvUseLabel(type, bool:weaponInHand, dest[], size = sizeof dest)
 /*  »нвентарь в браузере: сетка €чеек, по правой кнопке сервер присылает      *
  *  карточку вещи Ч название, описание, вес Ч и кнопки действий.              *
  *   нопки и €чейки отвечают одним числом в RW_CefClick (см. RW_InvCefClick).  */
+/* —траницы инвентар€ дел€т €чейки по номерам: 0..49 Ч карманы, 50..79 Ч
+   рюкзак, 80..129 Ч что лежит р€дом, 131/132/133 Ч рюкзак, оружие и брон€
+   на персонаже, 141..148 Ч одежда вокруг него, 151..153 Ч быстрые слоты. */
+#define INV_CEF_CLOTH           140     /* восемь слотов одежды           */
+#define INV_CEF_QUICK           150     /* три быстрых слота: 1, 2, 3     */
 #define INV_CEF_CONTEXT         1000    /* права€ кнопка: карточка вещи      */
 #define INV_CEF_ACTION          2000    /* кнопка действи€ в карточке        */
 #define INV_CEF_CLOSE           3000    /* закрыть инвентарь                 */
@@ -521,6 +529,15 @@ stock RW_InvCef(playerid, bool:opening = true)
         gWpActive[playerid] > 0 && gInvSelected[playerid] == gWpActive[playerid]);
     RW_InvCefCell(playerid, 133, gInvWorn[playerid] > 0 ? ITEM_ARMOUR : 0, gArmourData[playerid], 1,
         gInvWorn[playerid] > 0 && gInvSelected[playerid] == gInvWorn[playerid]);
+    /* ќдежда: восемь слотов вокруг персонажа. ¬ещей в них пока нет, но место
+       на странице зан€то Ч раскладка уже та, что будет. */
+    for (new i; i < 8; i++) RW_CefInvCell(playerid, INV_CEF_CLOTH + 1 + i, "", "", 0, 0, "empty");
+    for (new i; i < INV_QUICK_SLOTS; i++) {
+        new slot = RW_InvFind(playerid, gInvQuick[playerid][i]);
+        if (slot >= 0) RW_InvCefCell(playerid, INV_CEF_QUICK + 1 + i, gInv[playerid][slot][iiType],
+            gInv[playerid][slot][iiData], gInv[playerid][slot][iiAmount], gInvSelected[playerid] == gInvQuick[playerid][i]);
+        else { gInvQuick[playerid][i] = 0; RW_CefInvCell(playerid, INV_CEF_QUICK + 1 + i, "", "", 0, 0, "empty"); }
+    }
     for (new i; i < INV_SLOTS; i++) {
         if (i >= INV_MAIN && !hasBag) { RW_CefInvCell(playerid, i, "", "", 0, 0, "locked"); continue; }
         RW_InvCefCell(playerid, i, gInv[playerid][i][iiType], gInv[playerid][i][iiData], gInv[playerid][i][iiAmount],
@@ -611,6 +628,35 @@ stock RW_InvCefContext(playerid, slot)
     return RW_CefInvEnd(playerid);
 }
 /* ќтвет страницы: €чейка, права€ кнопка по €чейке или кнопка в карточке. */
+/*  --------------------------- быстрые слоты ----------------------------- */
+/*  ¬ыбрал вещь в карманах Ч нажал слот: вещь в нЄм. Ќажал ещЄ раз (или
+    клавишу 1, 2, 3) Ч вещь сработала. Ќомер слота помнить не нужно. */
+stock RW_InvQuickUse(playerid, index)
+{
+    if (index < 0 || index >= INV_QUICK_SLOTS) return 1;
+    if (gInvQuick[playerid][index] <= 0) return RW_Info(playerid, "—лот пуст: выберите вещь в карманах и нажмите сюда.");
+    new slot = RW_InvFind(playerid, gInvQuick[playerid][index]);
+    if (slot < 0) {
+        gInvQuick[playerid][index] = 0;
+        return RW_Error(playerid, "Ётой вещи больше нет: слот опустел.");
+    }
+    gInvSelected[playerid] = gInvQuick[playerid][index];
+    gInvFromGround[playerid] = false;
+    return RW_InvUseSelected(playerid);
+}
+stock RW_InvQuickClick(playerid, index)
+{
+    if (index < 0 || index >= INV_QUICK_SLOTS) return 1;
+    /* ¬ыбрана вещь из карманов Ч кладЄм еЄ в слот. »наче достаЄм то, что там. */
+    if (gInvSelected[playerid] > 0 && !gInvFromGround[playerid] && gInvSelected[playerid] != gInvQuick[playerid][index]) {
+        new slot = RW_InvFind(playerid, gInvSelected[playerid]);
+        if (slot < 0) return RW_Error(playerid, "Ётой вещи уже нет в инвентаре.");
+        gInvQuick[playerid][index] = gInvSelected[playerid];
+        return RW_InvCef(playerid, false);
+    }
+    return RW_InvQuickUse(playerid, index);
+}
+
 stock RW_InvCefClick(playerid, id)
 {
     if (id == INV_CEF_CLOSE) return RW_UI_Close(playerid);
@@ -630,6 +676,7 @@ stock RW_InvCefClick(playerid, id)
         if (action == INV_CEF_ACT_USE) { RW_UI_Close(playerid); return RW_InvUseSelected(playerid); }
         return 1;
     }
+    if (id > INV_CEF_QUICK && id <= INV_CEF_QUICK + INV_QUICK_SLOTS) return RW_InvQuickClick(playerid, id - INV_CEF_QUICK - 1);
     if (id >= INV_CEF_CONTEXT) return RW_InvCefContext(playerid, id - INV_CEF_CONTEXT);
     /* Ћева€ кнопка: просто выбрать вещь и перерисовать сетку. */
     if (id >= 80 && id < 130) { gInvSelected[playerid] = gInvNear[playerid][id - 80]; gInvFromGround[playerid] = gInvSelected[playerid] > 0; }

@@ -156,6 +156,62 @@ class InventoryClickTest(unittest.TestCase):
         self.assertIn('Шишки', title)
 
 
+class InventoryQuickSlotTest(unittest.TestCase):
+    """Три быстрых слота: выбрал вещь — нажал слот, нажал клавишу — применил."""
+
+    def test_the_page_gets_the_slots_with_the_grid(self):
+        grid = block(INV, 'stock RW_InvCef(playerid, bool:opening = true)')
+        self.assertIn('for (new i; i < INV_QUICK_SLOTS; i++)', grid)
+        self.assertIn('RW_InvCefCell(playerid, INV_CEF_QUICK + 1 + i,', grid)
+        self.assertIn('gInvQuick[playerid][i] = 0;', grid)
+
+    def test_the_empty_slot_takes_the_chosen_item(self):
+        click = block(INV, 'stock RW_InvQuickClick(playerid, index)')
+        self.assertIn('gInvQuick[playerid][index] = gInvSelected[playerid];', click)
+        self.assertIn('RW_InvFind(playerid, gInvSelected[playerid]);', click)
+        self.assertIn('return RW_InvCef(playerid, false);', click)
+
+    def test_the_full_slot_uses_its_item(self):
+        use = block(INV, 'stock RW_InvQuickUse(playerid, index)')
+        self.assertIn('new slot = RW_InvFind(playerid, gInvQuick[playerid][index]);', use)
+        self.assertIn('return RW_InvUseSelected(playerid);', use)
+        self.assertIn('gInvQuick[playerid][index] = 0;', use)
+
+    def test_the_keys_are_captured_and_enabled(self):
+        keys = block(CEF, 'stock RW_CefKeys(playerid)')
+        for code in ('CEF_VK_1', 'CEF_VK_2', 'CEF_VK_3'):
+            self.assertIn('CEF_EnableKey(playerid, %s, true);' % code, keys)
+        press = block(CEF, 'public OnCefPressKey(playerid, key, scancode, modifiers, bool:down, bool:repeat)')
+        self.assertIn('if (scancode >= CEF_SCAN_1 && scancode <= CEF_SCAN_3)', press)
+        self.assertIn('return RW_InvQuickUse(playerid, scancode - CEF_SCAN_1);', press)
+        self.assertIn('#define CEF_SCAN_1          (2)', CEF)
+
+    def test_a_ground_item_does_not_go_to_a_slot(self):
+        """С земли в быстрый слот ничего не кладём: вещь ещё не в кармане."""
+        click = block(INV, 'stock RW_InvQuickClick(playerid, index)')
+        self.assertIn('!gInvFromGround[playerid]', click)
+
+    def test_the_slots_are_forgotten_with_the_player(self):
+        reset = block(INV, 'stock RW_InvReset(playerid)')
+        self.assertIn('gInvQuick[playerid][i] = 0;', reset)
+
+
+class InventoryLayoutTest(unittest.TestCase):
+    """Раскладка страницы: персонаж посередине, вещи — вокруг него."""
+
+    def test_the_sections_are_known_by_the_cell_number(self):
+        self.assertIn('#define INV_CEF_CLOTH           140', INV)
+        self.assertIn('#define INV_CEF_QUICK           150', INV)
+
+    def test_the_server_sends_the_clothing_placeholders(self):
+        grid = block(INV, 'stock RW_InvCef(playerid, bool:opening = true)')
+        self.assertIn('for (new i; i < 8; i++) RW_CefInvCell(playerid, INV_CEF_CLOTH + 1 + i,', grid)
+
+    def test_the_click_knows_where_the_item_lies(self):
+        click = block(INV, 'stock RW_InvCefClick(playerid, id)')
+        self.assertIn('return RW_InvQuickClick(playerid, id - INV_CEF_QUICK - 1);', click)
+
+
 class InventoryTextTest(unittest.TestCase):
     def test_the_new_strings_the_player_reads_are_russian(self):
         for text in ('"Инвентарь", subtitle', '"Поднять"', '"Выбросить"', '"В рюкзак"', '"В карманы"',

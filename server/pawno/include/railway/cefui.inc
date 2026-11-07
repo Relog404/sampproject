@@ -45,6 +45,13 @@
 #define CEF_MOD_ALT         (8)
 #define CEF_VK_BRACKET      (0xDB)
 #define CEF_VK_U            (0x55)
+/* Быстрые слоты инвентаря: скан-коды по набору 1, как и остальные. */
+#define CEF_SCAN_1          (2)
+#define CEF_SCAN_2          (3)
+#define CEF_SCAN_3          (4)
+#define CEF_VK_1            (0x31)
+#define CEF_VK_2            (0x32)
+#define CEF_VK_3            (0x33)
 
 forward RW_CefPulse();
 forward RW_CefClick(playerid, browserid, id);
@@ -122,6 +129,9 @@ stock RW_CefKeys(playerid)
     CEF_SetKeyCapture(playerid, true);
     CEF_EnableKey(playerid, CEF_VK_BRACKET, true);
     CEF_EnableKey(playerid, CEF_VK_U, true);
+    CEF_EnableKey(playerid, CEF_VK_1, true);
+    CEF_EnableKey(playerid, CEF_VK_2, true);
+    CEF_EnableKey(playerid, CEF_VK_3, true);
     return 1;
 }
 stock RW_CefReset(playerid)
@@ -183,8 +193,11 @@ public OnCefPressKey(playerid, key, scancode, modifiers, bool:down, bool:repeat)
     #pragma unused key
     if (!down || repeat) return 1;
     if (!gLogged[playerid] || !RW_CefOn(playerid)) return 1;
-    if (!(modifiers & CEF_MOD_ALT)) return 1;
     if (CEF_IsChatInputOpen(playerid)) return 1;
+    /* Цифры — быстрые слоты инвентаря. Они раньше Alt, потому что Alt здесь
+       не нужен: слот должен срабатывать одним нажатием. */
+    if (scancode >= CEF_SCAN_1 && scancode <= CEF_SCAN_3) return RW_InvQuickUse(playerid, scancode - CEF_SCAN_1);
+    if (!(modifiers & CEF_MOD_ALT)) return 1;
     if (scancode == CEF_SCAN_BRACKET) {
         if (gPhoneShown[playerid]) return RW_PhoneClose(playerid);
         return RW_PhoneOpen(playerid);

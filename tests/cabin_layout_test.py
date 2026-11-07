@@ -97,14 +97,33 @@ class CabinSourceTest(unittest.TestCase):
 class CompactGridTest(unittest.TestCase):
     """Сетка инвентаря рисуется страницей: геометрия живёт в CSS."""
 
-    def test_the_grid_is_ten_columns_of_square_cells(self):
-        self.assertIn('grid-template-columns:repeat(10,1fr)', PAGE)
+    def test_the_pockets_are_five_columns_of_square_cells(self):
+        """Карманы, рюкзак и округ — узкие колонки по пять ячеек: иначе
+        экран не вмещает персонажа между ними."""
+        self.assertIn('grid-template-columns:repeat(5,1fr)', PAGE)
         self.assertIn('aspect-ratio:1/1', PAGE)
 
     def test_the_page_fits_the_screen(self):
-        self.assertIn('max-width:96vw', PAGE)
-        self.assertIn('max-height:88vh', PAGE)
+        self.assertIn('max-width:97vw', PAGE)
+        self.assertIn('height:88vh', PAGE)
         self.assertIn('overflow-y:auto', PAGE)
+        self.assertIn('overflow:hidden', PAGE)
+
+    def test_the_character_stands_in_the_middle(self):
+        """Слева округ и рюкзак, посередине персонаж, справа карманы."""
+        self.assertIn(".inv-hero{width:300px", PAGE)
+        self.assertIn(".inv-figure", PAGE)
+        self.assertIn("'inv-fig'", PAGE)
+
+    def test_the_backpack_block_appears_only_with_a_backpack(self):
+        self.assertIn('.inv-block.off{display:none}', PAGE)
+        self.assertIn("grids.bag.wrap.className =", PAGE)
+
+    def test_eight_clothing_slots_and_three_quick_ones(self):
+        for slot in (141, 142, 143, 144, 145, 146, 147, 148):
+            self.assertIn("{ id: %d, cls: 'cloth' }" % slot, PAGE)
+        self.assertIn("slot.setAttribute('data-slot', String(151 + q));", PAGE)
+        self.assertIn("el('div', 'inv-cap', String(q + 1))", PAGE)
 
     def test_the_card_sits_next_to_the_grid(self):
         self.assertIn('.inv-card{width:250px', PAGE)
