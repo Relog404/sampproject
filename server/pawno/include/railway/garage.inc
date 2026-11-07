@@ -17,12 +17,9 @@
 #define GARAGE_PAD_Z (13.6)
 new gGaragePickup = -1, gGarageBooth = INVALID_OBJECT_ID;
 new Text3D:gGarageLabel = Text3D:INVALID_3DTEXT_ID;
-new PlayerText:gKeyTD[MAX_PLAYERS][13];
-new bool:gKeyCreated[MAX_PLAYERS];
 new gKeyTarget[MAX_PLAYERS], gKeyCount[MAX_PLAYERS], gKeyPage[MAX_PLAYERS], gKeyTick[MAX_PLAYERS];
 new gKeyList[MAX_PLAYERS][60];
-new bool:gGarageReady, bool:gGarageLatch[MAX_PLAYERS], bool:gGarageCreated[MAX_PLAYERS];
-new PlayerText:gGarageTD[MAX_PLAYERS][13];
+new bool:gGarageReady, bool:gGarageLatch[MAX_PLAYERS];
 new gGarageList[MAX_PLAYERS][80], gGarageCount[MAX_PLAYERS], gGaragePage[MAX_PLAYERS], gGarageTick[MAX_PLAYERS];
 
 stock RW_GarageSchema()
@@ -57,36 +54,20 @@ stock RW_GarageInit()
     if (gGarageLabel == Text3D:INVALID_3DTEXT_ID) print("[garage] Booth label unavailable; booth and pickup still active.");
     return 1;
 }
+/* Список машин рисует страница: скрывать больше нечего. */
 stock RW_GarageHide(playerid)
 {
-    if (gGarageCreated[playerid]) for (new i; i < 13; i++) PlayerTextDrawHide(playerid, gGarageTD[playerid][i]);
+    #pragma unused playerid
     return 1;
 }
 stock RW_GarageReset(playerid)
 {
-    if (gGarageCreated[playerid]) for (new i; i < 13; i++) PlayerTextDrawDestroy(playerid, gGarageTD[playerid][i]);
-    gGarageCreated[playerid] = false; gGarageLatch[playerid] = false; gGaragePage[playerid] = 0; gGarageCount[playerid] = 0; gGarageTick[playerid] = 0;
+    gGarageLatch[playerid] = false; gGaragePage[playerid] = 0; gGarageCount[playerid] = 0; gGarageTick[playerid] = 0;
     return 1;
 }
 stock bool:RW_GarageNear(playerid)
 {
     return gLogged[playerid] && gInvLoaded[playerid] && !gInvFitting[playerid] && GetPlayerState(playerid) == PLAYER_STATE_ONFOOT && GetPlayerInterior(playerid) == 0 && GetPlayerVirtualWorld(playerid) == 0 && IsPlayerInRangeOfPoint(playerid, GARAGE_RADIUS, GARAGE_X, GARAGE_Y, GARAGE_Z);
-}
-stock RW_GarageLabel(playerid, index, Float:x, Float:y, const text[], bool:button = false)
-{
-    new buf[128]; format(buf, sizeof buf, "%s", text);
-    gGarageTD[playerid][index] = CreatePlayerTextDraw(playerid, x, y, buf);
-    PlayerTextDrawFont(playerid, gGarageTD[playerid][index], 1);
-    PlayerTextDrawLetterSize(playerid, gGarageTD[playerid][index], 0.22, 1.1);
-    PlayerTextDrawColor(playerid, gGarageTD[playerid][index], 0xEEECE7FF);
-    PlayerTextDrawSetShadow(playerid, gGarageTD[playerid][index], 0);
-    PlayerTextDrawTextSize(playerid, gGarageTD[playerid][index], x+230.0, 18.0);
-    if (button) {
-        PlayerTextDrawUseBox(playerid, gGarageTD[playerid][index], 1);
-        PlayerTextDrawBoxColor(playerid, gGarageTD[playerid][index], 0xD8C39B22);
-        PlayerTextDrawSetSelectable(playerid, gGarageTD[playerid][index], 1);
-    }
-    return 1;
 }
 stock RW_GarageOpen(playerid, bool:resetPage = true)
 {
@@ -104,45 +85,10 @@ stock RW_GarageOpen(playerid, bool:resetPage = true)
     for (new s; s < VEHICLE_SLOTS && gGarageCount[playerid] < 80; s++)
         if (gVeh[s][vsUsed] && !gVehGarageId[s] && RW_InvHasToken(playerid, gVehKeyUid[s])) gGarageList[playerid][gGarageCount[playerid]++] = -gVehKeyUid[s];
     if (gGaragePage[playerid]*6 >= gGarageCount[playerid]) gGaragePage[playerid] = 0;
-    if (!gGarageCreated[playerid]) {
-        gGarageTD[playerid][0] = CreatePlayerTextDraw(playerid, 190.0, 90.0, "LD_SPAC:white");
-        PlayerTextDrawFont(playerid, gGarageTD[playerid][0], 4);
-        PlayerTextDrawTextSize(playerid, gGarageTD[playerid][0], 370.0, 272.0);
-        PlayerTextDrawColor(playerid, gGarageTD[playerid][0], 0x141920F8);
-        RW_GarageLabel(playerid, 1, 203.0, 104.0, "STATION / GARAGE");
-        RW_GarageLabel(playerid, 2, 203.0, 123.0, "SELECT CAR / KEY REQUIRED");
-        for (new i; i < 6; i++) RW_GarageLabel(playerid, 3+i, 203.0, 151.0+26.0*i, "_", true);
-        RW_GarageLabel(playerid, 9, 203.0, 312.0, "< PREVIOUS", true);
-        RW_GarageLabel(playerid, 10, 330.0, 312.0, "NEXT >", true);
-        PlayerTextDrawTextSize(playerid, gGarageTD[playerid][9], 310.0, 18.0);
-        PlayerTextDrawTextSize(playerid, gGarageTD[playerid][10], 437.0, 18.0);
-        RW_GarageLabel(playerid, 11, 203.0, 338.0, "CLOSE / ESC", true);
-        RW_GarageLabel(playerid, 12, 203.0, 136.0, "_");
-        PlayerTextDrawLetterSize(playerid, gGarageTD[playerid][12], 0.15, 0.75);
-        gGarageCreated[playerid] = true;
-    }
-    gUIMode[playerid] = UI_GARAGE;
     #if RAILWAY_CEF
         if (RW_CefOn(playerid)) return RW_GarageCef(playerid);
     #endif
-    for (new i; i < 13; i++) PlayerTextDrawShow(playerid, gGarageTD[playerid][i]);
-    for (new row; row < 6; row++) {
-        new idx = gGaragePage[playerid]*6+row;
-        if (idx >= gGarageCount[playerid]) { PlayerTextDrawHide(playerid, gGarageTD[playerid][3+row]); continue; }
-        new id = gGarageList[playerid][idx], model, name[48], label[128];
-        if (id > 0) {
-            format(query, sizeof query, "SELECT model FROM owned_cars WHERE id=%d", id);
-            r = db_query(gDB, query);
-            if (r != DBResult:0) { model = db_get_field_assoc_int(r, "model"); db_free_result(r); }
-        } else for (new s; s < VEHICLE_SLOTS; s++) if (gVeh[s][vsUsed] && gVehKeyUid[s] == -id) model = gVeh[s][vsModel];
-        RW_VehicleName(model, name, sizeof name);
-        format(label, sizeof label, "%s / %s", name, id > 0 ? ("OWNED") : ("TEMP"));
-        PlayerTextDrawSetString(playerid, gGarageTD[playerid][3+row], label);
-    }
-    new label[80]; format(label, sizeof label, "%d CARS / PAGE %d", gGarageCount[playerid], gGaragePage[playerid]+1);
-    PlayerTextDrawSetString(playerid, gGarageTD[playerid][12], label);
-    RW_UI_SelectBegin(playerid);
-    return 1;
+    return RW_GarageNative(playerid);
 }
 /*  Гараж в браузере: шесть машин на странице и кнопки по краям. */
 stock RW_GarageCefModel(playerid, index, name[], size = sizeof name)
@@ -178,13 +124,34 @@ stock RW_GarageCef(playerid)
     RW_CefAction(playerid, CEF_GARAGE_CLOSE, "Закрыть", "danger");
     return RW_CefEnd(playerid);
 }
+
+/* Без браузера: тот же список нативным диалогом, те же номера строк. */
+stock RW_GarageNative(playerid)
+{
+    new subtitle[64], label[128], name[48];
+    format(subtitle, sizeof subtitle, "%d машин / страница %d", gGarageCount[playerid], gGaragePage[playerid] + 1);
+    RW_UI_Panel(playerid, UI_GARAGE, "Гараж", subtitle);
+    for (new row; row < 6; row++) {
+        new idx = gGaragePage[playerid] * 6 + row;
+        if (idx >= gGarageCount[playerid]) continue;
+        name[0] = EOS;
+        RW_GarageCefModel(playerid, idx, name, sizeof name);
+        format(label, sizeof label, "%s", name);
+        RW_UI_Row(playerid, row, label);
+    }
+    if (gGaragePage[playerid] > 0) RW_UI_Row(playerid, CEF_GARAGE_PREV, "Назад");
+    if ((gGaragePage[playerid] + 1) * 6 < gGarageCount[playerid]) RW_UI_Row(playerid, CEF_GARAGE_NEXT, "Вперёд");
+    RW_UI_Row(playerid, CEF_GARAGE_CLOSE, "Закрыть");
+    return 1;
+}
 /* Перерисовать: браузер или тексдрав-меню для тех, у кого браузера нет. */
+/* Перерисовать: страница или нативный диалог. */
 stock RW_GarageRefresh(playerid)
 {
     #if RAILWAY_CEF
         if (RW_CefOn(playerid)) return RW_GarageCef(playerid);
     #endif
-    return RW_GarageOpen(playerid, false);
+    return RW_GarageNative(playerid);
 }
 /* Клик по странице: машина, пролистывание или закрыть. */
 stock RW_GarageCefClick(playerid, id)
@@ -248,20 +215,6 @@ stock RW_GarageSpawn(playerid, id)
     RW_UI_Close(playerid);
     return RW_Ok(playerid, "Car ready outside. Use your key to unlock it.");
 }
-stock RW_GarageClick(playerid, PlayerText:clicked)
-{
-    if (gUIMode[playerid] != UI_GARAGE || !RW_GarageNear(playerid)) return RW_UI_Close(playerid);
-    if (clicked == gGarageTD[playerid][11]) return RW_UI_Close(playerid);
-    if (GetTickCount()-gGarageTick[playerid] < 1000) return 1;
-    gGarageTick[playerid] = GetTickCount();
-    if (clicked == gGarageTD[playerid][9]) { if (gGaragePage[playerid] > 0) gGaragePage[playerid]--; return RW_GarageOpen(playerid, false); }
-    if (clicked == gGarageTD[playerid][10]) { if ((gGaragePage[playerid]+1)*6 < gGarageCount[playerid]) gGaragePage[playerid]++; return RW_GarageOpen(playerid, false); }
-    for (new row; row < 6; row++) if (clicked == gGarageTD[playerid][3+row]) {
-        new index = gGaragePage[playerid]*6+row;
-        if (index < gGarageCount[playerid]) return RW_GarageSpawn(playerid, gGarageList[playerid][index]);
-    }
-    return 1;
-}
 stock RW_GaragePickup(playerid, pickupid)
 {
     if (pickupid != gGaragePickup) return 0;
@@ -283,32 +236,15 @@ stock RW_GaragePulse()
     return 1;
 }
 /* ---------------------------------------------- admin key grant by SA-MP id */
-stock RW_KeyMenuLabel(playerid, index, Float:x, Float:y, const text[], bool:button = false)
-{
-    new buf[128]; format(buf, sizeof buf, "%s", text);
-    gKeyTD[playerid][index] = CreatePlayerTextDraw(playerid, x, y, buf);
-    PlayerTextDrawFont(playerid, gKeyTD[playerid][index], 1);
-    PlayerTextDrawLetterSize(playerid, gKeyTD[playerid][index], 0.22, 1.1);
-    PlayerTextDrawColor(playerid, gKeyTD[playerid][index], 0xEEECE7FF);
-    PlayerTextDrawSetShadow(playerid, gKeyTD[playerid][index], 0);
-    PlayerTextDrawTextSize(playerid, gKeyTD[playerid][index], x+230.0, 18.0);
-    if (button) {
-        PlayerTextDrawUseBox(playerid, gKeyTD[playerid][index], 1);
-        PlayerTextDrawBoxColor(playerid, gKeyTD[playerid][index], 0xD8C39B22);
-        PlayerTextDrawSetSelectable(playerid, gKeyTD[playerid][index], 1);
-    }
-    return 1;
-}
+/* Список машин рисует страница: скрывать больше нечего. */
 stock RW_KeyMenuHide(playerid)
 {
-    if (gKeyCreated[playerid]) for (new i; i < 13; i++) PlayerTextDrawHide(playerid, gKeyTD[playerid][i]);
     gKeyTarget[playerid] = -1;
     return 1;
 }
 stock RW_KeyMenuReset(playerid)
 {
-    if (gKeyCreated[playerid]) for (new i; i < 13; i++) PlayerTextDrawDestroy(playerid, gKeyTD[playerid][i]);
-    gKeyCreated[playerid] = false; gKeyTarget[playerid] = -1; gKeyCount[playerid] = 0; gKeyPage[playerid] = 0; gKeyTick[playerid] = 0;
+    gKeyTarget[playerid] = -1; gKeyCount[playerid] = 0; gKeyPage[playerid] = 0; gKeyTick[playerid] = 0;
     return 1;
 }
 // Spawned cars are listed by their SA-MP vehicle id; stored permanent cars by c<id>.
@@ -352,18 +288,6 @@ stock bool:RW_KeyMenuRow(playerid, row, label[], size = sizeof label)
     }
     return true;
 }
-stock RW_KeyMenuRender(playerid)
-{
-    new label[128];
-    for (new row; row < 6; row++) {
-        if (!RW_KeyMenuRow(playerid, row, label, sizeof label)) { PlayerTextDrawHide(playerid, gKeyTD[playerid][3+row]); continue; }
-        PlayerTextDrawSetString(playerid, gKeyTD[playerid][3+row], label);
-        PlayerTextDrawShow(playerid, gKeyTD[playerid][3+row]);
-    }
-    format(label, sizeof label, "%d CARS / PAGE %d", gKeyCount[playerid], gKeyPage[playerid]+1);
-    PlayerTextDrawSetString(playerid, gKeyTD[playerid][12], label);
-    return 1;
-}
 stock RW_KeyMenuOpen(playerid, target)
 {
     if (!gLogged[playerid] || gAdminLevel[playerid] < 1) return RW_Error(playerid, "Administrators only.");
@@ -374,30 +298,10 @@ stock RW_KeyMenuOpen(playerid, target)
     gKeyTarget[playerid] = target; gKeyPage[playerid] = 0;
     RW_KeyMenuBuild(playerid);
     if (!gKeyCount[playerid]) { gKeyTarget[playerid] = -1; return RW_Error(playerid, "No managed car has a key right now. /spcar <model> or /givecar first."); }
-    if (!gKeyCreated[playerid]) {
-        gKeyTD[playerid][0] = CreatePlayerTextDraw(playerid, 190.0, 90.0, "LD_SPAC:white");
-        PlayerTextDrawFont(playerid, gKeyTD[playerid][0], 4);
-        PlayerTextDrawTextSize(playerid, gKeyTD[playerid][0], 260.0, 272.0);
-        PlayerTextDrawColor(playerid, gKeyTD[playerid][0], 0x141920F8);
-        RW_KeyMenuLabel(playerid, 1, 203.0, 104.0, "GIVE CAR KEY");
-        RW_KeyMenuLabel(playerid, 2, 203.0, 123.0, "PICK A CAR BY SA-MP ID");
-        for (new i; i < 6; i++) RW_KeyMenuLabel(playerid, 3+i, 203.0, 151.0+26.0*i, "_", true);
-        RW_KeyMenuLabel(playerid, 9, 203.0, 312.0, "< PREVIOUS", true);
-        RW_KeyMenuLabel(playerid, 10, 330.0, 312.0, "NEXT >", true);
-        PlayerTextDrawTextSize(playerid, gKeyTD[playerid][9], 310.0, 18.0);
-        PlayerTextDrawTextSize(playerid, gKeyTD[playerid][10], 437.0, 18.0);
-        RW_KeyMenuLabel(playerid, 11, 203.0, 338.0, "CLOSE / ESC", true);
-        RW_KeyMenuLabel(playerid, 12, 203.0, 136.0, "_");
-        PlayerTextDrawLetterSize(playerid, gKeyTD[playerid][12], 0.15, 0.75);
-        gKeyCreated[playerid] = true;
-    }
-    gUIMode[playerid] = UI_KEYMENU;
     #if RAILWAY_CEF
         if (RW_CefOn(playerid)) return RW_KeyMenuCef(playerid);
     #endif
-    for (new i; i < 13; i++) PlayerTextDrawShow(playerid, gKeyTD[playerid][i]);
-    RW_KeyMenuRender(playerid);
-    RW_UI_SelectBegin(playerid);
+    return RW_KeyMenuNative(playerid);
     return 1;
 }
 /*  Меню ключей в браузере: шесть машин, пролистывание, закрыть. */
@@ -414,6 +318,22 @@ stock RW_KeyMenuCef(playerid)
     if ((gKeyPage[playerid] + 1) * 6 < gKeyCount[playerid]) RW_CefAction(playerid, CEF_KEYS_NEXT, "Вперёд", "");
     RW_CefAction(playerid, CEF_KEYS_CLOSE, "Закрыть", "danger");
     return RW_CefEnd(playerid);
+}
+
+/* Без браузера: тот же список нативным диалогом, те же номера строк. */
+stock RW_KeyMenuNative(playerid)
+{
+    new subtitle[64], label[128];
+    format(subtitle, sizeof subtitle, "%d машин / страница %d", gKeyCount[playerid], gKeyPage[playerid] + 1);
+    RW_UI_Panel(playerid, UI_KEYMENU, "Выдать ключ", subtitle);
+    for (new row; row < 6; row++) {
+        if (!RW_KeyMenuRow(playerid, row, label, sizeof label)) continue;
+        RW_UI_Row(playerid, row, label);
+    }
+    if (gKeyPage[playerid] > 0) RW_UI_Row(playerid, CEF_KEYS_PREV, "Назад");
+    if ((gKeyPage[playerid] + 1) * 6 < gKeyCount[playerid]) RW_UI_Row(playerid, CEF_KEYS_NEXT, "Вперёд");
+    RW_UI_Row(playerid, CEF_KEYS_CLOSE, "Закрыть");
+    return 1;
 }
 /* Выдать ключ на выбранную машину: одно и то же для обоих меню. */
 stock RW_KeyMenuGrant(playerid, row)
@@ -455,23 +375,12 @@ stock RW_KeyMenuCefClick(playerid, id)
         #if RAILWAY_CEF
             if (RW_CefOn(playerid)) return RW_KeyMenuCef(playerid);
         #endif
-        return RW_KeyMenuRender(playerid);
+        return RW_KeyMenuNative(playerid);
     }
     if (id >= 0 && id < 6) return RW_KeyMenuGrant(playerid, id);
     return 1;
 }
 
-stock RW_KeyMenuClick(playerid, PlayerText:clicked)
-{
-    if (gUIMode[playerid] != UI_KEYMENU) return 0;
-    if (clicked == gKeyTD[playerid][11]) return RW_UI_Close(playerid);
-    if (GetTickCount()-gKeyTick[playerid] < 800) return 1;
-    gKeyTick[playerid] = GetTickCount();
-    if (clicked == gKeyTD[playerid][9]) { if (gKeyPage[playerid] > 0) gKeyPage[playerid]--; RW_KeyMenuBuild(playerid); RW_KeyMenuRender(playerid); return 1; }
-    if (clicked == gKeyTD[playerid][10]) { if ((gKeyPage[playerid]+1)*6 < gKeyCount[playerid]) gKeyPage[playerid]++; RW_KeyMenuBuild(playerid); RW_KeyMenuRender(playerid); return 1; }
-    for (new row; row < 6; row++) if (clicked == gKeyTD[playerid][3+row]) return RW_KeyMenuGrant(playerid, row);
-    return 1;
-}
 stock RW_KeyMenuCommand(playerid, const params[])
 {
     if (!gLogged[playerid] || gAdminLevel[playerid] < 1) return RW_Error(playerid, "Administrators only.");

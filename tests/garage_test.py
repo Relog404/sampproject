@@ -110,7 +110,7 @@ class GarageSourceContractsTest(unittest.TestCase):
         self.assertIn('RW_GarageMarkKey(uid, data)', INV)
         self.assertIn('data NOT IN (SELECT token FROM owned_cars)', INV)
 
-    def test_pickup_and_proximity_use_latch_and_textdraw_view(self):
+    def test_pickup_and_proximity_use_latch_and_the_same_list(self):
         self.assertIn('CreateObject(3881', GARAGE)
         self.assertIn('CreatePickup(1239, 1', GARAGE)
         # The booth and pickup stand next to the spawn point, not far away.
@@ -123,7 +123,10 @@ class GarageSourceContractsTest(unittest.TestCase):
         self.assertIn('gGarageLatch[playerid]', GARAGE)
         self.assertIn('IsPlayerInRangeOfPoint(p, 2.0', GARAGE)
         self.assertIn('UI_GARAGE', source('ui'))
-        self.assertIn('RW_UI_SelectBegin', GARAGE)
+        # список один: страница в браузере или нативный диалог, тексдравов нет
+        self.assertIn('return RW_GarageCef(playerid);', GARAGE)
+        self.assertIn('return RW_GarageNative(playerid);', GARAGE)
+        self.assertNotIn('PlayerTextDraw', GARAGE)
         self.assertNotIn('ShowPlayerDialog', GARAGE)
 
     def test_context_menu_has_conditional_actions(self):

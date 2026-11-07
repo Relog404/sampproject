@@ -162,7 +162,8 @@ class InventorySourceTests(unittest.TestCase):
         main = (ROOT/'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
         click = main.split('public OnPlayerClickPlayerTextDraw',1)[1].split('public OnPlayerClickTextDraw',1)[0]
         self.assertNotIn('RW_InvClick', click)
-        self.assertIn('RW_GarageClick(playerid, playertextid)', click)
+        self.assertNotIn('RW_GarageClick', click)
+        self.assertNotIn('RW_KeyMenuClick', click)
         cancel = main.split('public OnPlayerClickTextDraw',1)[1].split('public OnPlayerKeyStateChange',1)[0]
         self.assertLess(cancel.index('UI_INVENTORY'), cancel.index('gUIOnCef'))
         ui = pawn('ui')

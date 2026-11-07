@@ -97,12 +97,12 @@ forward RW_LawyerCallFor(playerid, target);
 #define CEF_JOB_QUIT                20
 #define CEF_JOB_CLOSE               21
 /* √араж: кнопки не должны попадать в номера строк 0..5. */
-#define CEF_GARAGE_PREV             20
-#define CEF_GARAGE_NEXT             21
-#define CEF_GARAGE_CLOSE            22
-#define CEF_KEYS_PREV               20
-#define CEF_KEYS_NEXT               21
-#define CEF_KEYS_CLOSE              22
+#define CEF_GARAGE_PREV             6
+#define CEF_GARAGE_NEXT             7
+#define CEF_GARAGE_CLOSE            8
+#define CEF_KEYS_PREV               6
+#define CEF_KEYS_NEXT               7
+#define CEF_KEYS_CLOSE              8
 
 /* ------------------------------------------------------------------ настройки */
 #define SPCAR_MIN_ADMIN_LEVEL       (0)      /* 0 Ч /spcar доступна всем игрокам */

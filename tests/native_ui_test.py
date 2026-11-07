@@ -219,9 +219,12 @@ class NativeInterfaceTest(unittest.TestCase):
                           'CEF_EmitEvent', 'CEF_FocusBrowser', 'CEF_PlayerHasPlugin',
                           'CEF_RegisterEvent', 'CEF_SetBrowserLayer', 'CEF_SetBrowserVisible'])
         self.assertIn('plugins cef', (ROOT/'server/server.cfg').read_text(encoding='cp1251'))
-        for name in ('CreatePlayerTextDraw', 'PlayerTextDrawSetString', 'SelectTextDraw',
-                     'PlayerTextDrawDestroy', 'ShowPlayerDialog', 'db_open', 'SHA256_PassHash'):
+        for name in ('PlayerTextDrawDestroy', 'ShowPlayerDialog', 'db_open', 'SHA256_PassHash'):
             self.assertIn(name, imported)
+        # панели рисуются в браузере: создавать тексдравы сборка больше не умеет
+        for name in ('CreatePlayerTextDraw', 'PlayerTextDrawSetString', 'PlayerTextDrawShow',
+                     'PlayerTextDrawSetPreviewModel'):
+            self.assertNotIn(name, imported)
         for name in ('OnPlayerClickPlayerTextDraw', 'OnPlayerClickTextDraw', 'OnPlayerKeyStateChange'):
             self.assertIn(name, exported)
 

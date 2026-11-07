@@ -202,6 +202,12 @@ stock RW_UI_Click(playerid, row)
             RW_ControlExecute(playerid, gControlVehicle[playerid], 4, gUITarget[playerid][row]); RW_UI_Passengers(playerid);
         } else if (row == 6) RW_UI_Vehicle(playerid);
         else if (row == 7) { if (gUIHasNext[playerid]) gUIPage[playerid]++; else gUIPage[playerid] = 0; RW_UI_Passengers(playerid); }
+    } else if (mode == UI_GARAGE) {
+        return RW_GarageCefClick(playerid, row);
+    } else if (mode == UI_KEYMENU) {
+        return RW_KeyMenuCefClick(playerid, row);
+    } else if (mode == UI_DOWNED) {
+        return RW_MedCefClick(playerid, row);
     } else if (mode == UI_POLICE) {
         if (GetTickCount()-gControlTick[playerid] < 250) return 1;
         gControlTick[playerid] = GetTickCount();

@@ -48,22 +48,23 @@ class KeyGrantInputTest(unittest.TestCase):
 
     def test_givekey_menu_selects_car_by_samp_id(self):
         garage = pawn('garage')
-        open_menu = garage.split('stock RW_KeyMenuOpen',1)[1].split('stock RW_KeyMenuClick',1)[0]
-        click = garage.split('stock RW_KeyMenuClick',1)[1].split('stock RW_KeyMenuCommand',1)[0]
-        build = garage.split('stock RW_KeyMenuBuild',1)[1].split('stock RW_KeyMenuRender',1)[0]
+        open_menu = garage.split('stock RW_KeyMenuOpen',1)[1].split('stock RW_KeyMenuCef(',1)[0]
+        click = garage.split('stock RW_KeyMenuCefClick(playerid, id)',1)[1].split('\nstock ',1)[0]
+        build = garage.split('stock RW_KeyMenuBuild',1)[1].split('\nstock ',1)[0]
         self.assertIn('gAdminLevel[playerid] < 1', open_menu)
         self.assertIn('!gInvLoaded[target]', open_menu)
-        self.assertIn('gUIMode[playerid] = UI_KEYMENU', open_menu)
-        self.assertIn('RW_UI_SelectBegin(playerid)', open_menu)
+        # список рисует страница, без браузера — нативный диалог
+        self.assertIn('return RW_KeyMenuCef(playerid);', open_menu)
+        self.assertIn('return RW_KeyMenuNative(playerid);', open_menu)
+        self.assertIn('if (id >= 0 && id < 6) return RW_KeyMenuGrant(playerid, id);', click)
         # Spawned cars are listed by their SA-MP vehicle id, stored ones by c<id>.
         self.assertIn('gKeyList[playerid][gKeyCount[playerid]++] = gVeh[s][vsVehicleId]', build)
         self.assertIn('-db_get_field_assoc_int(r, "id")', build)
-        # подпись строки одна для тексдрав-меню и для страницы в браузере
+        # подпись строки одна для нативного диалога и для страницы в браузере
         row = garage.split('stock bool:RW_KeyMenuRow(', 1)[1].split('\nstock ', 1)[0]
         self.assertIn('"%s / RW-%03d / %d"', row)
         self.assertIn('"%s / c%d / на стоянке"', row)
-        self.assertIn('return RW_KeyMenuGrant(playerid, row);', click)
-        # выдача одна и та же для тексдрав-меню и для страницы в браузере
+        # выдача одна и та же для нативного диалога и для страницы в браузере
         grant = garage.split('stock RW_KeyMenuGrant(', 1)[1].split('\nstock ', 1)[0]
         self.assertIn('RW_InvGrant(target, ITEM_CAR_KEY, data)', grant)
         self.assertIn('RW_InvExplainGrant(playerid, target, ITEM_CAR_KEY, data)', grant)
@@ -75,8 +76,11 @@ class KeyGrantInputTest(unittest.TestCase):
         self.assertIn('RW_KeyMenuHide(playerid)', ui.split('stock RW_UI_Close',1)[1].split('stock RW_UI_OpenAuth',1)[0])
         self.assertIn('RW_KeyMenuReset(playerid)', ui.split('stock RW_UI_Reset',1)[1])
         main = (ROOT/'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
-        self.assertIn('UI_KEYMENU) return RW_KeyMenuClick', main)
-        self.assertIn('gUIMode[playerid] == UI_KEYMENU) return RW_UI_Close(playerid)', main)
+        self.assertNotIn('RW_KeyMenuClick', main)
+        # клик по списку разбирает общий RW_UI_Click, тексдравов больше нет
+        self.assertNotIn('RW_KeyMenuClick', main)
+        self.assertIn('} else if (mode == UI_KEYMENU) {', pawn('interaction'))
+        self.assertIn('return RW_KeyMenuCefClick(playerid, row);', pawn('interaction'))
         self.assertIn('gKeyTarget[i] = -1', main)
         commands = pawn('commands')
         self.assertIn('"givekey"', commands)

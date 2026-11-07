@@ -5,6 +5,7 @@
 #include <railway/core>
 
 #define UI_COUNT 30
+#define UI_ROWS 10               /* строк в панели: 0..5 список, 6..9 кнопки */
 #define UI_AUTH 1
 #define UI_SETTINGS 2
 #define UI_VEHICLE 3
@@ -50,7 +51,7 @@ forward RW_UI_FlushCef(playerid);
 new gUINativeTimer[MAX_PLAYERS], gUINativeCount[MAX_PLAYERS];
 new gUICefTimer[MAX_PLAYERS];
 new gUINativeTitle[MAX_PLAYERS][64], gUINativeSubtitle[MAX_PLAYERS][96];
-new gUINativeRows[MAX_PLAYERS][8][128], gUINativeMap[MAX_PLAYERS][8];
+new gUINativeRows[MAX_PLAYERS][UI_ROWS][128], gUINativeMap[MAX_PLAYERS][UI_ROWS];
 // CancelSelectTextDraw generates INVALID_TEXT_DRAW too. Never cancel an
 // inactive cursor, and clear state BEFORE the native can invoke callbacks.
 stock RW_UI_SelectBegin(playerid)
@@ -108,7 +109,7 @@ public RW_UI_FlushNative(playerid)
     }
     format(text, sizeof text, "%s\n", gUINativeSubtitle[playerid]);
     gUINativeCount[playerid] = 0;
-    for (new i; i < 8; i++) {
+    for (new i; i < UI_ROWS; i++) {
         if (!gUINativeRows[playerid][i][0]) continue;
         gUINativeMap[playerid][gUINativeCount[playerid]++] = i;
         strcat(text, gUINativeRows[playerid][i], sizeof text);
@@ -242,7 +243,7 @@ stock RW_UI_Panel(playerid, mode, const title[], const subtitle[])
     gUINativeCount[playerid] = 0;
     format(gUINativeTitle[playerid], 64, "%s", title);
     format(gUINativeSubtitle[playerid], 96, "%s", subtitle);
-    for (new i; i < 8; i++) gUINativeRows[playerid][i][0] = EOS;
+    for (new i; i < UI_ROWS; i++) gUINativeRows[playerid][i][0] = EOS;
     new cef = RW_UI_CefMode(mode);
     if (cef != CEF_MODE_NONE && RW_CefOn(playerid) && RW_CefOpen(playerid, cef, title, subtitle)) {
         gUIOnCef[playerid] = true;

@@ -82,9 +82,10 @@ class KeyMenuScreenTest(unittest.TestCase):
         self.assertIn('RW_VehicleName(', row)
 
     def test_the_buttons_do_not_fall_on_the_rows(self):
-        self.assertIn('#define CEF_KEYS_PREV               20', CORE)
-        self.assertIn('#define CEF_KEYS_NEXT               21', CORE)
-        self.assertIn('#define CEF_KEYS_CLOSE              22', CORE)
+        """Строки — 0..5, кнопки — 6..8: они же помещаются в нативный диалог."""
+        self.assertIn('#define CEF_KEYS_PREV               6', CORE)
+        self.assertIn('#define CEF_KEYS_NEXT               7', CORE)
+        self.assertIn('#define CEF_KEYS_CLOSE              8', CORE)
 
     def test_a_click_grants_the_key_or_turns_the_page(self):
         click = block(GARAGE, 'stock RW_KeyMenuCefClick(playerid, id)')
@@ -95,10 +96,14 @@ class KeyMenuScreenTest(unittest.TestCase):
         self.assertIn('RW_InvGrant(target, ITEM_CAR_KEY, data)', grant)
         self.assertIn('Target player is no longer available', grant)
 
-    def test_the_text_draw_menu_grants_the_same_way(self):
-        """Оба меню выдают ключ одной функцией: поведение не расходится."""
-        td = block(GARAGE, 'stock RW_KeyMenuClick(playerid, PlayerText:clicked)')
-        self.assertIn('return RW_KeyMenuGrant(playerid, row);', td)
+    def test_without_a_browser_the_menu_is_a_native_dialog(self):
+        """Без браузера тот же список показывает нативный диалог."""
+        native = block(GARAGE, 'stock RW_KeyMenuNative(playerid)')
+        self.assertIn('RW_UI_Panel(playerid, UI_KEYMENU, "Выдать ключ", subtitle);', native)
+        self.assertIn('RW_KeyMenuRow(playerid, row, label, sizeof label)', native)
+        self.assertIn('RW_UI_Row(playerid, CEF_KEYS_CLOSE, "Закрыть");', native)
+        for marker in ('gKeyTD', 'gKeyCreated', 'PlayerTextDraw', 'RW_KeyMenuClick', 'RW_KeyMenuRender'):
+            self.assertNotIn(marker, GARAGE)
 
 
 class DownedScreenTest(unittest.TestCase):
@@ -175,11 +180,11 @@ class GarageScreenTest(unittest.TestCase):
         self.assertIn('RW_CefRow(playerid, row, label,', screen)
 
     def test_the_buttons_do_not_fall_on_the_rows(self):
-        """Строки — 0..5, кнопки — с 20: иначе клик по машине читался бы
-        как «Назад»."""
-        self.assertIn('#define CEF_GARAGE_PREV             20', CORE)
-        self.assertIn('#define CEF_GARAGE_NEXT             21', CORE)
-        self.assertIn('#define CEF_GARAGE_CLOSE            22', CORE)
+        """Строки — 0..5, кнопки — 6..8: иначе клик по машине читался бы
+        как «Назад». Те же номера идут и в нативный диалог."""
+        self.assertIn('#define CEF_GARAGE_PREV             6', CORE)
+        self.assertIn('#define CEF_GARAGE_NEXT             7', CORE)
+        self.assertIn('#define CEF_GARAGE_CLOSE            8', CORE)
         screen = block(GARAGE, 'stock RW_GarageCef(playerid)')
         self.assertIn('RW_CefAction(playerid, CEF_GARAGE_PREV, "Назад", "");', screen)
         self.assertIn('RW_CefAction(playerid, CEF_GARAGE_NEXT, "Вперёд", "");', screen)
@@ -199,13 +204,21 @@ class GarageScreenTest(unittest.TestCase):
         self.assertIn('if ((gGaragePage[playerid] + 1) * 6 < gGarageCount[playerid]) RW_CefAction(playerid, CEF_GARAGE_NEXT', screen)
 
     def test_turning_the_page_redraws_the_same_way(self):
-        """После пролистывания страница рисуется той же функцией, что и
-        при открытии: иначе браузер и тексдрав-меню расходятся."""
+        """После пролистывания список рисуется той же функцией, что и
+        при открытии: браузер и нативный диалог не расходятся."""
         click = block(GARAGE, 'stock RW_GarageCefClick(playerid, id)')
         self.assertIn('RW_GarageRefresh(playerid)', click)
         refresh = block(GARAGE, 'stock RW_GarageRefresh(playerid)')
+        self.assertIn('return RW_GarageCef(playerid);', refresh)
+        self.assertIn('return RW_GarageNative(playerid);', refresh)
+        native = block(GARAGE, 'stock RW_GarageNative(playerid)')
+        self.assertIn('RW_UI_Panel(playerid, UI_GARAGE, "Гараж", subtitle);', native)
+        self.assertIn('RW_UI_Row(playerid, CEF_GARAGE_CLOSE, "Закрыть");', native)
+        for marker in ('gGarageTD', 'gGarageCreated', 'PlayerTextDraw', 'RW_GarageClick'):
+            self.assertNotIn(marker, GARAGE)
+        refresh = block(GARAGE, 'stock RW_GarageRefresh(playerid)')
         self.assertIn('if (RW_CefOn(playerid)) return RW_GarageCef(playerid);', refresh)
-        self.assertIn('return RW_GarageOpen(playerid, false);', refresh)
+        self.assertIn('return RW_GarageNative(playerid);', refresh)
 
 
 if __name__ == '__main__':

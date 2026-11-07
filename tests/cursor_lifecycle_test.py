@@ -75,7 +75,8 @@ class CursorLifecycleTest(unittest.TestCase):
         for module, marker in [('garage','stock RW_GarageOpen')]:
             opening = source(module).split(marker,1)[1].split('\nstock ',1)[0]
             self.assertIn('RW_UI_Close(playerid, true)', opening)
-            self.assertIn('RW_UI_SelectBegin(playerid)', opening)
+            # гараж больше не включает курсор: список рисует страница
+            self.assertNotIn('RW_UI_SelectBegin(playerid)', opening)
         callback = (ROOT/'server/gamemodes/railway.pwn').read_text(encoding='cp1251').split('public OnPlayerClickTextDraw',1)[1].split('public OnPlayerKeyStateChange',1)[0]
         self.assertLess(callback.index('gUIExpectedCancels[playerid] > 0'), callback.index('gUISelecting[playerid] = false'))
         self.assertLess(callback.index('gUISelecting[playerid] = false'), callback.index('return RW_UI_Close'))
