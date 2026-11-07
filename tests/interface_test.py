@@ -181,13 +181,38 @@ class DonateTest(unittest.TestCase):
         self.db.execute('INSERT INTO donates (player_id,points,vip) VALUES (3,150,1)')
         self.assertEqual(self.db.execute('SELECT points,vip FROM donates WHERE player_id=3').fetchone(), (150, 1))
 
-    def test_six_packages_with_kinds_and_prices(self):
+    def test_eight_packages_including_the_money_exchange(self):
         names = block(DONATE, 'static const gDonateName[DONATE_MAX][] = {', '};')
         prices = block(DONATE, 'static const gDonatePrice[DONATE_MAX] = {', '};')
         kinds = block(DONATE, 'static const gDonateKind[DONATE_MAX] = {', '};')
-        self.assertEqual(len(re.findall(r'"[^"]+"', names)), 6)
-        self.assertEqual(len(re.findall(r'\d+', prices)), 6)
-        self.assertEqual(kinds.count('DONATE_KIND_'), 6)
+        args = block(DONATE, 'static const gDonateArg[DONATE_MAX] = {', '};')
+        self.assertEqual(len(re.findall(r'"[^"]+"', names)), 8)
+        self.assertEqual(len(re.findall(r'\d+', prices)), 8)
+        self.assertEqual(kinds.count('DONATE_KIND_'), 8)
+        self.assertEqual(len(re.findall(r'\d+', args)), 8)
+        self.assertEqual(kinds.count('DONATE_KIND_EXCHANGE'), 2)
+        self.assertIn('Обмен', names)
+
+    def test_the_exchange_works_without_any_top_up(self):
+        buy = block(DONATE, 'stock RW_DonateBuy(playerid, row)')
+        self.assertIn('if (gDonateKind[row] == DONATE_KIND_EXCHANGE) {', buy)
+        self.assertIn('if (gBank[playerid] < gDonatePrice[row]) return RW_Error(playerid, "На счёте мало денег для обмена.");', buy)
+        self.assertIn('RW_BankTake(playerid, gDonatePrice[row]);', buy)
+        self.assertIn('gDonate[playerid] = gDonate[playerid] + gDonateArg[row];', buy)
+        self.assertTrue(buy.index('DONATE_KIND_EXCHANGE') < buy.index('DONATE_KIND_VIP'))
+
+    def test_the_menu_is_redrawn_after_a_purchase(self):
+        self.assertIn('stock RW_DonateRefresh(playerid)', DONATE)
+        refresh = block(DONATE, 'stock RW_DonateRefresh(playerid)')
+        self.assertIn('if (gCefMode[playerid] != CEF_MODE_DONATE) return 1;', refresh)
+        self.assertIn('return RW_DonateOpen(playerid);', refresh)
+        buy = block(DONATE, 'stock RW_DonateBuy(playerid, row)')
+        self.assertEqual(buy.count('RW_DonateRefresh(playerid);'), 3)
+
+    def test_the_menu_speaks_russian(self):
+        self.assertIn('Баланс: %d очков', DONATE)
+        self.assertIn('VIP: %d (прибавка к доходу', DONATE)
+        self.assertIn('Очки можно обменять на рубли', DONATE)
 
     def test_vip_raises_the_income_on_the_server(self):
         bonus = block(DONATE, 'stock RW_DonateBonus(playerid, amount)')

@@ -10,9 +10,10 @@
 #endif
 #define _railway_donate_included
 
-#define DONATE_MAX          6           /* пакетов в меню                  */
-#define DONATE_KIND_VIP     (1)
-#define DONATE_KIND_MONEY   (2)
+#define DONATE_MAX          8           /* пакетов в меню                  */
+#define DONATE_KIND_VIP     (1)         /* уровень VIP                     */
+#define DONATE_KIND_MONEY   (2)         /* деньги на счёт за очки          */
+#define DONATE_KIND_EXCHANGE (3)        /* очки за деньги со счёта         */
 #define DONATE_VIP_BONUS    {0, 10, 25, 50}  /* прибавка к доходу, %       */
 
 new gDonate[MAX_PLAYERS];               /* донат-очки                      */
@@ -20,17 +21,20 @@ new gVip[MAX_PLAYERS];                  /* уровень VIP: 0..3               */
 new gDonateRow[MAX_PLAYERS];            /* выбранная строка меню           */
 
 static const gDonateName[DONATE_MAX][] = {
-    "VIP Basic: +10 % to every income",
-    "VIP Gold: +25 % to every income",
-    "VIP Platinum: +50 % to every income",
-    "50 000 on the account",
-    "250 000 on the account",
-    "1 000 000 on the account"
+    "Обмен: 20 000 руб. -> 20 очков",
+    "Обмен: 100 000 руб. -> 120 очков",
+    "VIP Basic: +10 % к любому доходу",
+    "VIP Gold: +25 % к любому доходу",
+    "VIP Platinum: +50 % к любому доходу",
+    "50 000 руб. на счёт",
+    "250 000 руб. на счёт",
+    "1 000 000 руб. на счёт"
 };
-static const gDonatePrice[DONATE_MAX] = { 100, 250, 500, 50, 200, 600 };
-static const gDonateKind[DONATE_MAX] = { DONATE_KIND_VIP, DONATE_KIND_VIP, DONATE_KIND_VIP,
+static const gDonatePrice[DONATE_MAX] = { 20000, 100000, 100, 250, 500, 50, 200, 600 };
+static const gDonateKind[DONATE_MAX] = { DONATE_KIND_EXCHANGE, DONATE_KIND_EXCHANGE,
+                                         DONATE_KIND_VIP, DONATE_KIND_VIP, DONATE_KIND_VIP,
                                          DONATE_KIND_MONEY, DONATE_KIND_MONEY, DONATE_KIND_MONEY };
-static const gDonateArg[DONATE_MAX] = { 1, 2, 3, 50000, 250000, 1000000 };
+static const gDonateArg[DONATE_MAX] = { 20, 120, 1, 2, 3, 50000, 250000, 1000000 };
 
 /*  --------------------------------- база -------------------------------- */
 stock RW_DonateSchema()
@@ -76,12 +80,13 @@ stock RW_DonateLevel(playerid) { return gVip[playerid]; }
 /*  --------------------------------- меню -------------------------------- */
 stock RW_DonateSubtitle(playerid, dest[], size = sizeof dest)
 {
-    return format(dest, size, "Balance: %d points. VIP: %d. How to top up: see the project site.", gDonate[playerid], gVip[playerid]);
+    return format(dest, size, "Баланс: %d очков. VIP: %d. Обмен: первые два пакета меняют рубли со счёта на очки.", gDonate[playerid], gVip[playerid]);
 }
 stock RW_DonateRowText(playerid, row, dest[], size = sizeof dest)
 {
     if (row < 0 || row >= DONATE_MAX) return 0;
-    return format(dest, size, "%s - %d points", gDonateName[row], gDonatePrice[row]);
+    if (gDonateKind[row] == DONATE_KIND_EXCHANGE) return format(dest, size, "%s", gDonateName[row]);
+    return format(dest, size, "%s - %d очков", gDonateName[row], gDonatePrice[row]);
 }
 stock RW_DonateRows(playerid)
 {
@@ -142,38 +147,57 @@ stock RW_DonateBuy(playerid, row)
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
     if (row < 0 || row >= DONATE_MAX) return RW_Error(playerid, "No such package.");
+    new sum[32], message[180];
+    /* Обмен рублями: делает меню рабочим без внешнего пополнения. */
+    if (gDonateKind[row] == DONATE_KIND_EXCHANGE) {
+        if (gBank[playerid] < gDonatePrice[row]) return RW_Error(playerid, "На счёте мало денег для обмена.");
+        RW_BankTake(playerid, gDonatePrice[row]);
+        gDonate[playerid] = gDonate[playerid] + gDonateArg[row];
+        RW_DonateSave(playerid);
+        RW_FormatMoney(gDonatePrice[row], sum, sizeof sum);
+        format(message, sizeof message, "Обмен: %s со счёта, +%d очков. Баланс: %d очков.", sum, gDonateArg[row], gDonate[playerid]);
+        RW_Ok(playerid, message);
+        return RW_DonateRefresh(playerid);
+    }
     if (gDonate[playerid] < gDonatePrice[row])
-        return RW_Error(playerid, "Not enough points: top up the balance on the project site.");
+        return RW_Error(playerid, "Мало очков. Обменяйте рубли со счёта на очки в этом же меню.");
     if (gDonateKind[row] == DONATE_KIND_VIP && gVip[playerid] >= gDonateArg[row])
-        return RW_Error(playerid, "You already have this VIP level or higher.");
+        return RW_Error(playerid, "У вас уже есть этот уровень VIP или выше.");
     gDonate[playerid] = gDonate[playerid] - gDonatePrice[row];
     if (gDonateKind[row] == DONATE_KIND_VIP) {
         gVip[playerid] = gDonateArg[row];
         RW_DonateSave(playerid);
-        return RW_Ok(playerid, "VIP is active. The bonus is added to every income by the server.");
+        RW_Ok(playerid, "VIP активен. Прибавку к доходу начисляет сервер.");
+        return RW_DonateRefresh(playerid);
     }
     RW_BankAdd(playerid, gDonateArg[row]);
     RW_DonateSave(playerid);
-    new sum[32], message[160];
     RW_FormatMoney(gDonateArg[row], sum, sizeof sum);
-    format(message, sizeof message, "Purchased: %s landed on the account.", sum);
-    return RW_Ok(playerid, message);
+    format(message, sizeof message, "Куплено: %s зачислено на счёт.", sum);
+    RW_Ok(playerid, message);
+    return RW_DonateRefresh(playerid);
+}
+/* Меню перерисовывается сразу после покупки: баланс в шапке не врёт. */
+stock RW_DonateRefresh(playerid)
+{
+    if (!RW_CefOn(playerid)) return 1;
+    if (gCefMode[playerid] != CEF_MODE_DONATE) return 1;
+    return RW_DonateOpen(playerid);
 }
 
 /*  --------------------------------- команды ----------------------------- */
 stock RW_DonateCommand(playerid)
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
-    if (RW_CefOn(playerid)) return RW_DonateOpen(playerid);
-    RW_Info(playerid, "Donate: F2 or /donate in the browser interface. Points are topped up on the project site.");
+    if (!RW_CefOn(playerid)) RW_Info(playerid, "Донат: F2 в браузере или /donate. Очки можно обменять на рубли со счёта в этом меню.");
     return RW_DonateOpen(playerid);
 }
 stock RW_PointsCommand(playerid)
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
-    new message[160];
-    format(message, sizeof message, "Donate points: %d. VIP: %d (income bonus %d %%).",
-        gDonate[playerid], gVip[playerid], RW_DonateBonus(playerid, 100) - 100);
+    new message[180];
+    format(message, sizeof message, "Очки: %d. VIP: %d (прибавка к доходу %d %%). Счёт: %d руб. Меню: /donate.",
+        gDonate[playerid], gVip[playerid], RW_DonateBonus(playerid, 100) - 100, gBank[playerid]);
     return RW_Ok(playerid, message);
 }
 stock RW_GiveDonateCommand(playerid, const params[])
