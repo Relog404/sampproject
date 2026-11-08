@@ -96,7 +96,7 @@ class FamilyCreateTest(unittest.TestCase):
 
     def test_you_cannot_found_a_second_family(self):
         create = block(FAMILY, 'stock RW_FamilyCreateNamed(playerid, const name[])')
-        self.assertIn('if (gFamily[playerid] != FAMILY_NONE) return RW_Error', create)
+        self.assertIn('if (gFamily[playerid] != FAMILY_NONE) {', create)
 
 
 class FamilyRosterTest(unittest.TestCase):

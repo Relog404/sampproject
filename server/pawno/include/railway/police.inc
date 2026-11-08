@@ -682,7 +682,10 @@ stock RW_PoliceCaseStart(lawyer, prisoner)
     if (!RW_IsLawyer(lawyer)) return RW_Error(lawyer, "You have no lawyer license.");
     if (prisoner < 0 || !IsPlayerConnected(prisoner) || gJailTime[prisoner] <= 0) return RW_Error(lawyer, "He is not in a cell.");
     if (!RW_PoliceNear(lawyer, prisoner, 4.0)) return RW_Error(lawyer, "Stand closer to the player.");
-    if (gCaseId[lawyer]) return RW_Error(lawyer, "You already have an open case: /endcase first.");
+    if (gCaseId[lawyer]) {
+        if (RW_CefOn(lawyer)) return RW_Error(lawyer, "You already have an open case: close it in the lawyer app.");
+        return RW_Error(lawyer, "You already have an open case: /endcase first.");
+    }
     new id = RW_PoliceCaseFree();
     if (!id) return RW_Error(lawyer, "Too many open cases right now.");
     new officer = RW_PoliceFind(gJailOfficer[prisoner]);

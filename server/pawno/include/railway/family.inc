@@ -179,7 +179,10 @@ stock bool:RW_FamilyTakeMoney(family, amount)
 /* Зарегистрировать семью: и /fcreate <название>, и поле ввода в панели. */
 stock RW_FamilyCreateNamed(playerid, const name[])
 {
-    if (gFamily[playerid] != FAMILY_NONE) return RW_Error(playerid, "Вы уже в семье: сначала /fleave.");
+    if (gFamily[playerid] != FAMILY_NONE) {
+        if (RW_CefOn(playerid)) return RW_Error(playerid, "Вы уже в семье: выйти можно строкой в панели семьи.");
+        return RW_Error(playerid, "Вы уже в семье: сначала /fleave.");
+    }
     if (strlen(name) < 3) return RW_Error(playerid, "Слишком короткое название: хотя бы три буквы.");
     if (!RW_SafeSqlText(name)) return RW_Error(playerid, "В названии только буквы, цифры и пробелы.");
     if (gMoney[playerid] < FAMILY_CREATE_COST) return RW_Error(playerid, "Нужно 50 000 наличными на регистрацию семьи.");

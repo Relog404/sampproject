@@ -262,6 +262,17 @@ class InlinePanelTest(unittest.TestCase):
         self.assertIn('stock bool:RW_HudIsOn(playerid) { return gHudOn[playerid]; }', pawn('hud'))
         self.assertIn('stock bool:RW_HudMouseIsOn(playerid) { return gHudMouse[playerid]; }', pawn('hud'))
 
+    def test_a_gas_station_refuels_by_a_row(self):
+        """/refuel был единственным способом: теперь это строка в карточке."""
+        inter = pawn('interaction')
+        self.assertIn('else if (RW_TransportAtGas(playerid) && !RW_MechOnDuty(playerid)) RW_CefRow(playerid, 5, "Refuel: a full tank for cash", "gas", "fuel");', inter)
+        self.assertIn('else if (RW_TransportAtGas(playerid) && !RW_MechOnDuty(playerid)) RW_UI_Row(playerid, 5, "Refuel: a full tank for cash", "fuel");', inter)
+        # клик: кабина у самолёта иначе заправка
+        card = block(inter, 'stock RW_CefVehicleClick(playerid, id)')
+        self.assertIn('if (RW_TransportAtGas(playerid) && !RW_MechOnDuty(playerid)) RW_FuelRefuel(playerid, v);', card)
+        native = block(inter, '} else if (mode == UI_VEHICLE) {')
+        self.assertIn('RW_FuelRefuel(playerid, cv); RW_UI_Vehicle(playerid);', native)
+
     def test_the_gps_mark_is_taken_off_by_a_button(self):
         """/gps off остался командами, в панели метку снимает кнопка."""
         city = pawn('city')
@@ -416,7 +427,13 @@ class HintTest(unittest.TestCase):
         ('interaction', 'No SIM card: buy one at a 24/7 shop and insert it from your pockets (Alt + U).',
          'No SIM card: buy one and insert it with /sim.'),
         ('phone', 'No SIM card: buy one at a 24/7 shop and insert it from your pockets (Alt + U).',
-         'No SIM card: buy one and insert it with /sim.'),        ('cabin', 'Aim at a plane and press Y: the card there has a \\"board\\" row. Max 20 people.',
+         'No SIM card: buy one and insert it with /sim.'),
+        ('family', 'Вы уже в семье: выйти можно строкой в панели семьи.',
+         'Вы уже в семье: сначала /fleave.'),
+        ('phoneapps', 'You are already in a group: the group app has a leave row.',
+         'You are already in a group. /gleave first.'),
+        ('police', 'You already have an open case: close it in the lawyer app.',
+         'You already have an open case: /endcase first.'),        ('cabin', 'Aim at a plane and press Y: the card there has a \\"board\\" row. Max 20 people.',
          'Aim at a plane, or use /board <vehicle id>. Max 20 people.'),
     ]
 

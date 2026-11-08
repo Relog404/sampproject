@@ -137,7 +137,7 @@ stock RW_UI_Vehicle(playerid)
         new label[64];
         format(label, sizeof label, "%s (%d / %d)", RW_CabinInside(playerid) ? ("Leave cabin") : ("Board cabin"), RW_CabinCount(v), CABIN_MAX);
         RW_UI_Row(playerid, 5, label);
-    }
+    } else if (RW_TransportAtGas(playerid) && !RW_MechOnDuty(playerid)) RW_UI_Row(playerid, 5, "Refuel: a full tank for cash", "fuel");
     RW_UI_Row(playerid, 7, "Refresh status");
     return 1;
 }
@@ -203,10 +203,11 @@ stock RW_UI_Click(playerid, row)
             gUIPage[playerid] = 0; RW_UI_Passengers(playerid);
         } else if (row == 5) {
             new cv = gControlVehicle[playerid];
-            if (!RW_CabinIsPlane(GetVehicleModel(cv))) return 1;
-            if (RW_CabinInside(playerid) || GetPlayerVehicleID(playerid) == cv) RW_CabinLeave(playerid);
-            else RW_CabinBoard(playerid, cv);
-            RW_UI_Vehicle(playerid);
+            if (RW_CabinIsPlane(GetVehicleModel(cv))) {
+                if (RW_CabinInside(playerid) || GetPlayerVehicleID(playerid) == cv) RW_CabinLeave(playerid);
+                else RW_CabinBoard(playerid, cv);
+                RW_UI_Vehicle(playerid);
+            } else if (RW_TransportAtGas(playerid) && !RW_MechOnDuty(playerid)) { RW_FuelRefuel(playerid, cv); RW_UI_Vehicle(playerid); }
         } else if (row == 6) return RW_TransportRow(playerid, gControlVehicle[playerid]);
         else if (row == 7) RW_UI_Vehicle(playerid);
     } else if (mode == UI_PASSENGERS) {
@@ -415,7 +416,7 @@ stock RW_CefVehicle(playerid)
         new label[64];
         format(label, sizeof label, "%s (%d / %d)", RW_CabinInside(playerid) ? ("Leave cabin") : ("Board cabin"), RW_CabinCount(v), CABIN_MAX);
         RW_CefRow(playerid, 5, label, "", "plane");
-    }
+    } else if (RW_TransportAtGas(playerid) && !RW_MechOnDuty(playerid)) RW_CefRow(playerid, 5, "Refuel: a full tank for cash", "gas", "fuel");
     RW_CefPreview(playerid, GetVehicleModel(v), name);
     RW_CefAction(playerid, 7, "Refresh", "");
     RW_CefAction(playerid, 8, "Close", "danger");
@@ -432,9 +433,12 @@ stock RW_CefVehicleClick(playerid, id)
         gUIPage[playerid] = 0; return RW_CefPassengers(playerid);
     }
     if (id == 5) {
-        if (!RW_CabinIsPlane(GetVehicleModel(v))) return 1;
-        if (RW_CabinInside(playerid) || GetPlayerVehicleID(playerid) == v) RW_CabinLeave(playerid);
-        else RW_CabinBoard(playerid, v);
+        if (RW_CabinIsPlane(GetVehicleModel(v))) {
+            if (RW_CabinInside(playerid) || GetPlayerVehicleID(playerid) == v) RW_CabinLeave(playerid);
+            else RW_CabinBoard(playerid, v);
+            return RW_CefVehicle(playerid);
+        }
+        if (RW_TransportAtGas(playerid) && !RW_MechOnDuty(playerid)) RW_FuelRefuel(playerid, v);
         return RW_CefVehicle(playerid);
     }
     if (id == 6) return RW_TransportRow(playerid, v);

@@ -332,7 +332,10 @@ stock RW_PhotoCommand(playerid) { return RW_PhotoShow(playerid); }
 stock bool:RW_GroupHas(playerid) { return gGroupLeader[playerid] >= 0 && IsPlayerConnected(gGroupLeader[playerid]); }
 stock RW_GroupCreate(playerid)
 {
-    if (RW_GroupHas(playerid)) return RW_Info(playerid, "You are already in a group. /gleave first.");
+    if (RW_GroupHas(playerid)) {
+        if (RW_CefOn(playerid)) return RW_Info(playerid, "You are already in a group: the group app has a leave row.");
+        return RW_Info(playerid, "You are already in a group. /gleave first.");
+    }
     gGroupLeader[playerid] = playerid;
     gGroupInvite[playerid] = -1;
     return RW_Ok(playerid, "Group created. /ginvite <id> invites a player, /g <text> writes to the group.");
