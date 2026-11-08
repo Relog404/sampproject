@@ -1,0 +1,57 @@
+Browser events never reach the gamemode on SA-MP servers.
+
+omp-cef (aurora-mp/omp-cef) v1.3.0 and v1.4.0, and the current main branch:
+the SA-MP server plugin never drains the task queue, so nothing a page
+emits (ui:click, auth:submit, ui:answer, phone:*) is ever delivered to Pawn.
+Pages render, clicks vanish.
+
+Why:
+  - CefPlugin::EnqueueMainThreadTask() queues every client packet
+    (src/server/common/plugin.cpp, PacketType::ClientEmitEvent);
+  - CefPlugin::ProcessMainThreadTasks() is called from
+    src/server/omp/component.cpp only - the open.mp component;
+  - src/server/samp/main.cpp has no ProcessTick export and Supports()
+    does not announce SUPPORTS_PROCESS_TICK, so SA-MP never calls back.
+
+The fix is two files. Apply to a checkout of v1.4.0 (or main) with:
+
+    git apply tools/cef-samp-processtick.patch
+
+Then build the ServerSamp target (see .github/workflows/release.yml) or
+let GitHub build it: fork the repository, push this change, open
+Actions -> "Create Release" -> Run workflow (version, for example, 1.4.1)
+and take cef-samp-1.4.1.zip from the release the workflow creates.
+
+diff --git a/src/server/samp/main.cpp b/src/server/samp/main.cpp
+--- a/src/server/samp/main.cpp
++++ b/src/server/samp/main.cpp
+@@ -76,8 +76,19 @@
+ PLUGIN_EXPORT unsigned int PLUGIN_CALL Supports()
+ {
+-    return sampgdk::Supports() | SUPPORTS_VERSION | SUPPORTS_AMX_NATIVES;
++    return sampgdk::Supports() | SUPPORTS_VERSION | SUPPORTS_AMX_NATIVES | SUPPORTS_PROCESS_TICK;
+ }
+ 
++/*  SA-MP calls ProcessTick on every server tick. Without this export the
++    tasks queued by CefPlugin::EnqueueMainThreadTask are never run: the
++    open.mp component drains them from its own tick, the SA-MP plugin has
++    none. That is why nothing a page emits (ui:click, auth:submit,
++    ui:answer, phone:*) ever reaches the gamemode. */
++PLUGIN_EXPORT void PLUGIN_CALL ProcessTick()
++{
++    sampgdk::ProcessTick();
++    if (plugin_) plugin_->ProcessMainThreadTasks();
++}
++
+ PLUGIN_EXPORT bool PLUGIN_CALL Load(void** ppData)
+ {
+     pAMXFunctions = ppData[PLUGIN_DATA_AMX_EXPORTS];
+ 
+diff --git a/src/server/samp/plugin.def b/src/server/samp/plugin.def
+--- a/src/server/samp/plugin.def
++++ b/src/server/samp/plugin.def
+@@ -3,3 +3,4 @@
+ 	Load
+ 	Unload
++	ProcessTick
+ 	AmxLoad
