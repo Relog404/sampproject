@@ -268,5 +268,78 @@ class InlinePanelTest(unittest.TestCase):
         self.assertIn('"Вернитесь позже или выставите свой: /sell"', rows)
 
 
+class CloseButtonTest(unittest.TestCase):
+    """У каждой браузерной панели есть кнопка, которая её закрывает.
+
+    Esc работает всегда, но кнопка нужна: игрок не обязан знать про Esc, а
+    сервер всё равно должен снять курсор. Проверяем обе половины договора:
+    панель шлёт кнопку, обработчик на её номер закрывает панель.
+    """
+
+    CLOSE_LABELS = ('Close', 'Закрыть', 'Выйти', 'Выход', 'Give up')
+
+    def sources(self):
+        return dict((path.stem, pawn(path.stem)) for path in sorted(INC.glob('*.inc')))
+
+    def painters(self, src):
+        """Функции, которые открывают браузерную панель."""
+        out = []
+        for match in re.finditer(r'\nstock (\w+)\(([^)\n]*)\)\n\{', src):
+            name, args = match.group(1), match.group(2)
+            try:
+                body = block(src, 'stock %s(%s)' % (name, args))
+            except (ValueError, AssertionError):
+                continue
+            if 'RW_CefOpen(playerid, CEF_MODE_' in body:
+                out.append((name, body))
+        return out
+
+    def close_ids(self, body, src_all):
+        """Номера кнопок с закрывающей подписью (число или define)."""
+        ids = []
+        for raw, label in re.findall(r'RW_CefAction\(playerid, (\w+), "([^"]*)"', body):
+            if label not in self.CLOSE_LABELS:
+                continue
+            if raw.isdigit():
+                ids.append(int(raw))
+                continue
+            found = re.search(r'#define %s\s+\(?(\d+)' % raw, src_all)
+            self.assertTrue(found, 'не найден define %s' % raw)
+            ids.append(int(found.group(1)))
+        return ids
+
+    def test_every_browser_panel_has_a_close_button(self):
+        all_src = '\n'.join(self.sources().values())
+        panels = 0
+        for module, src in self.sources().items():
+            for name, body in self.painters(src):
+                if 'CEF_MODE_NONE' in body:
+                    continue
+                panels += 1
+                ids = self.close_ids(body, all_src)
+                self.assertTrue(ids, '%s/%s: панель без кнопки закрытия' % (module, name))
+                for one in ids:
+                    # номер пишут и числом, и через define (например CEF_JOB_CLOSE)
+                    tokens = [str(one)] + [m.group(1) for m in
+                                           re.finditer(r'#define (\w+)\s+\(?' + str(one) + r'\b', all_src)]
+                    branch = None
+                    for token in tokens:
+                        branch = re.search(
+                            r'(?:id|row) == (?:\(cef \? )?' + token + r'\b[^;]{0,160}', all_src)
+                        if branch:
+                            break
+                    self.assertTrue(branch, '%s/%s: кнопка %d никто не разбирает' % (module, name, one))
+                    self.assertIn('RW_UI_Close', branch.group(0),
+                        '%s/%s: кнопка %d не закрывает панель' % (module, name, one))
+        self.assertGreaterEqual(panels, 20, 'панелей стало меньше: проверь тест (%d)' % panels)
+
+    def test_the_passengers_page_closes_too(self):
+        inter = pawn('interaction')
+        menu = block(inter, 'stock RW_CefPassengers(playerid)')
+        self.assertIn('RW_CefAction(playerid, 8, "Close", "danger");', menu)
+        click = block(inter, 'stock RW_CefPassengerClick(playerid, id)')
+        self.assertIn('if (id == 8) return RW_UI_Close(playerid);', click)
+
+
 if __name__ == '__main__':
     unittest.main()

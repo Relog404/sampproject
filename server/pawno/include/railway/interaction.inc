@@ -446,10 +446,12 @@ stock RW_CefPassengers(playerid)
     if (!count) RW_CefRow(playerid, 9, "No passengers", "", "users");
     RW_CefAction(playerid, 6, "Back to car", "");
     if (gUIHasNext[playerid]) RW_CefAction(playerid, 7, "Next page", "");
+    RW_CefAction(playerid, 8, "Close", "danger");
     return RW_CefEnd(playerid);
 }
 stock RW_CefPassengerClick(playerid, id)
 {
+    if (id == 8) return RW_UI_Close(playerid);
     if (id == 6 || id == -1) return RW_CefVehicle(playerid);
     if (id == 7) { if (gUIHasNext[playerid]) gUIPage[playerid]++; else gUIPage[playerid] = 0; return RW_CefPassengers(playerid); }
     if (id < 6 && gUITarget[playerid][id] != INVALID_PLAYER_ID) {
