@@ -388,15 +388,29 @@ class CefHandshakeTest(unittest.TestCase):
     def test_the_server_asks_the_page_before_trusting_it(self):
         self.assertIn('CEF_RegisterEvent("cef:pong", "RW_CefPong");', CEFUI_SRC)
         ping = block(CEFUI_SRC, 'public RW_CefPing(playerid)')
-        self.assertIn('CEF_EmitEvent(playerid, CEF_UI_AUTH, "cef:ping"', ping)
-        self.assertIn('CEF_EmitEvent(playerid, CEF_UI_MENU, "cef:ping"', ping)
+        self.assertIn('RW_CefPingAsk(playerid);', ping)
         self.assertIn('SetTimerEx("RW_CefPing", CEF_PING_MS, false, "i", playerid)', ping)
         self.assertIn('return RW_CefDead(playerid);', ping)
+        ask = block(CEFUI_SRC, 'stock RW_CefPingAsk(playerid)')
+        for browser in ('CEF_UI_HUD', 'CEF_UI_AUTH', 'CEF_UI_MENU', 'CEF_UI_NOTIFY', 'CEF_UI_PHONE'):
+            self.assertIn('CEF_EmitEvent(playerid, %s, "cef:ping"' % browser, ask)
 
     def test_the_handshake_starts_with_the_browser(self):
         start = block(CEFUI_SRC, 'stock RW_CefStart(playerid)')
         self.assertIn('gCefPong[playerid] = false;', start)
+        self.assertIn('RW_CefPingAsk(playerid);', start)
         self.assertIn('SetTimerEx("RW_CefPing", CEF_PING_MS, false, "i", playerid)', start)
+
+    def test_the_card_waits_for_the_handshake(self):
+        """Карточку показываем только странице, которая ответила: иначе
+        игрок минуту жмёт кнопки окна, которое их не отдаёт."""
+        openauth = UI_SRC.split('stock RW_UI_OpenAuth(playerid)')[1].split('\nstock ')[0]
+        self.assertIn('gCefPong[playerid] && RW_CefAuthOpen(', openauth)
+
+    def test_a_mute_browser_does_not_reopen_the_dialog(self):
+        """Игрок уже печатает пароль в диалоге: перерисовка его бы стёрла."""
+        dead = block(CEFUI_SRC, 'stock RW_CefDead(playerid)')
+        self.assertIn('gUIMode[playerid] != UI_AUTH', dead)
 
     def test_a_page_that_never_answers_is_no_interface(self):
         dead = block(CEFUI_SRC, 'stock RW_CefDead(playerid)')
@@ -410,6 +424,21 @@ class CefHandshakeTest(unittest.TestCase):
         self.assertIn('gCefPong[playerid] = true;', pong)
         self.assertIn('gCefDead[playerid] = false;', pong)
         self.assertIn('RW_UI_OpenAuth(playerid);', pong)
+
+    def test_a_mute_window_stops_covering_the_game(self):
+        """Окно рисуется поверх игры: пока оно висит, нативный диалог
+        оказывается под ним, и игрок не видит ни диалога, ни кнопок."""
+        dead = block(CEFUI_SRC, 'stock RW_CefDead(playerid)')
+        self.assertIn('RW_CefHideAll(playerid);', dead)
+        self.assertLess(dead.find('RW_CefHideAll('), dead.find('gCefDead[playerid] = true;'))
+        hide = block(CEFUI_SRC, 'stock RW_CefHideAll(playerid)')
+        for browser in ('CEF_UI_AUTH', 'CEF_UI_MENU', 'CEF_UI_PHONE', 'CEF_UI_NOTIFY', 'CEF_UI_HUD'):
+            self.assertIn('CEF_SetBrowserVisible(playerid, %s, false);' % browser, hide)
+        self.assertIn('SendClientMessage(playerid, COLOR_ERROR,', dead)
+
+    def test_the_log_names_the_cause_once(self):
+        self.assertIn('before 1.4.0 deliver no browser events', CEFUI_SRC)
+        self.assertIn('Update server/plugins/cef.dll', CEFUI_SRC)
 
     def test_a_mute_browser_still_releases_the_focus(self):
         """Немое окно держит курсор и клавиатуру: иначе нативный диалог

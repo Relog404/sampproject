@@ -35,8 +35,8 @@
 #define CEF_AUTH_RETRY_MS   (700)
 /*  ѕроверка св€зи: сколько раз и с каким шагом спрашиваем страницу,
     прежде чем признать, что событи€ из браузера не доход€т. */
-#define CEF_PING_MS         (4000)
-#define CEF_PING_TRIES      (5)
+#define CEF_PING_MS         (2500)
+#define CEF_PING_TRIES      (4)
 
 #define CEF_TOAST_PLAIN     (0)
 #define CEF_TOAST_OK        (1)
@@ -131,7 +131,6 @@ stock RW_CefStart(playerid)
     gCefPong[playerid] = false;
     gCefDead[playerid] = false;
     gCefPingTry[playerid] = 0;
-    SetTimerEx("RW_CefPing", CEF_PING_MS, false, "i", playerid);
     CEF_CreateBrowser(playerid, CEF_UI_MENU, CEF_UI_MENU_URL, false, true);
     CEF_SetBrowserLayer(playerid, CEF_UI_MENU, 100);
     CEF_SetBrowserVisible(playerid, CEF_UI_MENU, false);
@@ -146,6 +145,11 @@ stock RW_CefStart(playerid)
     CEF_SetBrowserLayer(playerid, CEF_UI_AUTH, 300);
     CEF_SetBrowserVisible(playerid, CEF_UI_AUTH, false);
     RW_CefKeys(playerid);
+    /* —прашиваем сразу: страница чаще всего отвечает с первого раза,
+       и карточка входа по€вл€етс€ почти без задержки. */
+    gCefPingTry[playerid] = 1;
+    RW_CefPingAsk(playerid);
+    SetTimerEx("RW_CefPing", CEF_PING_MS, false, "i", playerid);
     return 1;
 }
 /*  «ахват клавиш включаетс€ один раз и навсе: плагин шлЄт на сервер только
@@ -333,38 +337,78 @@ public RW_CefClosed(playerid, browserid)
     пропадают молча. —ервер узнаЄт это сам: шлЄт cef:ping и ждЄт ответ.
     Ќемой браузер больше не считаетс€ интерфейсом Ч меню открываютс€
     нативными диалогами, как будто плагина нет.                        */
+/*  —прашиваем все страницы: кака€ загрузилась первой, та и ответит. */
+stock RW_CefPingAsk(playerid)
+{
+    if (!RW_CefAlive(playerid)) return 0;
+    CEF_EmitEvent(playerid, CEF_UI_HUD, "cef:ping", CEF_INT(gCefPingTry[playerid]));
+    CEF_EmitEvent(playerid, CEF_UI_AUTH, "cef:ping", CEF_INT(gCefPingTry[playerid]));
+    CEF_EmitEvent(playerid, CEF_UI_MENU, "cef:ping", CEF_INT(gCefPingTry[playerid]));
+    CEF_EmitEvent(playerid, CEF_UI_NOTIFY, "cef:ping", CEF_INT(gCefPingTry[playerid]));
+    CEF_EmitEvent(playerid, CEF_UI_PHONE, "cef:ping", CEF_INT(gCefPingTry[playerid]));
+    return 1;
+}
 public RW_CefPing(playerid)
 {
     if (!IsPlayerConnected(playerid) || gCefPong[playerid]) return 0;
     if (!RW_CefAlive(playerid)) return 0;
     if (gCefPingTry[playerid] >= CEF_PING_TRIES) return RW_CefDead(playerid);
     gCefPingTry[playerid]++;
-    CEF_EmitEvent(playerid, CEF_UI_AUTH, "cef:ping", CEF_INT(gCefPingTry[playerid]));
-    CEF_EmitEvent(playerid, CEF_UI_MENU, "cef:ping", CEF_INT(gCefPingTry[playerid]));
+    RW_CefPingAsk(playerid);
     SetTimerEx("RW_CefPing", CEF_PING_MS, false, "i", playerid);
     return 1;
 }
 public RW_CefPong(playerid, browserid)
 {
     #pragma unused browserid
+    /* ѕ€ть страниц отвечают на один и тот же ping: важен первый ответ. */
+    if (gCefPong[playerid]) return 1;
     gCefPong[playerid] = true;
     /* ќтвет пришЄл, пусть и с опозданием: браузер снова в деле. */
     if (gCefDead[playerid]) {
         gCefDead[playerid] = false;
         printf("[cef] player %d: the page answered; browser menus are back", playerid);
-        if (!gLogged[playerid]) RW_UI_OpenAuth(playerid);
     }
+    /* ƒо ответа игрок видел нативный диалог: теперь показываем карточку. */
+    if (!gLogged[playerid]) RW_UI_OpenAuth(playerid);
+    return 1;
+}
+/*  ќкно браузера рисуетс€ поверх игры. ѕока оно висит Ч пусть даже
+    немым Ч нативный диалог оказываетс€ под ним, и игрок не видит ни
+    диалога, ни своих кнопок. ѕоэтому гасим все страницы сразу. */
+stock RW_CefHideAll(playerid)
+{
+    if (!RW_CefAlive(playerid)) return 0;
+    CEF_SetBrowserVisible(playerid, CEF_UI_AUTH, false);
+    CEF_SetBrowserVisible(playerid, CEF_UI_MENU, false);
+    CEF_SetBrowserVisible(playerid, CEF_UI_PHONE, false);
+    CEF_SetBrowserVisible(playerid, CEF_UI_NOTIFY, false);
+    CEF_SetBrowserVisible(playerid, CEF_UI_HUD, false);
+    CEF_FocusBrowser(playerid, CEF_UI_AUTH, false);
+    CEF_FocusBrowser(playerid, CEF_UI_MENU, false);
+    CEF_FocusBrowser(playerid, CEF_UI_PHONE, false);
+    CEF_FocusBrowser(playerid, CEF_UI_HUD, false);
     return 1;
 }
 stock RW_CefDead(playerid)
 {
     if (!IsPlayerConnected(playerid) || gCefDead[playerid]) return 0;
     printf("[cef] player %d: the page never answered; menus open as plain dialogs", playerid);
-    /* —начала закрываем браузер Ч RW_CefOn скоро перестанет срабатывать Ч
-       и только потом выключаем его совсем. */
-    if (!gLogged[playerid]) RW_CefAuthNative(playerid, CEF_UI_AUTH);
-    else { RW_CefClose(playerid); RW_UI_Close(playerid); }
+    /* —начала пр€чем страницы и показываем диалог Ч RW_CefOn скоро
+       перестанет срабатывать, Ч и только потом выключаем браузер. */
+    RW_CefHideAll(playerid);
+    /* ƒиалог уже на экране Ч карточки мы и не показывали. Ќе
+       перерисовываем его, иначе пропадЄт набранный пароль. */
+    if (!gLogged[playerid] && gUIMode[playerid] != UI_AUTH) RW_CefAuthNative(playerid, CEF_UI_AUTH);
+    else if (gLogged[playerid]) { RW_CefClose(playerid); RW_UI_Close(playerid); }
     gCefDead[playerid] = true;
+    SendClientMessage(playerid, COLOR_ERROR, "ќкно браузера не отвечает: меню и вход открываютс€ обычными диалогами.");
+    /* јдминистратору Ч один раз за запуск: иначе непон€тно, что чинить. */
+    if (!gCefDeadSeen) {
+        gCefDeadSeen = true;
+        print("[cef] SA-MP builds before 1.4.0 deliver no browser events at all.");
+        print("[cef] Update server/plugins/cef.dll and the client cef.asi to v1.4.0 (aurora-mp/omp-cef).");
+    }
     return 1;
 }
 

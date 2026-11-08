@@ -218,7 +218,9 @@ stock RW_UI_OpenAuth(playerid)
     if (!gLogged[playerid]) {
         new authNick[MAX_PLAYER_NAME];
         RW_GetNick(playerid, authNick);
-        if (RW_CefAuthOpen(playerid, !RW_DB_AccountExists(authNick), authNick, "")) {
+        /* ѕока страница ни разу не ответила, карточку не показываем:
+           иначе игрок видит окно, которое не отдаЄт нажати€. */
+        if (gCefPong[playerid] && RW_CefAuthOpen(playerid, !RW_DB_AccountExists(authNick), authNick, "")) {
             gCefAuth[playerid] = true;
             /* ƒиалог-запасник больше не нужен: иначе он висит поверх окна. */
             ShowPlayerDialog(playerid, -1, 0, "", "", "", "");

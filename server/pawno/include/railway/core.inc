@@ -362,6 +362,7 @@ new gArmourObject[MAX_PLAYERS];     /* server object used for a custom TXD    */
 new bool:gArmourFitting[MAX_PLAYERS];
 new gArmourFitSkin[MAX_PLAYERS], gArmourFitUid[MAX_PLAYERS];
 new bool:gCefEnabled;                /* the CEF plugin answered the probe    */
+new bool:gCefDeadSeen;              /* про немой браузер уже сказали в лог   */
 new bool:gCefReady[MAX_PLAYERS];
 new bool:gCefPong[MAX_PLAYERS];      /* страница ответила на cef:ping      */
 new bool:gCefDead[MAX_PLAYERS];      /* из браузера не доходит ни одного   */
