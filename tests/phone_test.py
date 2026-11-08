@@ -315,6 +315,28 @@ class PhoneBrowserTest(unittest.TestCase):
         self.assertIn('if (!RW.ready()) demo();', PAGE_JS)
         self.assertIn("RW.fake('phone:state'", PAGE_JS)
 
+    def test_the_home_bar_closes_the_handset(self):
+        """Полоска под экраном — кнопка: домой, с главного экрана — закрыть."""
+        self.assertIn("if (el.homeBtn) {", PAGE_JS)
+        self.assertIn("el.homeBtn.addEventListener('click', function () {", PAGE_JS)
+        self.assertIn("if (screen === 'home') RW.emit('phone:close');", PAGE_JS)
+        self.assertIn('else back();', PAGE_JS)
+        self.assertIn("var stage = document.querySelector('.stage');", PAGE_JS)
+        self.assertIn("if (event.target === stage) RW.emit('phone:close');", PAGE_JS)
+
+    def test_the_bar_really_looks_like_a_button(self):
+        css = (PAGES / 'css/phone.css').read_text(encoding='utf-8')
+        bar = css.split('.home-bar i {')[1].split('}')[0]
+        self.assertIn('cursor: pointer;', bar)
+        self.assertIn('.home-bar i:hover { background: rgba(255, 255, 255, 0.7); }', css)
+
+    def test_closing_the_phone_frees_the_mouse(self):
+        closed = block(CEFUI, 'public RW_CefPhoneClosed(playerid, browserid)')
+        self.assertIn('gPhoneShown[playerid] = false;', closed)
+        self.assertIn('CEF_FocusBrowser(playerid, CEF_UI_PHONE, false);', closed)
+        self.assertIn('CEF_SetBrowserVisible(playerid, CEF_UI_PHONE, false);', closed)
+        self.assertIn('CEF_RegisterEvent("phone:close", "RW_CefPhoneClosed");', CEFUI)
+
     def test_apps_cover_the_requested_list(self):
         names = re.findall(r'case \d+: format\(dest, size, "([^"]+)"\);', block(PHONE, 'stock RW_PhoneAppName(id, dest[], size = sizeof dest)'))
         self.assertEqual(names, ['Phone', 'Messages', 'Bank', 'Weather', 'Group', 'Lawyers',

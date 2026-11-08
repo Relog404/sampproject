@@ -291,6 +291,23 @@
     if (data.topup) { RW.emit('phone:topup', parseInt(data.topup, 10)); return; }
   });
 
+  /* Полоска под экраном — единственная кнопка телефона: на главном экране
+     она закрывает трубку, внутри приложения возвращает домой. Мышью закрывать
+     надо уметь, а не только Esc. */
+  if (el.homeBtn) {
+    el.homeBtn.addEventListener('click', function () {
+      if (screen === 'home') RW.emit('phone:close');
+      else back();
+    });
+  }
+  /* Клик по фону вокруг трубки — тоже закрыть, как затемнение у панели. */
+  var stage = document.querySelector('.stage');
+  if (stage) {
+    stage.addEventListener('click', function (event) {
+      if (event.target === stage) RW.emit('phone:close');
+    });
+  }
+
   document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape' || event.key === 'F4') RW.emit('phone:close');
     if (event.key === 'Backspace' && screen === 'thread') back();
