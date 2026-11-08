@@ -212,6 +212,13 @@ stock RW_InputApply(playerid, kind, arg, arg2, const text[])
         if (!RW_InputText(copy, line, sizeof line)) return RW_Error(playerid, "Пустое сообщение.");
         return RW_GroupSay(playerid, line);
     }
+    if (kind == INPUT_FAMILY_ID) {
+        new target = RW_InputNumber(text);
+        if (target < 0 || target >= MAX_PLAYERS) return RW_Error(playerid, "Нет игрока с таким номером.");
+        if (!IsPlayerConnected(target) || !gLogged[target]) return RW_Error(playerid, "Этот игрок не в сети.");
+        RW_FamilyInviteId(playerid, target);
+        return RW_FamilyOpen(playerid);
+    }
     if (kind == INPUT_NEWS_TEXT) {
         new line[INPUT_MAX_TEXT], copy[INPUT_MAX_TEXT];
         format(copy, sizeof copy, "%s", text);

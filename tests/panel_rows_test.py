@@ -184,9 +184,30 @@ class FamilyRosterTest(unittest.TestCase):
 
     def test_the_row_shows_the_roster(self):
         action = block(self.family, 'stock RW_FamilyAction(playerid, row, bool:cef)')
-        self.assertIn('if (row == 4 && gFamily[playerid] != FAMILY_NONE) return RW_FamilyList(playerid);', action)
+        self.assertIn('if (row == 4 && gFamily[playerid] != FAMILY_NONE) return RW_FamilyOpenMembers(playerid);', action)
         rows = block(self.family, 'stock RW_FamilyRows(playerid)')
-        self.assertIn('"нажмите: покажет состав"', rows)
+        self.assertIn('"нажмите: откроет состав, ранги и исключение"', rows)
+
+    def test_the_roster_is_a_screen_not_a_chat_list(self):
+        """/flist печатал состав в чат: теперь это экран со строкой на бойца."""
+        members = block(self.family, 'stock RW_FamilyMembersRows(playerid)')
+        self.assertIn('FROM family_members m LEFT JOIN accounts a ON a.id=m.player_id', members)
+        self.assertIn('gFamilyIds[playerid][index] = db_get_field_assoc_int(r, "player_id");', members)
+        self.assertIn('db_free_result(r);', members)
+        self.assertIn('"Пригласить бойца"', members)
+
+    def test_a_member_card_sets_the_rank_and_kicks(self):
+        """/frank и /fkick просят номер игрока; в карточке это две строки."""
+        card = block(self.family, 'stock RW_FamilyMemberRows(playerid)')
+        self.assertIn('"Назначить старшим"', card)
+        self.assertIn('"Выгнать из семьи"', card)
+        action = block(self.family, 'stock RW_FamilyAction(playerid, row, bool:cef)')
+        self.assertIn('if (gFamilyRank[playerid] == FAMILY_RANK_LEADER && row == 1) { RW_FamilyRankSet(playerid, account, FAMILY_RANK_SENIOR); return RW_FamilyOpen(playerid); }', action)
+        self.assertIn('RW_FamilyKickAccount(playerid, account);', action)
+        # ранг и исключение считаются по аккаунту: боец может быть не в сети
+        self.assertIn('stock RW_FamilyAccountRank(family, account)', self.family)
+        self.assertIn('UPDATE family_members SET rank=%d WHERE family=%d AND player_id=%d', self.family)
+        self.assertIn('DELETE FROM family_members WHERE family=%d AND player_id=%d', self.family)
 
     def test_the_roster_comes_from_the_database(self):
         listing = block(self.family, 'stock RW_FamilyList(playerid)')

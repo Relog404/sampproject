@@ -37,7 +37,11 @@
 #define FAMILY_PAY_PERIOD   600     /* раз в десять минут */
 #define FAMILY_ROWS         6
 #define FAMILY_MODE_MAIN    0       /* главная: семья, касса, склад     */
-#define FAMILY_MODE_STORAGE 1       /* склад: вещи и «взять»            */
+#define FAMILY_MODE_STORAGE 1
+#define FAMILY_MODE_MEMBERS 2
+#define FAMILY_MODE_MEMBER  3
+#define FAMILY_MEMBER_ROWS  5
+       /* склад: вещи и «взять»            */
 
 /* Реальные точки: районы Лос-Сантоса, за которые идут войны. */
 static const Float:gFamilyZone[FAMILY_ZONES][3] = {
@@ -58,7 +62,9 @@ new gFamilyCapture[MAX_PLAYERS];
 new gFamilyZoneStamp;
 new gFamilyTick[MAX_PLAYERS];
 new gFamilyMode[MAX_PLAYERS];        /* главная или склад                 */
-new gFamilyPage[MAX_PLAYERS];        /* страница склада                   */
+new gFamilyPage[MAX_PLAYERS];
+new gFamilyPick[MAX_PLAYERS];
+        /* страница склада                   */
 new gFamilyIds[MAX_PLAYERS][FAMILY_ROWS]; /* вещи на складе: что лежит на строке */
 
 forward RW_FamilyPulse();
@@ -85,6 +91,7 @@ stock RW_FamilyReset(playerid)
     gFamilyTick[playerid] = 0;
     gFamilyMode[playerid] = FAMILY_MODE_MAIN;
     gFamilyPage[playerid] = 0;
+    gFamilyPick[playerid] = 0;
     return 1;
 }
 stock RW_FamilyLoad(playerid)
@@ -227,17 +234,7 @@ stock RW_FamilyInvite(playerid, const params[])
     if (gFamily[playerid] == FAMILY_NONE) return RW_Error(playerid, "Вы не в семье.");
     if (gFamilyRank[playerid] < FAMILY_RANK_SENIOR) return RW_Error(playerid, "Звать в семью могут лидер и старшие.");
     if (!params[0]) return RW_Info(playerid, "Использование: /finvite <id игрока>.");
-    new target = strval(params);
-    if (target < 0 || target >= MAX_PLAYERS || !IsPlayerConnected(target) || !gLogged[target]) return RW_Error(playerid, "Нет такого игрока.");
-    if (gFamily[target] != FAMILY_NONE) return RW_Error(playerid, "Этот игрок уже в семье.");
-    gFamilyInvite[target] = gFamily[playerid];
-    new name[FAMILY_MAX_NAME], nick[MAX_PLAYER_NAME], message[180];
-    RW_FamilyName(gFamily[playerid], name, sizeof name);
-    RW_GetNick(playerid, nick);
-    format(message, sizeof message, "%s зовёт вас в семью «%s». Принять: /fjoin.", nick, name);
-    RW_Info(target, message);
-    format(message, sizeof message, "Приглашение отправлено. Ждите ответа: /fjoin.");
-    return RW_Ok(playerid, message);
+    return RW_FamilyInviteId(playerid, strval(params));
 }
 stock RW_FamilyJoin(playerid)
 {
@@ -705,6 +702,162 @@ stock RW_FamilyOpenStorage(playerid)
     return RW_FamilyOpen(playerid);
 }
 
+/*  ------------------------------- состав -------------------------------- */
+/*  Состав, ранги и исключение — строками: команды /flist, /frank и /fkick
+    остались запасным путём для тех, у кого браузера нет. Решение лидера
+    должно действовать и когда боец не в сети, поэтому всё считается по
+    аккаунту из базы, а не по номеру игрока. */
+stock RW_FamilyAccountRank(family, account)
+{
+    if (family <= 0 || account <= 0) return -1;
+    new query[200], rank = -1;
+    format(query, sizeof query, "SELECT rank FROM family_members WHERE family=%d AND player_id=%d", family, account);
+    new DBResult:r = db_query(gDB, query);
+    if (r != DBResult:0) { if (db_num_rows(r) == 1) rank = db_get_field_assoc_int(r, "rank"); db_free_result(r); }
+    return rank;
+}
+stock RW_FamilyAccountName(account, dest[], size = sizeof dest)
+{
+    dest[0] = EOS;
+    if (account <= 0) return 0;
+    new query[160];
+    format(query, sizeof query, "SELECT name FROM accounts WHERE id=%d", account);
+    new DBResult:r = db_query(gDB, query);
+    if (r == DBResult:0) return 0;
+    if (db_num_rows(r) == 1) db_get_field_assoc(r, "name", dest, size);
+    db_free_result(r);
+    return 1;
+}
+stock RW_FamilyOnline(account)
+{
+    if (account <= 0) return 0;
+    for (new i; i < MAX_PLAYERS; i++)
+        if (IsPlayerConnected(i) && gLogged[i] && gAccountId[i] == account) return 1;
+    return 0;
+}
+stock RW_FamilyInviteId(playerid, target)
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
+    if (gFamily[playerid] == FAMILY_NONE) return RW_Error(playerid, "Вы не в семье.");
+    if (gFamilyRank[playerid] < FAMILY_RANK_SENIOR) return RW_Error(playerid, "Звать в семью могут лидер и старшие.");
+    if (target < 0 || target >= MAX_PLAYERS || !IsPlayerConnected(target) || !gLogged[target]) return RW_Error(playerid, "Нет такого игрока.");
+    if (gFamily[target] != FAMILY_NONE) return RW_Error(playerid, "Этот игрок уже в семье.");
+    gFamilyInvite[target] = gFamily[playerid];
+    new name[FAMILY_MAX_NAME], nick[MAX_PLAYER_NAME], message[180];
+    RW_FamilyName(gFamily[playerid], name, sizeof name);
+    RW_GetNick(playerid, nick);
+    format(message, sizeof message, "%s зовёт вас в семью «%s». Принять: /fjoin, или строка приглашения в панели семьи.", nick, name);
+    RW_Info(target, message);
+    format(message, sizeof message, "Приглашение отправлено. Ждите ответа: /fjoin.");
+    return RW_Ok(playerid, message);
+}
+stock RW_FamilyRankSet(playerid, account, rank)
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
+    if (gFamilyRank[playerid] != FAMILY_RANK_LEADER) return RW_Error(playerid, "Ранги меняет только лидер.");
+    new family = gFamily[playerid];
+    if (family == FAMILY_NONE) return RW_Error(playerid, "Вы не в семье.");
+    if (account <= 0) return RW_Error(playerid, "Выберите бойца в списке.");
+    if (account == gAccountId[playerid]) return RW_Error(playerid, "Свой ранг меняется передачей поста: /frank <id> 2.");
+    if (rank != FAMILY_RANK_MEMBER && rank != FAMILY_RANK_SENIOR) return RW_Error(playerid, "Ранг: 0 боец, 1 старший.");
+    new was = RW_FamilyAccountRank(family, account);
+    if (was < 0) return RW_Error(playerid, "Этот игрок не в вашей семье.");
+    if (was == FAMILY_RANK_LEADER) return RW_Error(playerid, "Лидер остаётся лидером: сначала передайте пост.");
+    if (was == rank) return RW_Info(playerid, "У него уже этот ранг.");
+    new query[200];
+    format(query, sizeof query, "UPDATE family_members SET rank=%d WHERE family=%d AND player_id=%d", rank, family, account);
+    RW_DB_Exec(query);
+    for (new i; i < MAX_PLAYERS; i++) {
+        if (!IsPlayerConnected(i) || !gLogged[i] || gAccountId[i] != account) continue;
+        gFamilyRank[i] = rank;
+        RW_Info(i, rank == FAMILY_RANK_SENIOR ? ("Вас назначили старшим.") : ("Вас перевели в бойцы."));
+    }
+    return RW_Ok(playerid, rank == FAMILY_RANK_SENIOR ? ("Боец стал старшим.") : ("Боец снова в бойцах."));
+}
+stock RW_FamilyKickAccount(playerid, account)
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
+    if (gFamilyRank[playerid] < FAMILY_RANK_SENIOR) return RW_Error(playerid, "Выгонять могут лидер и старшие.");
+    new family = gFamily[playerid];
+    if (family == FAMILY_NONE) return RW_Error(playerid, "Вы не в семье.");
+    if (account <= 0) return RW_Error(playerid, "Выберите бойца в списке.");
+    if (account == gAccountId[playerid]) return RW_Error(playerid, "Себя выгоняют выходом из семьи.");
+    new was = RW_FamilyAccountRank(family, account);
+    if (was < 0) return RW_Error(playerid, "Этот игрок не в вашей семье.");
+    if (was >= gFamilyRank[playerid]) return RW_Error(playerid, "Равного или старше себя не выгоняют.");
+    new query[200];
+    format(query, sizeof query, "DELETE FROM family_members WHERE family=%d AND player_id=%d", family, account);
+    RW_DB_Exec(query);
+    for (new i; i < MAX_PLAYERS; i++) {
+        if (!IsPlayerConnected(i) || !gLogged[i] || gAccountId[i] != account) continue;
+        gFamily[i] = FAMILY_NONE;
+        gFamilyRank[i] = FAMILY_RANK_MEMBER;
+        gFamilyCash[i] = 0;
+        RW_Info(i, "Вас выгнали из семьи.");
+    }
+    return RW_Ok(playerid, "Боец исключён из семьи.");
+}
+
+/* Список состава: строка — боец, нажатие открывает его карточку. */
+stock RW_FamilyMembersRows(playerid)
+{
+    new query[280], family = gFamily[playerid], index;
+    for (new i; i < FAMILY_ROWS; i++) gFamilyIds[playerid][i] = 0;
+    format(query, sizeof query,
+        "SELECT m.player_id,m.rank,a.name FROM family_members m LEFT JOIN accounts a ON a.id=m.player_id WHERE m.family=%d ORDER BY m.rank DESC, a.name LIMIT %d OFFSET %d",
+        family, FAMILY_MEMBER_ROWS, gFamilyPage[playerid] * FAMILY_MEMBER_ROWS);
+    new DBResult:r = db_query(gDB, query);
+    if (r != DBResult:0) {
+        new rows = db_num_rows(r);
+        for (new i; i < rows && index < FAMILY_MEMBER_ROWS; i++) {
+            new name[MAX_PLAYER_NAME], label[96], arg[40], value = db_get_field_assoc_int(r, "rank");
+            db_get_field_assoc(r, "name", name, sizeof name);
+            if (value < 0) value = 0;
+            if (value > FAMILY_RANK_LEADER) value = FAMILY_RANK_LEADER;
+            gFamilyIds[playerid][index] = db_get_field_assoc_int(r, "player_id");
+            format(label, sizeof label, "%s", name[0] ? name : ("Боец"));
+            format(arg, sizeof arg, "%s%s", gFamilyRankName[value], RW_FamilyOnline(gFamilyIds[playerid][index]) ? (", в игре") : (""));
+            RW_FamilyRowOut(playerid, index, label, arg, "users");
+            index++;
+            db_next_row(r);
+        }
+        db_free_result(r);
+    }
+    if (!index) RW_FamilyRowOut(playerid, 0, "В семье никого не нашлось", "проверьте состав позже", "info");
+    /* Приглашать могут лидер и старшие: им и строка. */
+    if (gFamilyRank[playerid] >= FAMILY_RANK_SENIOR) RW_FamilyRowOut(playerid, 5, "Пригласить бойца",
+        "нажмите: номер игрока спросит поле ввода", "group");
+    return index;
+}
+
+/* Карточка бойца: ранг и исключение по строке, а не командой с номером. */
+stock RW_FamilyMemberRows(playerid)
+{
+    new account = gFamilyPick[playerid], name[MAX_PLAYER_NAME], label[96], arg[64];
+    RW_FamilyAccountName(account, name, sizeof name);
+    new value = RW_FamilyAccountRank(gFamily[playerid], account);
+    if (value < 0) value = 0;
+    if (value > FAMILY_RANK_LEADER) value = FAMILY_RANK_LEADER;
+    format(label, sizeof label, "%s", name[0] ? name : ("Боец"));
+    format(arg, sizeof arg, "%s%s", gFamilyRankName[value], RW_FamilyOnline(account) ? (", в игре") : (", не в сети"));
+    RW_FamilyRowOut(playerid, 0, label, arg, "users");
+    if (gFamilyRank[playerid] == FAMILY_RANK_LEADER) {
+        RW_FamilyRowOut(playerid, 1, "Назначить старшим", "нажмите", "group");
+        RW_FamilyRowOut(playerid, 2, "Сделать бойцом", "нажмите", "refresh");
+    } else {
+        RW_FamilyRowOut(playerid, 1, "Ранги меняет лидер", "", "info");
+    }
+    if (gFamilyRank[playerid] >= FAMILY_RANK_SENIOR) RW_FamilyRowOut(playerid, 3, "Выгнать из семьи", "нажмите", "alert");
+    else RW_FamilyRowOut(playerid, 3, "Выгоняют лидер и старшие", "", "info");
+    return 1;
+}
+stock RW_FamilyOpenMembers(playerid)
+{
+    gFamilyMode[playerid] = FAMILY_MODE_MEMBERS;
+    gFamilyPage[playerid] = 0;
+    return RW_FamilyOpen(playerid);
+}
+
 stock RW_FamilyRowOut(playerid, row, const text[], const arg[], const icon[])
 {
     #if RAILWAY_CEF
@@ -743,10 +896,10 @@ stock RW_FamilyRows(playerid)
     format(arg, sizeof arg, "открыть: нажмите, чтобы взять вещь");
     RW_FamilyRowOut(playerid, 2, row, arg, "box");
     format(row, sizeof row, "Территорий: %d", RW_FamilyZones(gFamily[playerid]));
-    format(arg, sizeof arg, "захват: /fcap, список: /fzones");
+    format(arg, sizeof arg, "нажмите: список территорий, захват — кнопкой ниже");
     RW_FamilyRowOut(playerid, 3, row, arg, "target");
     format(row, sizeof row, "Бойцов: %d", RW_FamilyMembers(gFamily[playerid]));
-    format(arg, sizeof arg, "нажмите: покажет состав");
+    format(arg, sizeof arg, "нажмите: откроет состав, ранги и исключение");
     RW_FamilyRowOut(playerid, 4, row, arg, "users");
     format(row, sizeof row, "Выйти из семьи");
     format(arg, sizeof arg, "лидер сначала передаёт пост: /frank <id> 2");
@@ -765,12 +918,25 @@ stock RW_FamilyOpen(playerid)
     }
     if (gFamily[playerid] == FAMILY_NONE) gFamilyMode[playerid] = FAMILY_MODE_MAIN;
     if (gFamilyMode[playerid] == FAMILY_MODE_STORAGE) format(subtitle, sizeof subtitle, "Склад семьи: страница %d", gFamilyPage[playerid] + 1);
+    if (gFamilyMode[playerid] == FAMILY_MODE_MEMBERS) format(subtitle, sizeof subtitle, "Состав: страница %d", gFamilyPage[playerid] + 1);
+    if (gFamilyMode[playerid] == FAMILY_MODE_MEMBER) {
+        new who[MAX_PLAYER_NAME];
+        RW_FamilyAccountName(gFamilyPick[playerid], who, sizeof who);
+        format(subtitle, sizeof subtitle, "Боец: %s", who[0] ? who : ("не выбран"));
+    }
     #if RAILWAY_CEF
         if (RW_CefOpen(playerid, CEF_MODE_FAMILY, "Семья", subtitle)) {
             if (gFamilyMode[playerid] == FAMILY_MODE_STORAGE) {
                 RW_FamilyStorageRows(playerid);
                 RW_CefAction(playerid, 6, "К семье", "");
                 RW_CefAction(playerid, 7, "Дальше", "");
+            } else if (gFamilyMode[playerid] == FAMILY_MODE_MEMBERS) {
+                RW_FamilyMembersRows(playerid);
+                RW_CefAction(playerid, 6, "К семье", "");
+                RW_CefAction(playerid, 7, "Дальше", "");
+            } else if (gFamilyMode[playerid] == FAMILY_MODE_MEMBER) {
+                RW_FamilyMemberRows(playerid);
+                RW_CefAction(playerid, 6, "К составу", "");
             } else {
                 RW_FamilyRows(playerid);
                 RW_CefAction(playerid, 6, "Захват территории", "");
@@ -781,8 +947,12 @@ stock RW_FamilyOpen(playerid)
     #endif
     RW_UI_Panel(playerid, UI_FAMILY, "Семья", subtitle);
     if (gFamilyMode[playerid] == FAMILY_MODE_STORAGE) RW_FamilyStorageRows(playerid);
+    else if (gFamilyMode[playerid] == FAMILY_MODE_MEMBERS) RW_FamilyMembersRows(playerid);
+    else if (gFamilyMode[playerid] == FAMILY_MODE_MEMBER) RW_FamilyMemberRows(playerid);
     else RW_FamilyRows(playerid);
-    RW_UI_Row(playerid, 6, (gFamilyMode[playerid] == FAMILY_MODE_STORAGE) ? ("К семье") : ("Захват территории"));
+    if (gFamilyMode[playerid] == FAMILY_MODE_STORAGE || gFamilyMode[playerid] == FAMILY_MODE_MEMBERS) RW_UI_Row(playerid, 6, "К семье");
+    else if (gFamilyMode[playerid] == FAMILY_MODE_MEMBER) RW_UI_Row(playerid, 6, "К составу");
+    else RW_UI_Row(playerid, 6, "Захват территории");
     RW_UI_Row(playerid, 7, "Закрыть");
     return 1;
 }
@@ -805,10 +975,42 @@ stock RW_FamilyAction(playerid, row, bool:cef)
         }
         return 1;
     }
+    if (gFamilyMode[playerid] == FAMILY_MODE_MEMBER) {
+        if (row == 6) { gFamilyMode[playerid] = FAMILY_MODE_MEMBERS; return RW_FamilyOpen(playerid); }
+        new account = gFamilyPick[playerid];
+        if (account <= 0) return RW_FamilyOpen(playerid);
+        if (gFamilyRank[playerid] == FAMILY_RANK_LEADER && row == 1) { RW_FamilyRankSet(playerid, account, FAMILY_RANK_SENIOR); return RW_FamilyOpen(playerid); }
+        if (gFamilyRank[playerid] == FAMILY_RANK_LEADER && row == 2) { RW_FamilyRankSet(playerid, account, FAMILY_RANK_MEMBER); return RW_FamilyOpen(playerid); }
+        if (row == 3) {
+            RW_FamilyKickAccount(playerid, account);
+            /* Выгнанного в карточке больше не показываем: возвращаемся к составу. */
+            if (RW_FamilyAccountRank(gFamily[playerid], account) < 0) gFamilyMode[playerid] = FAMILY_MODE_MEMBERS;
+            return RW_FamilyOpen(playerid);
+        }
+        return RW_FamilyOpen(playerid);
+    }
+    if (gFamilyMode[playerid] == FAMILY_MODE_MEMBERS) {
+        if (row == 6) { gFamilyMode[playerid] = FAMILY_MODE_MAIN; return RW_FamilyOpen(playerid); }
+        if (cef && row == 7) {
+            new pages = (RW_FamilyMembers(gFamily[playerid]) + FAMILY_MEMBER_ROWS - 1) / FAMILY_MEMBER_ROWS;
+            if (pages < 1) pages = 1;
+            gFamilyPage[playerid] = (gFamilyPage[playerid] + 1) % pages;
+            return RW_FamilyOpen(playerid);
+        }
+        if (row < FAMILY_MEMBER_ROWS && gFamilyIds[playerid][row] > 0) {
+            gFamilyPick[playerid] = gFamilyIds[playerid][row];
+            gFamilyMode[playerid] = FAMILY_MODE_MEMBER;
+            return RW_FamilyOpen(playerid);
+        }
+        if (row == 5 && gFamilyRank[playerid] >= FAMILY_RANK_SENIOR)
+            return RW_InputOpen(playerid, INPUT_FAMILY_ID, 0, "Пригласить в семью",
+                "Номер игрока: кто стоит рядом", "Например: 3");
+        return RW_FamilyOpen(playerid);
+    }
     if (row == 6) return RW_FamilyCapture(playerid);
     if (row == 2 && gFamily[playerid] != FAMILY_NONE) return RW_FamilyOpenStorage(playerid);
     if (row == 3 && gFamily[playerid] != FAMILY_NONE) return RW_FamilyZonesCommand(playerid);
-    if (row == 4 && gFamily[playerid] != FAMILY_NONE) return RW_FamilyList(playerid);
+    if (row == 4 && gFamily[playerid] != FAMILY_NONE) return RW_FamilyOpenMembers(playerid);
     if (row == 0 && gFamily[playerid] == FAMILY_NONE) return RW_FamilyAskName(playerid);
     if (row == 1 && gFamily[playerid] != FAMILY_NONE && gFamilyRank[playerid] == FAMILY_RANK_LEADER)
         return RW_InputOpen(playerid, INPUT_FAMILY_CASH, 0, "Касса семьи",

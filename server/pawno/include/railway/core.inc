@@ -163,7 +163,8 @@ forward RW_LawyerCallFor(playerid, target);
 #define INPUT_TRANSFER_SUM  (14)    /* перевод: сколько                 */
 #define INPUT_GROUP_ID      (15)    /* позвать в группу                 */
 #define INPUT_GROUP_TEXT    (16)    /* сказать группе                   */
-#define INPUT_NEWS_TEXT     (17)    /* объ€вление в новости             */
+#define INPUT_NEWS_TEXT     (17)
+#define INPUT_FAMILY_ID     (18)    /*  пригласить в семью: номер игрока */    /* объ€вление в новости             */
 #define INPUT_FAMILY_NAME   (10)    /* название новой семьи             */
 #define INPUT_FAMILY_CASH   (11)    /* сн€ть из кассы семьи             */
 

@@ -280,8 +280,16 @@ class PhoneByClickTest(unittest.TestCase):
     def test_the_new_kinds_have_their_numbers(self):
         for name, value in (('INPUT_LAW_PRICE', 12), ('INPUT_TRANSFER_ID', 13),
                             ('INPUT_TRANSFER_SUM', 14), ('INPUT_GROUP_ID', 15),
-                            ('INPUT_GROUP_TEXT', 16), ('INPUT_NEWS_TEXT', 17)):
+                            ('INPUT_GROUP_TEXT', 16), ('INPUT_NEWS_TEXT', 17),
+                            ('INPUT_FAMILY_ID', 18)):
             self.assertRegex(CORE, r'#define %s\s+\(%d\)' % (name, value))
+
+    def test_the_family_invite_asks_for_a_player_number(self):
+        """/finvite <id> остался командой, в панели номер спрашивает поле."""
+        apply_block = self.apply_block()
+        self.assertIn('if (kind == INPUT_FAMILY_ID) {', apply_block)
+        self.assertIn('RW_FamilyInviteId(playerid, target);', apply_block)
+        self.assertIn('return RW_FamilyOpen(playerid);', apply_block)
 
 
 class PropertyByClickTest(unittest.TestCase):

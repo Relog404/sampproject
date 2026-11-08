@@ -112,7 +112,11 @@ class FamilyRosterTest(unittest.TestCase):
     def test_seniors_and_the_leader_invite(self):
         invite = block(FAMILY, 'stock RW_FamilyInvite(playerid, const params[])')
         self.assertIn('if (gFamilyRank[playerid] < FAMILY_RANK_SENIOR) return RW_Error', invite)
-        self.assertIn('gFamilyInvite[target] = gFamily[playerid];', invite)
+        # команда только разбирает слово: приглашает общая функция, её же
+        # зовёт строка «Пригласить бойца» в панели.
+        self.assertIn('return RW_FamilyInviteId(playerid, strval(params));', invite)
+        shared = block(FAMILY, 'stock RW_FamilyInviteId(playerid, target)')
+        self.assertIn('gFamilyInvite[target] = gFamily[playerid];', shared)
 
     def test_joining_needs_an_invitation(self):
         join = block(FAMILY, 'stock RW_FamilyJoin(playerid)')
