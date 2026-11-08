@@ -299,7 +299,7 @@ stock RW_PropRows(playerid)
         RW_AppRowProp(playerid, 5, row, "", "info");
         RW_AppRowProp(playerid, 7, "One owner, one property", "", "info");
     }
-    if (gPropInfo[id][0] == PROP_KIND_BIZ) RW_AppRowProp(playerid, 6, "Rob the till: from 12:00 to 01:00", "rob", "danger");
+    if (gPropInfo[id][0] == PROP_KIND_BIZ) RW_AppRowProp(playerid, 6, "Rob the till: from 12:00 to 01:00", "rob", "alert");
     else RW_AppRowProp(playerid, 6, "One owner, one property", "", "info");
     return 1;
 }

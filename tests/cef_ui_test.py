@@ -25,6 +25,21 @@ CEFUI_SRC = pawn(CEFUI)
 UI_SRC = pawn(UI)
 
 
+def split_args(text):
+    """Аргументы через запятую: запятая внутри кавычек не делит."""
+    args, cur, quote = [], '', False
+    for c in text:
+        if c == "'":
+            quote = not quote
+        elif c == ',' and not quote:
+            args.append(cur.strip())
+            cur = ''
+            continue
+        cur += c
+    args.append(cur.strip())
+    return args
+
+
 def block(src, signature):
     start = src.index(signature)
     depth = 0
@@ -105,6 +120,44 @@ class IconTest(unittest.TestCase):
                      'band', 'clock', 'door', 'engine', 'car', 'close', 'check', 'refresh'):
             self.assertIn(name, self.page_icons(), name)
 
+    def wrappers(self):
+        """Обёртки строк: у них иконка — последний аргумент, а вызывают их
+        везде, поэтому RW_CefRow напрямую в тех местах не найти."""
+        found = {}
+        for path in sorted(INC.glob('railway/*.inc')):
+            src = pawn(path)
+            for match in re.finditer(r'stock [^\n(]*\b(\w+)\(([^)]*)\)\s*\{', src):
+                params = match.group(2)
+                if 'icon' not in params:
+                    continue
+                if 'RW_CefRow(' in block(src, match.group(0)):
+                    found[match.group(1)] = params
+        return found
+
+    def test_every_icon_the_row_wrappers_name_is_drawn(self):
+        known, used = self.page_icons(), set()
+        for path in sorted(INC.glob('railway/*.inc')):
+            src = pawn(path)
+            for name, params in self.wrappers().items():
+                arity = len(self.split_args(params))
+                for match in re.finditer(r'\b%s\(' % name, src):
+                    end = src.find(');', match.end())
+                    if end < 0:
+                        continue
+                    args = self.split_args(src[match.end():end])
+                    if len(args) == arity and args[-1].startswith('"'):
+                        used.add(args[-1].strip('"'))
+        self.assertTrue(used, 'иконок не нашлось: проверь тест')
+        self.assertEqual(used - known, set(), 'нет в ICONS: %s' % sorted(used - known))
+
+    def test_every_phone_app_icon_is_drawn(self):
+        """Иконки приложений сервер называет строкой (RW_PhoneAppIcon): имя,
+        которого нет в ICONS, страница нарисует шевроном."""
+        apps = block(pawn(INC / 'railway' / 'phone.inc'), 'stock RW_PhoneAppIcon(id, dest[], size = sizeof dest)')
+        known, used = self.page_icons(), set(re.findall(r'format\(dest, size, "(\w+)"\)', apps))
+        self.assertTrue(used, 'иконок не нашлось: проверь тест')
+        self.assertEqual(used - known, set(), 'нет в ICONS: %s' % sorted(used - known))
+
     def test_a_row_can_name_its_icon(self):
         row = block(UI_SRC, 'stock RW_UI_Row(playerid, row, const text[], const icon[] = "bag")')
         self.assertIn('RW_CefRow(playerid, row, text, "", icon);', row)
@@ -113,6 +166,55 @@ class IconTest(unittest.TestCase):
         self.assertIn('RW_UI_Row(playerid, 1, "No, stay here", "close");', inter)
         self.assertIn('RW_UI_Row(playerid, 0, "Вызвать скорую", "band");', pawn(INC / 'railway' / 'medical.inc'))
         self.assertIn('RW_UI_Row(playerid, 0, row, "wallet");', pawn(INC / 'railway' / 'phone.inc'))
+
+
+class DemoTest(unittest.TestCase):
+    """Предпросмотр без игры: адрес на каждую панель, иконки из тех, что есть.
+
+    `index.html?fake=impound` должен показать штрафстоянку, а не первую
+    попавшуюся карточку, иначе смотреть новую панель негде.
+    """
+
+    def demos(self):
+        js = (PAGES / 'js/ui.js').read_text(encoding='utf-8')
+        start = js.index('var DEMOS = {')
+        depth = 0
+        for i in range(start, len(js)):
+            if js[i] == '{':
+                depth += 1
+            elif js[i] == '}':
+                depth -= 1
+                if depth == 0:
+                    body = js[start:i + 1]
+                    break
+        else:
+            raise AssertionError('DEMOS не закрыт')
+        names = re.findall(r'^\s{4}(\w+): function', body, re.M)
+        return js, body, names
+
+    def test_every_panel_has_an_address(self):
+        js, _, names = self.demos()
+        self.assertEqual(set(names), {'car', 'impound', 'market', 'bank', 'property'}, names)
+        self.assertIn("if (which === '1' || which === 'car') demo('car');", js)
+        self.assertIn('else if (DEMOS[which]) demo(which);', js)
+
+    def test_the_demo_rows_use_icons_the_page_can_draw(self):
+        js, body, _ = self.demos()
+        known = set(re.findall(r'^\s{4}(\w+):', js, re.M))
+        used = set()
+        for match in re.finditer(r"RW\.fake\('ui:row', \[([^\]]*)\]", body):
+            args = split_args(match.group(1))
+            if len(args) >= 4:
+                used.add(args[3].strip().strip("'"))
+        self.assertTrue(used, 'в демо нет ни одной строки: проверь тест')
+        self.assertEqual(used - known, set(), 'нет в ICONS: %s' % sorted(used - known))
+
+    def test_the_impound_demo_shows_the_lot(self):
+        _, body, _ = self.demos()
+        lot = body[body.index('impound: function'):]
+        self.assertIn("'Impound lot'", lot)
+        self.assertIn("'Fee 500 for a car, the lot at 1635 / -1700'", lot)
+        self.assertIn("'car'", lot)
 
 
 class ClosedCardTest(unittest.TestCase):
@@ -323,9 +425,14 @@ class CursorFocusTest(unittest.TestCase):
         self.assertNotIn('handlers[name] = callback;', bridge)
 
     def test_the_demo_never_covers_the_live_interface(self):
+        """Демо включается только адресом ?fake=...: в игре лист остаётся пустым
+        и сервер рисует его сам, когда доедет первый пакет."""
         page = (PAGES / 'js/ui.js').read_text(encoding='utf-8')
-        self.assertIn('if (RW.demo()) demo();', page)
+        self.assertIn("var which = (window.location.search.match(/fake=([a-z0-9]+)/i) || [])[1];", page)
+        self.assertIn("if (which === '1' || which === 'car') demo('car');", page)
+        self.assertIn('else if (DEMOS[which]) demo(which);', page)
         self.assertNotIn('if (!RW.ready()) demo();', page)
+        self.assertNotIn('\n  demo();', page)
 
 
 class CapturedKeyTest(unittest.TestCase):

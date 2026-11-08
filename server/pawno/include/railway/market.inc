@@ -258,7 +258,7 @@ stock RW_MarketRows(playerid)
             RW_MarketRowOut(playerid, 7, label, "Комиссия склада не возвращается", "wallet");
         } else if (RW_MarketLotField(pick, "status") == MARKET_OPEN) {
             format(label, sizeof label, "Купить лот №%d", pick);
-            RW_MarketRowOut(playerid, 7, label, "Наличными, деньги уйдут продавцу на счёт", "ok");
+            RW_MarketRowOut(playerid, 7, label, "Наличными, деньги уйдут продавцу на счёт", "check");
         } else if (RW_MarketLotField(pick, "status") == MARKET_AUCTION) {
             format(label, sizeof label, "Поднять ставку: лот №%d", pick);
             RW_MarketRowOut(playerid, 7, label, "Минимум — на 5 процентов выше текущей", "wallet");

@@ -864,7 +864,7 @@ stock RW_AppRows(playerid)
                 RW_GetNick(gUberDriver[playerid], nick);
                 format(row, sizeof row, "Taxi: %s is on the way", nick);
                 RW_AppRow(playerid, 0, row, "", "car");
-                RW_AppRow(playerid, 1, "Cancel the order", "cancel", "danger");
+                RW_AppRow(playerid, 1, "Cancel the order", "cancel", "alert");
             } else if (gUberPass[playerid] > 0) {
                 new nick[MAX_PLAYER_NAME];
                 RW_GetNick(gUberPass[playerid], nick);

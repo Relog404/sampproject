@@ -27,6 +27,24 @@
     cash: '<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 12h.01M18 12h.01"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.6"/><path d="M12 7.6v.4"/>',
     phone: '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.6h3"/>',
+    app: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>',
+    back: '<path d="M14.5 5.5L8 12l6.5 6.5"/>',
+    next: '<path d="M9.5 5.5L16 12l-6.5 6.5"/>',
+    bank: '<path d="M3.5 9.5L12 5l8.5 4.5"/><path d="M5 10.5v7M9.5 10.5v7M14.5 10.5v7M19 10.5v7"/><path d="M3 20h18"/>',
+    sun: '<circle cx="12" cy="12" r="4.2"/><path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6"/>',
+    home: '<path d="M4 11l8-6.5 8 6.5V19a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"/>',
+    box: '<path d="M3.5 7.5L12 4l8.5 3.5v9L12 20l-8.5-3.5z"/><path d="M3.5 7.5L12 11l8.5-3.5"/><path d="M12 11v9"/>',
+    camera: '<path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.2"/>',
+    chat: '<path d="M20 12.5a7.5 7.5 0 0 1-10.9 6.7L4 20l.9-4.2A7.5 7.5 0 1 1 20 12.5z"/>',
+    gear: '<circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M4.9 7.1l2.1 1.2M17 15.7l2.1 1.2M4.9 16.9l2.1-1.2M17 8.3l2.1-1.2"/>',
+    group: '<circle cx="8" cy="9" r="3"/><circle cx="16.5" cy="10.5" r="2.2"/><path d="M2.5 19c.6-2.9 2.7-4.4 5.5-4.4s4.9 1.5 5.5 4.4"/><path d="M15 14.4c2.2 0 4 .9 4.6 3.1"/>',
+    law: '<path d="M12 4v16"/><path d="M7 20h10"/><path d="M5 7.5h14"/><path d="M5 7.5L2.5 13h5z"/><path d="M19 7.5l-2.5 5.5h5z"/>',
+    news: '<rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="M7 9h5M7 12h5M7 15h3M15 9h2.5M15 12h2.5M15 15h2.5"/>',
+    quest: '<path d="M6 4h12v16H6z"/><path d="M9 9.4a3 3 0 1 1 4.3 2.7c-.8.4-1.3 1-1.3 1.9"/><path d="M12 17v.4"/>',
+    radio: '<circle cx="12" cy="12" r="2.2"/><path d="M8.2 8.2a5.4 5.4 0 0 0 0 7.6M15.8 15.8a5.4 5.4 0 0 0 0-7.6"/><path d="M5.6 5.6a9 9 0 0 0 0 12.8M18.4 18.4a9 9 0 0 0 0-12.8"/>',
+    signal: '<path d="M5 18v-3.5M10 18v-7M15 18v-10.5M20 18V5.5"/>',
+    star: '<path d="M12 4.5l2.5 5.1 5.6.8-4 3.9.9 5.6-5-2.6-5 2.6.9-5.6-4-3.9 5.6-.8z"/>',
+    target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>',
     chevron: '<path d="M9 5l7 7-7 7"/>'
   };
 
@@ -159,18 +177,71 @@
     if (event.key === 'Escape' && open) RW.emit('ui:closed');
   });
 
-  /* Local preview: index.html?fake=1, or just opening the file in a browser. */
-  function demo() {
-    RW.fake('ui:open', ['Infernus', 'Your car']);
-    RW.fake('ui:preview', [411, 'Infernus']);
-    RW.fake('ui:row', [0, 'Doors', 'locked', 'door']);
-    RW.fake('ui:row', [1, 'Engine', 'off', 'engine', '', 'state-off']);
-    RW.fake('ui:row', [2, 'Key', 'inside', 'key', '', 'state-on']);
-    RW.fake('ui:row', [3, 'Lights', 'off', 'light']);
-    RW.fake('ui:row', [4, 'Passengers', '2', 'users']);
-    RW.fake('ui:action', [7, 'Refresh', '']);
-    RW.fake('ui:action', [8, 'Close', 'danger']);
+  /* Local preview, one address per panel, no game needed:
+       index.html?fake=1        index.html?fake=car
+       index.html?fake=impound  index.html?fake=market
+       index.html?fake=bank     index.html?fake=property
+     The rows and actions below are the ones the server really sends. */
+  var DEMOS = {
+    car: function () {
+      RW.fake('ui:open', ['Infernus', 'Your car']);
+      RW.fake('ui:preview', [411, 'Infernus']);
+      RW.fake('ui:row', [0, 'Doors', 'locked', 'door']);
+      RW.fake('ui:row', [1, 'Engine', 'off', 'engine', '', 'state-off']);
+      RW.fake('ui:row', [2, 'Key', 'inside', 'key', '', 'state-on']);
+      RW.fake('ui:row', [3, 'Lights', 'off', 'light']);
+      RW.fake('ui:row', [4, 'Passengers', '2', 'users']);
+      RW.fake('ui:action', [7, 'Refresh', '']);
+      RW.fake('ui:action', [8, 'Close', 'danger']);
+    },
+    impound: function () {
+      RW.fake('ui:open', ['Impound lot', 'Fee 500 for a car, the lot at 1635 / -1700']);
+      RW.fake('ui:row', [0, 'Infernus (token 501)', '', 'car', 'towed by Ivan, fee 500']);
+      RW.fake('ui:row', [1, 'Sultan (token 502)', '', 'car', 'towed by Pavel, fee 500']);
+      RW.fake('ui:row', [2, 'Nothing else on the lot', '', 'info', 'Cars appear here as they are towed']);
+      RW.fake('ui:action', [8, 'Close', 'danger']);
+    },
+    market: function () {
+      RW.fake('ui:open', ['\u041c\u0430\u0440\u043a\u0435\u0442\u043f\u043b\u0435\u0439\u0441',
+        '\u041b\u043e\u0442\u043e\u0432 \u043d\u0430 \u0432\u0438\u0442\u0440\u0438\u043d\u0435: 2. \u0421\u0442\u0440\u0430\u043d\u0438\u0446\u0430 1. \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u043b\u043e\u0442 \u2014 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043f\u043e\u044f\u0432\u0438\u0442\u0441\u044f \u043d\u0438\u0436\u0435']);
+      RW.fake('ui:row', [0, 'Medkit x3', '1 200', 'band', 'seller Ivan']);
+      RW.fake('ui:row', [1, 'Desert Eagle', '18 000', 'gun', 'auction, 3 bids', 'state-on']);
+      RW.fake('ui:row', [7, '\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u043b\u043e\u0442: \u043d\u0430\u0436\u043c\u0438\u0442\u0435 \u043d\u0430 \u0441\u0442\u0440\u043e\u043a\u0443 \u0432\u044b\u0448\u0435', '',
+        'info', '\u0417\u0434\u0435\u0441\u044c \u043f\u043e\u044f\u0432\u0438\u0442\u0441\u044f \u043f\u043e\u043a\u0443\u043f\u043a\u0430, \u0441\u0442\u0430\u0432\u043a\u0430 \u0438\u043b\u0438 \u0441\u043d\u044f\u0442\u0438\u0435']);
+      RW.fake('ui:action', [6, '\u0414\u0430\u043b\u044c\u0448\u0435', '']);
+      RW.fake('ui:action', [9, '\u0417\u0430\u0431\u0440\u0430\u0442\u044c \u0441\u043e \u0441\u043a\u043b\u0430\u0434\u0430', 'wallet']);
+      RW.fake('ui:action', [8, '\u0417\u0430\u043a\u0440\u044b\u0442\u044c', 'danger']);
+    },
+    bank: function () {
+      RW.fake('ui:open', ['Bank', 'Account 12 400 / cash 3 150']);
+      RW.fake('ui:row', [0, 'Put all cash on the account', 'all', 'wallet']);
+      RW.fake('ui:row', [1, 'Put another sum on the account', 'sum', 'wallet']);
+      RW.fake('ui:row', [2, 'Take cash from the account', 'sum', 'cash']);
+      RW.fake('ui:row', [3, 'Transfer: pick a player below', 'nearby', 'users']);
+      RW.fake('ui:row', [4, 'Send to Ivan (id 3)', 'transfer', 'users']);
+      RW.fake('ui:row', [5, 'Send to Pavel (id 7)', 'transfer', 'users']);
+      RW.fake('ui:action', [8, 'Close', 'danger']);
+    },
+    property: function () {
+      RW.fake('ui:open', ['Property', 'Ganton, house 14']);
+      RW.fake('ui:row', [0, 'House, 25 000', '', 'home']);
+      RW.fake('ui:row', [1, 'Buy it for 25 000 (from the account)', 'buy', 'wallet']);
+      RW.fake('ui:row', [2, 'The owner opens the doors', '', 'info']);
+      RW.fake('ui:row', [3, 'Tax per payday: 500 (the owner pays)', '', 'info']);
+      RW.fake('ui:row', [4, 'Go inside', 'enter', 'door']);
+      RW.fake('ui:row', [5, 'Till: 0 (the owner only)', '', 'cash']);
+      RW.fake('ui:row', [6, 'One owner, one property', '', 'info']);
+      RW.fake('ui:row', [7, 'One owner, one property', '', 'info']);
+      RW.fake('ui:action', [8, 'Close', 'danger']);
+    }
+  };
+
+  function demo(name) {
+    (DEMOS[name] || DEMOS.car)();
     RW.fake('ui:end', []);
   }
-  if (RW.demo()) demo();
+
+  var which = (window.location.search.match(/fake=([a-z0-9]+)/i) || [])[1];
+  if (which === '1' || which === 'car') demo('car');
+  else if (DEMOS[which]) demo(which);
 })();

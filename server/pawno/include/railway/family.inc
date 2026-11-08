@@ -747,7 +747,7 @@ stock RW_FamilyRows(playerid)
     RW_FamilyRowOut(playerid, 4, row, arg, "users");
     format(row, sizeof row, "Выйти из семьи");
     format(arg, sizeof arg, "лидер сначала передаёт пост: /frank <id> 2");
-    RW_FamilyRowOut(playerid, 5, row, arg, "danger");
+    RW_FamilyRowOut(playerid, 5, row, arg, "alert");
     return 1;
 }
 stock RW_FamilyOpen(playerid)
