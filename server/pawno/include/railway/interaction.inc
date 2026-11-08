@@ -106,6 +106,8 @@ stock RW_UI_Settings(playerid)
         format(label, sizeof label, "%s: [%s]", i == 0 ? ("Doors") : (i == 1 ? ("Engine") : ("Car menu")), key);
         RW_UI_Row(playerid, i, label, i == 0 ? ("door") : (i == 1 ? ("engine") : ("car")));
     }
+    RW_UI_Row(playerid, 3, RW_HudIsOn(playerid) ? ("HUD: on (press to hide)") : ("HUD: off (press to show)"), "eye");
+    RW_UI_Row(playerid, 4, RW_HudMouseIsOn(playerid) ? ("Mouse: on (press to take the cursor away)") : ("Mouse: off (press to take the cursor)"), "cursor");
     RW_UI_Row(playerid, 5, "Saved for this session", "check");
     RW_UI_Row(playerid, 6, "Reset: H / N / Y", "refresh");
     if (RW_CefOn(playerid)) RW_CefAction(playerid, 8, "Close", "danger");
@@ -178,7 +180,9 @@ stock RW_UI_Click(playerid, row)
             RW_UI_Row(playerid, 2, "H", "key"); RW_UI_Row(playerid, 3, "LALT", "key");
             RW_UI_Row(playerid, 7, "Back");
             if (RW_CefOn(playerid)) RW_CefAction(playerid, 8, "Close", "danger");
-        } else if (row == 6) { RW_InteractionReset(playerid); gControlMode[playerid] = 1; RW_UI_Settings(playerid); }
+        } else if (row == 3) { RW_HudToggle(playerid, true); RW_UI_Settings(playerid); }
+        else if (row == 4) { RW_HudMouseToggle(playerid); RW_UI_Settings(playerid); }
+        else if (row == 6) { RW_InteractionReset(playerid); gControlMode[playerid] = 1; RW_UI_Settings(playerid); }
     } else if (mode == UI_BIND) {
         if (row < 4) {
             static const keys[] = { KEY_YES, KEY_NO, KEY_CTRL_BACK, KEY_WALK };

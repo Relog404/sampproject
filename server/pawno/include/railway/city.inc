@@ -174,6 +174,7 @@ stock RW_GpsSet(playerid, index)
     format(gGpsLabel[playerid], 32, "%s", gGpsPlaceName[index]);
     SetPlayerMapIcon(playerid, GPS_ICON, gGpsX[playerid], gGpsY[playerid], gGpsZ[playerid], 0, 0xF5B04CFF, MAPICON_GLOBAL);
     RW_GpsPulse(playerid);
+    if (RW_CefOn(playerid)) return RW_Ok(playerid, "Метка стоит: езжайте за ней. Снять — кнопка в навигаторе.");
     return RW_Ok(playerid, "Метка стоит: езжайте за ней. Снять — /gps off.");
 }
 
@@ -230,12 +231,14 @@ stock RW_GpsOpen(playerid)
     #if RAILWAY_CEF
         if (RW_CefOpen(playerid, CEF_MODE_GPS, "Навигатор", subtitle)) {
             RW_GpsRows(playerid);
+            RW_CefAction(playerid, 9, "Снять метку", "");
             RW_CefAction(playerid, 8, "Закрыть", "danger");
             return RW_CefEnd(playerid);
         }
     #endif
     RW_UI_Panel(playerid, UI_GPS, "Навигатор", subtitle);
     RW_GpsRows(playerid);
+    RW_UI_Row(playerid, 6, "Снять метку", "close");
     RW_UI_Row(playerid, 7, "Закрыть");
     return 1;
 }
@@ -243,6 +246,13 @@ stock RW_GpsOpen(playerid)
 stock RW_GpsAction(playerid, row, bool:cef)
 {
     if (row == (cef ? 8 : 7)) return RW_UI_Close(playerid);
+    /* Снятие метки: раньше это умела только команда /gps off. */
+    if (row == (cef ? 9 : 6)) {
+        if (!gGpsOn[playerid]) return RW_Info(playerid, "Метки и нет.");
+        RW_GpsClear(playerid);
+        RW_Info(playerid, "Метка снята.");
+        return RW_GpsOpen(playerid);
+    }
     if (row < 0 || row >= GPS_MAX_PLACES) return 1;
     RW_GpsSet(playerid, row);
     return RW_UI_Close(playerid);

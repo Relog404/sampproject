@@ -100,11 +100,17 @@ stock RW_HudShow(playerid, bool:on)
     if (on) { RW_HudHints(playerid); RW_HudWallet(playerid); }
     return 1;
 }
-stock RW_HudToggle(playerid)
+/* Панель настроек видит состояние не через глобал (её включают раньше
+   файла HUD), а через эти две функции. */
+stock bool:RW_HudIsOn(playerid) { return gHudOn[playerid]; }
+stock bool:RW_HudMouseIsOn(playerid) { return gHudMouse[playerid]; }
+stock RW_HudToggle(playerid, bool:from_panel = false)
 {
     if (!RW_CefOn(playerid)) return RW_Info(playerid, "The head-up display needs the browser interface: the plugin is off for you.");
     RW_HudShow(playerid, !gHudOn[playerid]);
-    return RW_Info(playerid, gHudOn[playerid] ? "HUD is on." : "HUD is off. /hud brings it back.");
+    if (gHudOn[playerid]) return RW_Info(playerid, "HUD is on.");
+    if (from_panel) return RW_Info(playerid, "HUD is off: the same row in Settings brings it back.");
+    return RW_Info(playerid, "HUD is off. /hud brings it back.");
 }
 
 /* Раз в полсекунды: подсказки по ситуации. реже — подсказки и карточка бонуса. */

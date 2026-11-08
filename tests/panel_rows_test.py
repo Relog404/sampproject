@@ -246,10 +246,31 @@ class InlinePanelTest(unittest.TestCase):
                     'панель %s: строка %d на нажатие не отвечает' % (name, row))
 
     def test_the_settings_are_known_at_all(self):
-        self.assertEqual(self.emitted('settings'), [0, 1, 2, 5, 6])
-        self.assertEqual(sorted(self.answers('settings')), [0, 1, 2, 6])
+        self.assertEqual(self.emitted('settings'), [0, 1, 2, 3, 4, 5, 6])
+        self.assertEqual(sorted(self.answers('settings')), [0, 1, 2, 3, 4, 6])
         self.assertEqual(self.emitted('downed'), [0, 1])
         self.assertEqual(sorted(self.answers('downed')), [0, 1])
+
+    def test_the_hud_and_the_cursor_are_switched_by_a_row(self):
+        """/hud и /mouse — про стрелку на экране: в панели это две строки."""
+        panel = block(pawn('interaction'), 'stock RW_UI_Settings(playerid)')
+        self.assertIn('RW_UI_Row(playerid, 3, RW_HudIsOn(playerid) ? ("HUD: on (press to hide)") : ("HUD: off (press to show)"), "eye");', panel)
+        self.assertIn('RW_UI_Row(playerid, 4, RW_HudMouseIsOn(playerid)', panel)
+        branch = block(pawn('interaction'), 'if (mode == UI_SETTINGS) {')
+        self.assertIn('else if (row == 3) { RW_HudToggle(playerid, true); RW_UI_Settings(playerid); }', branch)
+        self.assertIn('else if (row == 4) { RW_HudMouseToggle(playerid); RW_UI_Settings(playerid); }', branch)
+        self.assertIn('stock bool:RW_HudIsOn(playerid) { return gHudOn[playerid]; }', pawn('hud'))
+        self.assertIn('stock bool:RW_HudMouseIsOn(playerid) { return gHudMouse[playerid]; }', pawn('hud'))
+
+    def test_the_gps_mark_is_taken_off_by_a_button(self):
+        """/gps off остался командами, в панели метку снимает кнопка."""
+        city = pawn('city')
+        self.assertIn('RW_CefAction(playerid, 9, "Снять метку", "");', city)
+        self.assertIn('RW_UI_Row(playerid, 6, "Снять метку", "close");', city)
+        action = block(city, 'stock RW_GpsAction(playerid, row, bool:cef)')
+        self.assertIn('if (row == (cef ? 9 : 6)) {', action)
+        self.assertIn('RW_GpsClear(playerid);', action)
+        self.assertIn('return RW_GpsOpen(playerid);', action)
 
     def test_the_key_choice_swaps_two_keys(self):
         branch = block(pawn('interaction'), 'if (mode == UI_BIND) {')
@@ -383,7 +404,13 @@ class HintTest(unittest.TestCase):
         ('inventory', 'SIM card, tariff %s (item %d): Alt + U, then click the SIM.',
          'SIM card, tariff %s (item %d). /sim inserts it.'),
         ('inventory', 'Medkit granted (item %d): Alt + U, then click it to heal.',
-         'Medkit granted (item %d). /heal uses it.'),        ('cabin', 'Aim at a plane and press Y: the card there has a \\"board\\" row. Max 20 people.',
+         'Medkit granted (item %d). /heal uses it.'),
+        ('hud', 'HUD is off: the same row in Settings brings it back.',
+         'HUD is off. /hud brings it back.'),
+        ('city', 'Метка стоит: езжайте за ней. Снять — кнопка в навигаторе.',
+         'Метка стоит: езжайте за ней. Снять — /gps off.'),
+        ('vehicles', 'Your car-menu key opens the card: doors, key and engine are rows in it.',
+         '/door{FFFFFF} - unlock; /key - insert key'),        ('cabin', 'Aim at a plane and press Y: the card there has a \\"board\\" row. Max 20 people.',
          'Aim at a plane, or use /board <vehicle id>. Max 20 people.'),
     ]
 
