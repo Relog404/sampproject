@@ -363,6 +363,10 @@ new bool:gArmourFitting[MAX_PLAYERS];
 new gArmourFitSkin[MAX_PLAYERS], gArmourFitUid[MAX_PLAYERS];
 new bool:gCefEnabled;                /* the CEF plugin answered the probe    */
 new bool:gCefReady[MAX_PLAYERS];
+new bool:gCefPong[MAX_PLAYERS];      /* страница ответила на cef:ping      */
+new bool:gCefDead[MAX_PLAYERS];      /* из браузера не доходит ни одного   */
+                                     /* события: меню — нативные диалоги   */
+new gCefPingTry[MAX_PLAYERS];
 new bool:gCefAuth[MAX_PLAYERS];        /* окно входа открыто в браузере        */
 new bool:gHudMouse[MAX_PLAYERS];        /* мышь включена командой /mouse     */
 new gCefMode[MAX_PLAYERS];           /* which CEF screen is open             */

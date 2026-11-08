@@ -63,6 +63,13 @@
     return !!(window.cef && typeof window.cef.emit === 'function');
   };
 
+  /* The server asks before it trusts the browser: some plugin builds never
+     deliver page events back to Pawn, and clicks would vanish silently.
+     Every page answers the ping, so the first one to load is enough. */
+  RW.on('cef:ping', function () {
+    RW.emit('cef:pong');
+  });
+
   /* Local preview support: ?fake=1 renders a demo card in a browser.
      In the game this never runs, so a first packet that arrives late cannot
      be overwritten by the demo. */

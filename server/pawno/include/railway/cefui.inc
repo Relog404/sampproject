@@ -33,6 +33,10 @@
 /* Страница входа поднимается не мгновенно: столько ждём, прежде чем
    повторить и данные карточки, и фокус браузера. */
 #define CEF_AUTH_RETRY_MS   (700)
+/*  Проверка связи: сколько раз и с каким шагом спрашиваем страницу,
+    прежде чем признать, что события из браузера не доходят. */
+#define CEF_PING_MS         (4000)
+#define CEF_PING_TRIES      (5)
 
 #define CEF_TOAST_PLAIN     (0)
 #define CEF_TOAST_OK        (1)
@@ -62,6 +66,8 @@ forward RW_CefClosed(playerid, browserid);
 forward RW_CefAuthNative(playerid, browserid);
 forward RW_CefAuthRetry(playerid);
 forward RW_AuthCardWatch(playerid);
+forward RW_CefPing(playerid);
+forward RW_CefPong(playerid, browserid);
 /*  phone: the page calls the server, the server answers with phone:* events */
 forward RW_CefPhoneApp(playerid, browserid, app);
 forward RW_CefPhoneDial(playerid, browserid, number);
@@ -104,16 +110,28 @@ stock RW_CefInit()
     CEF_RegisterEvent("auth:submit", "RW_CefAuthSubmit", Argument_String, Argument_String);
     /* Кнопка «Обычные диалоги» на карточке: вход без браузера. */
     CEF_RegisterEvent("auth:native", "RW_CefAuthNative");
+    /* Ответ страницы на cef:ping: без него браузер считается немым. */
+    CEF_RegisterEvent("cef:pong", "RW_CefPong");
     SetTimer("RW_CefPulse", 1000, true);
     print("[cef] browser interface ready (resource railway).");
     return 1;
 }
-stock bool:RW_CefOn(playerid) { return gCefEnabled && gCefReady[playerid]; }
+/*  Браузер есть, и с ним можно говорить: пакеты к странице уходят и тогда,
+    когда события обратно не доходят (см. RW_CefDead).                */
+stock bool:RW_CefAlive(playerid) { return gCefEnabled && gCefReady[playerid]; }
+/*  Им можно пользоваться: браузер есть и страница отвечает. */
+stock bool:RW_CefOn(playerid) { return RW_CefAlive(playerid) && !gCefDead[playerid]; }
 
 stock RW_CefStart(playerid)
 {
     if (gCefReady[playerid]) return 1;
     gCefReady[playerid] = true;
+    /* Спрашиваем страницу: плагин есть у всех, а вот события от неё
+       приходят не у каждого — старые сборки SA-MP их не доставляют. */
+    gCefPong[playerid] = false;
+    gCefDead[playerid] = false;
+    gCefPingTry[playerid] = 0;
+    SetTimerEx("RW_CefPing", CEF_PING_MS, false, "i", playerid);
     CEF_CreateBrowser(playerid, CEF_UI_MENU, CEF_UI_MENU_URL, false, true);
     CEF_SetBrowserLayer(playerid, CEF_UI_MENU, 100);
     CEF_SetBrowserVisible(playerid, CEF_UI_MENU, false);
@@ -153,6 +171,7 @@ stock RW_CefReset(playerid)
         CEF_DestroyBrowser(playerid, CEF_UI_AUTH);
     }
     gCefReady[playerid] = false; gCefMode[playerid] = CEF_MODE_NONE;
+    gCefPong[playerid] = false; gCefDead[playerid] = false; gCefPingTry[playerid] = 0;
     return 1;
 }
 public RW_CefPulse()
@@ -267,7 +286,9 @@ stock RW_CefEnd(playerid)
    на экране и мешает играть, поэтому фокус снимается всегда и со всех окон. */
 stock RW_CefFocusRelease(playerid)
 {
-    if (!RW_CefOn(playerid)) return 0;
+    /* Немой браузер всё равно держит курсор и клавиатуру: фокус снимаем
+       и у него, иначе нативный диалог не получит ни одного нажатия. */
+    if (!RW_CefAlive(playerid)) return 0;
     CEF_FocusBrowser(playerid, CEF_UI_MENU, false);
     /* Телефон и HUD — отдельные окна со своим фокусом: гасим их, только
        когда они и правда закрыты или мышь выключена сама. */
@@ -303,6 +324,47 @@ public RW_CefClosed(playerid, browserid)
     RW_CefClose(playerid);
     RW_CefFocusRelease(playerid);
     gControlMode[playerid] = 0;
+    return 1;
+}
+
+/*  --------------------------- проверка связи -------------------------- */
+/*  Сборки плагина до 1.4.0 не отдавали SA-MP серверу события из браузера:
+    пакеты к странице уходят, обратно не приходит ничего, и все клики
+    пропадают молча. Сервер узнаёт это сам: шлёт cef:ping и ждёт ответ.
+    Немой браузер больше не считается интерфейсом — меню открываются
+    нативными диалогами, как будто плагина нет.                        */
+public RW_CefPing(playerid)
+{
+    if (!IsPlayerConnected(playerid) || gCefPong[playerid]) return 0;
+    if (!RW_CefAlive(playerid)) return 0;
+    if (gCefPingTry[playerid] >= CEF_PING_TRIES) return RW_CefDead(playerid);
+    gCefPingTry[playerid]++;
+    CEF_EmitEvent(playerid, CEF_UI_AUTH, "cef:ping", CEF_INT(gCefPingTry[playerid]));
+    CEF_EmitEvent(playerid, CEF_UI_MENU, "cef:ping", CEF_INT(gCefPingTry[playerid]));
+    SetTimerEx("RW_CefPing", CEF_PING_MS, false, "i", playerid);
+    return 1;
+}
+public RW_CefPong(playerid, browserid)
+{
+    #pragma unused browserid
+    gCefPong[playerid] = true;
+    /* Ответ пришёл, пусть и с опозданием: браузер снова в деле. */
+    if (gCefDead[playerid]) {
+        gCefDead[playerid] = false;
+        printf("[cef] player %d: the page answered; browser menus are back", playerid);
+        if (!gLogged[playerid]) RW_UI_OpenAuth(playerid);
+    }
+    return 1;
+}
+stock RW_CefDead(playerid)
+{
+    if (!IsPlayerConnected(playerid) || gCefDead[playerid]) return 0;
+    printf("[cef] player %d: the page never answered; menus open as plain dialogs", playerid);
+    /* Сначала закрываем браузер — RW_CefOn скоро перестанет срабатывать —
+       и только потом выключаем его совсем. */
+    if (!gLogged[playerid]) RW_CefAuthNative(playerid, CEF_UI_AUTH);
+    else { RW_CefClose(playerid); RW_UI_Close(playerid); }
+    gCefDead[playerid] = true;
     return 1;
 }
 

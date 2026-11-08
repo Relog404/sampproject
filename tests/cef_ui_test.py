@@ -316,7 +316,8 @@ class PluginWiringTest(unittest.TestCase):
         init = CEFUI_SRC.split('stock RW_CefInit()')[1].split('\nstock ')[0]
         self.assertIn('gCefEnabled = RW_CefProbe();', init)
         self.assertIn('return 0;', init)
-        self.assertIn('stock bool:RW_CefOn(playerid) { return gCefEnabled && gCefReady[playerid]; }', CEFUI_SRC)
+        self.assertIn('stock bool:RW_CefAlive(playerid) { return gCefEnabled && gCefReady[playerid]; }', CEFUI_SRC)
+        self.assertIn('stock bool:RW_CefOn(playerid) { return RW_CefAlive(playerid) && !gCefDead[playerid]; }', CEFUI_SRC)
 
     def test_browsers_and_layers(self):
         start = CEFUI_SRC.split('stock RW_CefStart(playerid)')[1].split('\nstock ')[0]
@@ -378,6 +379,48 @@ class ProtocolTest(unittest.TestCase):
         bridge = (PAGES / 'js/bridge.js').read_text(encoding='utf-8')
         self.assertIn('window.cef.on', bridge)
         self.assertIn('window.cef.emit', bridge)
+
+
+class CefHandshakeTest(unittest.TestCase):
+    """Плагинов, которые не отдают события обратно, хватает: сервер
+    проверяет страницу сам, а не надеется, что клики когда-нибудь дойдут."""
+
+    def test_the_server_asks_the_page_before_trusting_it(self):
+        self.assertIn('CEF_RegisterEvent("cef:pong", "RW_CefPong");', CEFUI_SRC)
+        ping = block(CEFUI_SRC, 'public RW_CefPing(playerid)')
+        self.assertIn('CEF_EmitEvent(playerid, CEF_UI_AUTH, "cef:ping"', ping)
+        self.assertIn('CEF_EmitEvent(playerid, CEF_UI_MENU, "cef:ping"', ping)
+        self.assertIn('SetTimerEx("RW_CefPing", CEF_PING_MS, false, "i", playerid)', ping)
+        self.assertIn('return RW_CefDead(playerid);', ping)
+
+    def test_the_handshake_starts_with_the_browser(self):
+        start = block(CEFUI_SRC, 'stock RW_CefStart(playerid)')
+        self.assertIn('gCefPong[playerid] = false;', start)
+        self.assertIn('SetTimerEx("RW_CefPing", CEF_PING_MS, false, "i", playerid)', start)
+
+    def test_a_page_that_never_answers_is_no_interface(self):
+        dead = block(CEFUI_SRC, 'stock RW_CefDead(playerid)')
+        self.assertIn('the page never answered', dead)
+        self.assertIn('RW_CefAuthNative(playerid, CEF_UI_AUTH);', dead)
+        # сначала закрываем браузер, потом выключаем: иначе RW_CefOn уже не сработает
+        self.assertLess(dead.find('RW_CefAuthNative('), dead.find('gCefDead[playerid] = true;'))
+
+    def test_a_late_answer_turns_the_browser_back_on(self):
+        pong = block(CEFUI_SRC, 'public RW_CefPong(playerid, browserid)')
+        self.assertIn('gCefPong[playerid] = true;', pong)
+        self.assertIn('gCefDead[playerid] = false;', pong)
+        self.assertIn('RW_UI_OpenAuth(playerid);', pong)
+
+    def test_a_mute_browser_still_releases_the_focus(self):
+        """Немое окно держит курсор и клавиатуру: иначе нативный диалог
+        не получит ни одного нажатия."""
+        release = block(CEFUI_SRC, 'stock RW_CefFocusRelease(playerid)')
+        self.assertIn('if (!RW_CefAlive(playerid)) return 0;', release)
+
+    def test_every_page_answers_the_ping(self):
+        bridge = (PAGES / 'js/bridge.js').read_text(encoding='utf-8')
+        self.assertIn("RW.on('cef:ping'", bridge)
+        self.assertIn("RW.emit('cef:pong')", bridge)
 
 
 class CursorFocusTest(unittest.TestCase):
