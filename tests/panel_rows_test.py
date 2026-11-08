@@ -378,7 +378,12 @@ class HintTest(unittest.TestCase):
          'ключи лежат на складе. Взять: /ftake <номер>.'),
         ('property', 'You are already inside: \\"Go outside\\" in the panel takes you out.',
          'You are already inside. /exit gets you out.'),
-        ('cabin', 'Aim at a plane and press Y: the card there has a \\"board\\" row. Max 20 people.',
+        ('inventory', 'Item received: Alt + U opens your pockets.',
+         'Item received. /inv'),
+        ('inventory', 'SIM card, tariff %s (item %d): Alt + U, then click the SIM.',
+         'SIM card, tariff %s (item %d). /sim inserts it.'),
+        ('inventory', 'Medkit granted (item %d): Alt + U, then click it to heal.',
+         'Medkit granted (item %d). /heal uses it.'),        ('cabin', 'Aim at a plane and press Y: the card there has a \\"board\\" row. Max 20 people.',
          'Aim at a plane, or use /board <vehicle id>. Max 20 people.'),
     ]
 

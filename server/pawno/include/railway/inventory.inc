@@ -898,7 +898,8 @@ stock RW_InvGiveCommand(playerid, const params[])
     else for (new given; given < amount; given++) { uid = RW_InvGrant(target, type, data, 1); if (!uid) break; }
     if (!uid) return RW_InvExplainGrant(playerid, target, type, data);
     printf("[inventory] admin account=%d gives type=%d data=%d uid=%d to account=%d", gAccountId[playerid], type, data, uid, gAccountId[target]);
-    RW_Ok(target, "Item received. /inv");
+    if (RW_CefOn(target)) RW_Ok(target, "Item received: Alt + U opens your pockets.");
+    else RW_Ok(target, "Item received. /inv");
     new message[144];
     if (type == ITEM_CAR_KEY) format(message, sizeof message, "Key granted (item %d, car token %d). It starts that car.", uid, data);
     else if (type == ITEM_WEAPON) { new wname[32]; RW_WeaponName(data, wname, sizeof wname); format(message, sizeof message, "%s granted (item %d). Equip it from the inventory.", wname, uid); }
@@ -907,10 +908,15 @@ stock RW_InvGiveCommand(playerid, const params[])
     else if (type == ITEM_SYRINGE) format(message, sizeof message, "%d adrenaline syringe(s) granted.", amount);
     else if (type == ITEM_ARMOUR) { new aname[32]; RW_ArmourName(data, aname, sizeof aname); format(message, sizeof message, "%s granted (item %d, %d points).", aname, uid, RW_ArmourHpOf(data)); }
     else if (type == ITEM_PHONE) { new pname[32]; RW_PhoneName(data, pname, sizeof pname); format(message, sizeof message, "%s granted (item %d).", pname, uid); }
-    else if (type == ITEM_SIM) { new tname[32]; RW_PhoneTariffName(data, tname, sizeof tname); format(message, sizeof message, "SIM card, tariff %s (item %d). /sim inserts it.", tname, uid); }
+    else if (type == ITEM_SIM) { new tname[32]; RW_PhoneTariffName(data, tname, sizeof tname);
+        if (RW_CefOn(target)) format(message, sizeof message, "SIM card, tariff %s (item %d): Alt + U, then click the SIM.", tname, uid);
+        else format(message, sizeof message, "SIM card, tariff %s (item %d). /sim inserts it.", tname, uid); }
     else if (type == ITEM_CUFFS || type == ITEM_TASER || type == ITEM_BATON || type == ITEM_BADGE) { new iname[32]; RW_PoliceItemName(type, data, iname, sizeof iname); format(message, sizeof message, "%s granted (item %d).", iname, uid); }
     else if (type == ITEM_DEFIB) format(message, sizeof message, "Defibrillator granted: %d charges (item %d).", amount, uid);
-    else if (type == ITEM_MEDKIT) format(message, sizeof message, "Medkit granted (item %d). /heal uses it.", uid);
+    else if (type == ITEM_MEDKIT) {
+        if (RW_CefOn(target)) format(message, sizeof message, "Medkit granted (item %d): Alt + U, then click it to heal.", uid);
+        else format(message, sizeof message, "Medkit granted (item %d). /heal uses it.", uid);
+    }
     else format(message, sizeof message, "Backpack granted (item %d). Equip it in the BACK slot to unlock 30 bag slots.", uid);
     return RW_Ok(playerid, message);
 }
