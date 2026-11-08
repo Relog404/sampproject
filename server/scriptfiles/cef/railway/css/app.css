@@ -389,6 +389,7 @@ body.fake { background: #16191f radial-gradient(circle at 22% 96%, #2a2f38 0, #1
            font: 600 14px/1 sans-serif; color: #16191F;
            background: linear-gradient(180deg, #F7C77E, #E9A44A); }
 .auth-go:hover { filter: brightness(1.06); }
+.auth-go:disabled { cursor: progress; filter: saturate(.55) brightness(.9); }
 .auth-help { display: flex; justify-content: space-between; align-items: center; gap: 8px;
              margin-top: 12px; font-size: 12px; color: rgba(242,244,248,.6); }
 .auth-link { border: 0; background: none; cursor: pointer; padding: 0; font: inherit;

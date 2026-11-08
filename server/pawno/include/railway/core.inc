@@ -351,6 +351,7 @@ new gLoginAttempts[MAX_PLAYERS];
 new gLastSpcarTick[MAX_PLAYERS];
 
 new gAuthTimer[MAX_PLAYERS];           /* таймер камеры на экране входа      */
+new gAuthCardAt[MAX_PLAYERS];          /* карточка входа висит, клика не было */
 #define SKIN_MAX (16)
 new gSkinTxd[SKIN_MAX][32];         /* client-side TXD names (arm/*.txd)      */
 new gSkinTexture[SKIN_MAX][32];     /* texture names inside those TXDs        */

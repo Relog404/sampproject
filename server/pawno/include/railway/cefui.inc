@@ -30,6 +30,9 @@
 #define CEF_UI_PHONE_URL    "http://cef/railway/phone.html"
 #define CEF_UI_HUD_URL      "http://cef/railway/hud.html"
 #define CEF_UI_AUTH_URL     "http://cef/railway/auth.html"
+/* Страница входа поднимается не мгновенно: столько ждём, прежде чем
+   повторить и данные карточки, и фокус браузера. */
+#define CEF_AUTH_RETRY_MS   (700)
 
 #define CEF_TOAST_PLAIN     (0)
 #define CEF_TOAST_OK        (1)
@@ -56,6 +59,9 @@
 forward RW_CefPulse();
 forward RW_CefClick(playerid, browserid, id);
 forward RW_CefClosed(playerid, browserid);
+forward RW_CefAuthNative(playerid, browserid);
+forward RW_CefAuthRetry(playerid);
+forward RW_AuthCardWatch(playerid);
 /*  phone: the page calls the server, the server answers with phone:* events */
 forward RW_CefPhoneApp(playerid, browserid, app);
 forward RW_CefPhoneDial(playerid, browserid, number);
@@ -96,6 +102,8 @@ stock RW_CefInit()
     CEF_RegisterEvent("hud:gps", "RW_GpsEvent", Argument_String);
     CEF_RegisterEvent("ui:answer", "RW_CefInputSubmit", Argument_String);
     CEF_RegisterEvent("auth:submit", "RW_CefAuthSubmit", Argument_String, Argument_String);
+    /* Кнопка «Обычные диалоги» на карточке: вход без браузера. */
+    CEF_RegisterEvent("auth:native", "RW_CefAuthNative");
     SetTimer("RW_CefPulse", 1000, true);
     print("[cef] browser interface ready (resource railway).");
     return 1;
@@ -181,7 +189,14 @@ public OnCefInitialize(playerid, bool:success, E_CEF_INIT_REASON:reason, const m
 }
 public OnCefBrowserCreated(playerid, browserid, bool:success, E_CEF_CREATE_STATUS:code, const reason[])
 {
-    if (!success) printf("[cef] player %d: browser %d failed (%d): %s", playerid, browserid, _:code, reason);
+    if (!success) {
+        printf("[cef] player %d: browser %d failed (%d): %s", playerid, browserid, _:code, reason);
+        return 1;
+    }
+    /* Браузер создаётся не сразу, а карточка входа уходит ещё до того,
+       как страница готова её принять: повторяем, когда он точно есть.
+       Без этого первый клик после открытия пропадал. */
+    if (browserid == CEF_UI_AUTH && !gLogged[playerid]) SetTimerEx("RW_CefAuthRetry", CEF_AUTH_RETRY_MS, false, "i", playerid);
     return 1;
 }
 
@@ -564,6 +579,15 @@ stock RW_CefHudMouse(playerid, on)
 stock RW_CefAuthOpen(playerid, bool:registerMode, const nick[], const message[])
 {
     if (!RW_CefOn(playerid)) return 0;
+    /* Карточка на экране — значит фокус её и сторожевой таймер
+       его не снимет: иначе курсор уходит, и клик пропадает. */
+    gCefAuth[playerid] = true;
+    /* Сторож заводится один раз на карточку: пока ни одного клика не
+       пришло, у игрока может не быть и пути назад. */
+    if (gAuthCardAt[playerid] == 0) {
+        gAuthCardAt[playerid] = GetTickCount();
+        SetTimerEx("RW_AuthCardWatch", AUTH_CARD_WATCH_MS, false, "i", playerid);
+    }
     CEF_SetBrowserVisible(playerid, CEF_UI_AUTH, true);
     CEF_FocusBrowser(playerid, CEF_UI_AUTH, true);
     CEF_EmitEvent(playerid, CEF_UI_AUTH, "auth:open", CEF_INT(registerMode ? 1 : 0), CEF_STR(nick), CEF_STR(message));
@@ -583,11 +607,48 @@ public RW_CefAuthSubmit(playerid, browserid, const password[], const confirm[])
     if (!IsPlayerConnected(playerid) || gLogged[playerid]) return 0;
     new nick[MAX_PLAYER_NAME];
     RW_GetNick(playerid, nick);
+    /* Видно в логе сервера: дошёл ли клик из браузера вообще. */
+    printf("[auth] submit from %d (%s): %d chars", playerid, nick, strlen(password));
+    RW_AuthCardAlive(playerid);
     return RW_AuthSubmit(playerid, !RW_DB_AccountExists(nick), password, confirm);
 }
 
-/* Страница успевает прогрузиться: фокус повторяем через долю секунды,
-   иначе первый клик после открытия пропадает. */
+/*  Страница успевает прогрузиться: фокус и данные повторяем, когда браузер
+    уже создан. Иначе первый клик после открытия пропадает.                */
+public RW_CefAuthRetry(playerid)
+{
+    if (!IsPlayerConnected(playerid) || gLogged[playerid] || !gCefAuth[playerid]) return 0;
+    if (!RW_CefOn(playerid)) return 0;
+    new nick[MAX_PLAYER_NAME];
+    RW_GetNick(playerid, nick);
+    return RW_CefAuthOpen(playerid, !RW_DB_AccountExists(nick), nick, "");
+}
+/*  Кнопка «Обычные диалоги»: если клики из браузера не доходят, пароль
+    спрашивает нативный диалог. Карточка закрывается, чтобы не держать
+    клавиатуру и курсор.                                                   */
+public RW_CefAuthNative(playerid, browserid)
+{
+    #pragma unused browserid
+    if (!IsPlayerConnected(playerid) || gLogged[playerid]) return 0;
+    gAuthBusy[playerid] = false;
+    gAuthCardAt[playerid] = 0;
+    if (RW_CefOn(playerid)) RW_CefAuthClose(playerid);
+    gCefAuth[playerid] = false;
+    gUIMode[playerid] = UI_AUTH;
+    printf("[auth] player %d asked for the plain dialogs", playerid);
+    return RW_ShowLoginDialog(playerid);
+}
+/*  Карточка без единого клика за минуту — это не медленный игрок, а окно,
+    которое не отдаёт нажатия. Снимаем его сами и показываем диалог: он
+    работает и тогда, когда из браузера не приходит ничего.            */
+public RW_AuthCardWatch(playerid)
+{
+    if (!IsPlayerConnected(playerid) || gLogged[playerid]) return 0;
+    if (gAuthCardAt[playerid] == 0 || !gCefAuth[playerid]) return 0;
+    gAuthCardAt[playerid] = 0;
+    printf("[auth] no click from %d in %d ms; showing the plain dialogs", playerid, AUTH_CARD_WATCH_MS);
+    return RW_CefAuthNative(playerid, CEF_UI_AUTH);
+}
 
 /*  ------------------------------ phone events ----------------------------- */
 /* Приложение адвокатов: список лицензированных адвокатов, доступно из КПЗ. */

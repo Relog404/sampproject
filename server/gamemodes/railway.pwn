@@ -213,6 +213,7 @@ public OnPlayerConnect(playerid)
     gAuthBusy[playerid] = false;
     gLoginAttempts[playerid] = 0;
     gLastAuthTick[playerid] = 0;
+    gAuthCardAt[playerid] = 0;
     gLastSpcarTick[playerid] = 0;
     gEnforceLastTick[playerid] = 0;
     gPlayerVehSlot[playerid] = -1;

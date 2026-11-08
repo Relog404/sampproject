@@ -231,7 +231,17 @@ stock bool:RW_AccountOnline(accountid, exceptid)
 }
 
 /* ------------------------------------------------------------------ вход/регистрация */
+/*  Столько карточка входа ждёт первого клика. Если за это время из браузера
+ *  не пришло ничего, игрок в тупике: клавиатура и мышь принадлежат окну,
+ *  чат недоступен. Сторож снимает карточку сам и показывает диалог. */
+#define AUTH_CARD_WATCH_MS      (60000)
 
+/*  Клик из карточки дошёл: сторож больше не нужен. */
+stock RW_AuthCardAlive(playerid)
+{
+    gAuthCardAt[playerid] = 0;
+    return 1;
+}
 stock RW_Respond(playerid, bool:ok, const code[])
 {
     gAuthBusy[playerid] = false;
@@ -262,6 +272,10 @@ stock RW_AuthSubmit(playerid, bool:registerMode, const password[], const confirm
     }
 
     if (gAuthBusy[playerid]) {
+        /* Молчаливый выход выглядит сломанной кнопкой: игрок жмёт,
+           а сервер ничего не показывает. Отвечаем и на этот случай. */
+        RW_Respond(playerid, false, "err:busy");
+        gAuthBusy[playerid] = true;
         return 0;
     }
 
@@ -435,6 +449,7 @@ stock RW_LoginSuccess(playerid, accid, skin, money, admin)
     gAdminLevel[playerid] = admin;
     gLoginAttempts[playerid] = 0;
     gAuthBusy[playerid] = false;
+    gAuthCardAt[playerid] = 0;
 
     if (!RW_InvLoad(playerid)) RW_Error(playerid, "Inventory unavailable. Contact an administrator.");
     RW_PhoneLoad(playerid);
@@ -578,6 +593,8 @@ stock RW_AuthCodeText(const code[], dest[], size)
         format(dest, size, "Некорректное имя аккаунта.");
     } else if (!strcmp(code, "err:db", true)) {
         format(dest, size, "Ошибка базы данных. Попробуйте позже.");
+    } else if (!strcmp(code, "err:busy", true)) {
+        format(dest, size, "Предыдущий запрос ещё обрабатывается. Подождите секунду.");
     } else if (!strcmp(code, "err:badpass", true, 11)) {
         format(dest, size, "Неверный пароль. Проверьте раскладку и Caps Lock.");
     } else if (!strcmp(code, "err:cooldown", true)) {
