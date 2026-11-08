@@ -188,5 +188,85 @@ class FamilyRosterTest(unittest.TestCase):
         self.assertIn('db_free_result(r);', listing)
 
 
+class InlinePanelTest(unittest.TestCase):
+    """Панели, которые шлют строки прямо из функции отрисовки.
+
+    Не у каждой панели есть отдельная RW_XxxRows: настройки клавиш, выбор
+    клавиши, телепорт по метке и экран раненого рисуются на месте. Их строки
+    проверяются так же: номер, который сервер шлёт, обработчик обязан
+    разбирать — или строка честно ничего не делает.
+    """
+
+    # панель: (модуль, функция отрисовки, ветка обработчика)
+    PANELS = {
+        'settings': ('interaction', 'stock RW_UI_Settings(playerid)', 'if (mode == UI_SETTINGS) {'),
+        'bind': ('interaction', 'stock RW_UI_Click(playerid, row)', 'if (mode == UI_BIND) {'),
+        'map': ('interaction', 'stock RW_MapPrompt(playerid)', '} else if (mode == UI_MAP) {'),
+        'downed': ('medical', 'stock RW_MedCef(playerid)', 'stock RW_MedCefClick(playerid, id)'),
+        'phone': ('phone', 'stock RW_PhoneMenu(playerid)', 'if (mode == UI_PHONE) {'),
+    }
+    # строки, которые шлются в цикле: номер в RW_UI_Row — переменная
+    LOOPS = {'settings': [0, 1, 2]}
+    # строки без действия: молчание честное
+    INFO = {
+        ('settings', 5): 'ключи сохраняются сами: нажимать нечего',
+        ('map', 1): '«нет» — панель просто закрывается',
+        ('phone', 0): 'баланс и тариф: строка-справка',
+    }
+
+    def emitted(self, name):
+        module, painter, _ = self.PANELS[name]
+        body = block(pawn(module), painter)
+        ids = set(int(x) for x in re.findall(r'RW_UI_Row\(playerid, (\d+),', body))
+        ids |= set(self.LOOPS.get(name, []))
+        return sorted(ids)
+
+    def answers(self, name):
+        module, _, branch = self.PANELS[name]
+        body = block(pawn(module), branch)
+        ids = set(int(x) for x in re.findall(r'(?:row|id) == (\d+)', body))
+        for limit in re.findall(r'row < (\d+)', body):
+            ids |= set(range(0, int(limit)))
+        return ids
+
+    def test_every_inline_row_answers(self):
+        for name in self.PANELS:
+            known = self.answers(name)
+            for row in self.emitted(name):
+                if row in known:
+                    continue
+                self.assertIn((name, row), self.INFO,
+                    'панель %s: строка %d на нажатие не отвечает' % (name, row))
+
+    def test_the_settings_are_known_at_all(self):
+        self.assertEqual(self.emitted('settings'), [0, 1, 2, 5, 6])
+        self.assertEqual(sorted(self.answers('settings')), [0, 1, 2, 6])
+        self.assertEqual(self.emitted('downed'), [0, 1])
+        self.assertEqual(sorted(self.answers('downed')), [0, 1])
+
+    def test_the_key_choice_swaps_two_keys(self):
+        branch = block(pawn('interaction'), 'if (mode == UI_BIND) {')
+        self.assertIn('static const keys[] = { KEY_YES, KEY_NO, KEY_CTRL_BACK, KEY_WALK };', branch)
+        self.assertIn('for (new i; i < 3; i++) if (i != index && gControlKeys[playerid][i] == keys[row])', branch)
+
+    def test_the_contacts_are_called_by_the_row(self):
+        menu = block(pawn('phone'), 'stock RW_PhoneContactsMenu(playerid)')
+        self.assertIn('gPhoneContNum[index2] = number;', menu)
+        click = block(pawn('phone'), 'stock RW_PhoneClick(playerid, row, mode)')
+        self.assertIn('if (row >= 0 && row < PHONE_CONTACTS_PAGE && gPhoneContNum[row] > 0) {', click)
+        self.assertIn('return RW_PhoneCall(playerid, number);', click)
+
+    def test_every_panel_has_a_close_button_in_the_browser(self):
+        for name in ('settings', 'bind', 'map'):
+            module, painter, _ = self.PANELS[name]
+            body = block(pawn(module), painter)
+            self.assertIn('if (RW_CefOn(playerid)) RW_CefAction(playerid, 8, "Close", "danger");', body, name)
+
+    def test_the_market_keeps_the_command_for_the_dialog_only(self):
+        rows = block(pawn('market'), 'stock RW_MarketRows(playerid)')
+        self.assertIn('if (RW_CefOn(playerid)) RW_MarketRowOut(playerid, 0, "Лотов нет",', rows)
+        self.assertIn('"Вернитесь позже или выставите свой: /sell"', rows)
+
+
 if __name__ == '__main__':
     unittest.main()

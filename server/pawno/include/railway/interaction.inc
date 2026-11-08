@@ -105,6 +105,7 @@ stock RW_UI_Settings(playerid)
     }
     RW_UI_Row(playerid, 5, "Saved for this session");
     RW_UI_Row(playerid, 6, "Reset: H / N / Y");
+    if (RW_CefOn(playerid)) RW_CefAction(playerid, 8, "Close", "danger");
     return 1;
 }
 stock RW_UI_Vehicle(playerid)
@@ -173,6 +174,7 @@ stock RW_UI_Click(playerid, row)
             RW_UI_Row(playerid, 0, "Y"); RW_UI_Row(playerid, 1, "N");
             RW_UI_Row(playerid, 2, "H"); RW_UI_Row(playerid, 3, "LALT");
             RW_UI_Row(playerid, 7, "Back");
+            if (RW_CefOn(playerid)) RW_CefAction(playerid, 8, "Close", "danger");
         } else if (row == 6) { RW_InteractionReset(playerid); gControlMode[playerid] = 1; RW_UI_Settings(playerid); }
     } else if (mode == UI_BIND) {
         if (row < 4) {
@@ -364,6 +366,7 @@ stock RW_MapPrompt(playerid)
     RW_UI_Panel(playerid, UI_MAP, "Teleport to marker?", coords);
     RW_UI_Row(playerid, 0, "Yes, teleport");
     RW_UI_Row(playerid, 1, "No, stay here");
+    if (RW_CefOn(playerid)) RW_CefAction(playerid, 8, "Close", "danger");
     return 1;
 }
 /* ѕереключать нечего: панели рисуютс€ в браузере, без него Ч русские диалоги. */

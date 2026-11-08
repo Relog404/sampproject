@@ -406,6 +406,14 @@ stock RW_BankAction(playerid, row, bool:cef)
         "How much to take: cash into your pocket", "For example: 5000");
     if (row == 1) return RW_BankDeposit(playerid, 1000);
     if (row == 2) return RW_BankWithdraw(playerid, 1000);
+    /* В браузере переводят по имени из списка ниже, а если рядом никого нет —
+       номер спросит поле ввода. Без браузера поля нет: остаётся команда. */
+    if (cef && row == 3) {
+        if (gBankIds[playerid][0] != INVALID_PLAYER_ID)
+            return RW_Info(playerid, "Pick a name below: the sum is asked by the input field.");
+        return RW_InputOpen(playerid, INPUT_TRANSFER_ID, 0, "Transfer",
+            "Player number: as in the player list", "For example: 3");
+    }
     if (row == 3) return RW_Info(playerid, "Use: /transfer <player id> <sum>. The money leaves your account.");
     if (cef && row >= 4 && row < 4 + BANK_NEAR_SLOTS) {
         new target = gBankIds[playerid][row - 4];

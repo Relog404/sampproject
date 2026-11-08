@@ -41,6 +41,37 @@ def strings(code):
     return re.findall(r'"([^"\r\n]+)"', code)
 
 
+class ClosedCardTest(unittest.TestCase):
+    """Esc и клик мимо листа закрывают панель и на сервере."""
+
+    def block(self, signature):
+        return block(CEFUI_SRC, signature)
+
+    def test_the_state_is_released_with_the_page(self):
+        closed = self.block('public RW_CefClosed(playerid, browserid)')
+        self.assertIn('if (RW_InputBusy(playerid)) return RW_InputCancel(playerid);', closed)
+        self.assertIn('if (gUIOnCef[playerid] && gUIMode[playerid] != UI_DOWNED) {', closed)
+        self.assertIn('gUIOnCef[playerid] = false;', closed)
+        self.assertIn('return RW_UI_Close(playerid);', closed)
+
+    def test_the_bleeding_screen_comes_back(self):
+        """Экран раненого исключение: Esc его не снимает, кровотечение идёт."""
+        closed = self.block('public RW_CefClosed(playerid, browserid)')
+        self.assertIn('gUIMode[playerid] != UI_DOWNED', closed)
+
+    def test_the_login_card_is_not_a_panel(self):
+        closed = self.block('public RW_CefClosed(playerid, browserid)')
+        self.assertIn('if (gCefAuth[playerid]) { RW_CefClose(playerid); RW_CefFocusRelease(playerid); return 1; }', closed)
+
+    def test_the_escape_key_is_registered(self):
+        self.assertIn('CEF_RegisterEvent("ui:closed", "RW_CefClosed");', CEFUI_SRC)
+        js = (ROOT / 'server/scriptfiles/cef/railway/js/ui.js').read_text(encoding='utf-8')
+        self.assertIn("var CLOSE_ID = 8;", js)
+        self.assertIn("if (event.key === 'Escape' && open) RW.emit('ui:closed');", js)
+        self.assertIn("elScrim.addEventListener('click', function () {", js)
+        self.assertIn("if (open) RW.emit('ui:closed');", js)
+
+
 class PluginWiringTest(unittest.TestCase):
     def test_plugin_shipped_and_loaded(self):
         self.assertTrue((ROOT / 'server/plugins/cef.dll').exists())

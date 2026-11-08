@@ -228,6 +228,15 @@ class BankByClickTest(unittest.TestCase):
         action = block(ECON, 'stock RW_BankAction(playerid, row, bool:cef)')
         self.assertIn('"That player has walked away: open the ATM again."', action)
 
+    def test_the_transfer_row_points_at_the_list_first(self):
+        action = block(ECON, 'stock RW_BankAction(playerid, row, bool:cef)')
+        self.assertIn('if (cef && row == 3) {', action)
+        self.assertIn('if (gBankIds[playerid][0] != INVALID_PLAYER_ID)', action)
+        self.assertIn('"Pick a name below: the sum is asked by the input field."', action)
+        self.assertIn('RW_InputOpen(playerid, INPUT_TRANSFER_ID, 0, "Transfer",', action)
+        # без браузера поля ввода нет: там честно называют команду
+        self.assertIn('"Use: /transfer <player id> <sum>. The money leaves your account."', action)
+
     def test_the_panel_comes_back_with_the_new_numbers(self):
         apply_block = block(INPUT, 'stock RW_InputApply(playerid, kind, arg, arg2, const text[])')
         self.assertIn('return RW_BankRender(playerid);', apply_block)

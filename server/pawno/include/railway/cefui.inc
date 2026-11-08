@@ -276,6 +276,15 @@ public RW_CefClosed(playerid, browserid)
     /* Закрытое поле ввода: иначе «ждём ввод» останется навсегда, а вместе
        с ним и запрет на остальные действия. */
     if (RW_InputBusy(playerid)) return RW_InputCancel(playerid);
+    /* Esc и клик мимо листа закрывают панель и на сервере: иначе режим
+       остаётся включённым, хотя на экране уже ничего нет, и следующая
+       панель решит, что занято. Экран раненого исключение: он возвращается
+       сам, пока идёт кровотечение. */
+    if (gCefAuth[playerid]) { RW_CefClose(playerid); RW_CefFocusRelease(playerid); return 1; }
+    if (gUIOnCef[playerid] && gUIMode[playerid] != UI_DOWNED) {
+        gUIOnCef[playerid] = false;
+        return RW_UI_Close(playerid);
+    }
     RW_CefClose(playerid);
     RW_CefFocusRelease(playerid);
     gControlMode[playerid] = 0;
