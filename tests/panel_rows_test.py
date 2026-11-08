@@ -71,11 +71,18 @@ def handled_rows(action, source):
         if limit.isdigit():
             ids |= set(range(0, int(limit)))
     # Строки, которые разбираются по данным: gXxxIds[playerid][row] и тому
-    # подобное означает, что номер — это индекс в массиве на сервере.
+    # подобное означает, что номер — это индекс в массиве на сервере. Границу
+    # могут называть и числом, и через define (IMPOUND_ROWS, MDT_ROWS...).
     if re.search(r'\[playerid\]\[row[^\]]*\]', action):
         for limit in re.findall(r'row < (\w+)', action):
             if limit.isdigit():
                 ids |= set(range(0, int(limit)))
+        for limit in re.findall(r'row >= (\w+)', action):
+            if limit.isdigit():
+                continue
+            found = re.search(r'#define %s\s+\(?(\d+)' % limit, source)
+            if found:
+                ids |= set(range(0, int(found.group(1))))
     return ids
 
 
@@ -95,7 +102,7 @@ class EveryRowAnswersTest(unittest.TestCase):
             action = handler(module, name)
             if action is None:
                 continue
-            known = handled_rows(action, action)
+            known = handled_rows(action, pawn(module) + pawn('core'))
             for row in ids:
                 checked += 1
                 if row in known:
@@ -339,6 +346,55 @@ class CloseButtonTest(unittest.TestCase):
         self.assertIn('RW_CefAction(playerid, 8, "Close", "danger");', menu)
         click = block(inter, 'stock RW_CefPassengerClick(playerid, id)')
         self.assertIn('if (id == 8) return RW_UI_Close(playerid);', click)
+
+
+class HintTest(unittest.TestCase):
+    """Подсказка называет кнопку там, где кнопка есть.
+
+    Одно и то же правило нельзя объяснять одинаково: в браузере действие
+    лежит на строке или кнопке, а команда — запасной путь для тех, у кого
+    браузера нет. Поэтому в каждом таком месте две подсказки: одна про
+    нажатие, другая про команду.
+    """
+
+    PAIRS = [
+        ('market', 'Этот лот на аукционе: выберите его — под списком появится кнопка ставки.',
+         'Этот лот уже на аукционе: ставка — /bid <лот> <сумма>.'),
+        ('market', 'Свой лот покупать нельзя: выберите его — под списком появится кнопка снятия.',
+         'Свой лот покупать нельзя: снимите его командой /cancel <лот>.'),
+        ('market', 'Аукцион закончился: заберите предмет кнопкой «Забрать со склада».',
+         'Аукцион закончился. Заберите предмет на складе выдачи: /take.'),
+        ('property', 'The city sealed the doors: press the tax row in the property panel.',
+         'The city sealed the doors: pay the tax with /paytax.'),
+        ('vehicles', 'No key in the ignition: press the key row in the car card (Y on the car).',
+         'No key in the ignition. Use /key to insert it.'),
+        ('economy', 'Сначала устройтесь: подойдите к точке найма и нажмите Y.',
+         'Сначала устройтесь на работу: /job на бирже труда.'),
+        ('economy', 'Таксист берёт заказы в приложении Uber Drive: иконка такси в телефоне.',
+         'Таксист берёт заказы в приложении Uber Drive: /uber или /taxi.'),
+    ]
+
+    def test_the_browser_names_the_button_and_the_dialog_the_command(self):
+        for module, in_browser, in_dialog in self.PAIRS:
+            src = pawn(module)
+            self.assertIn(in_browser, src, '%s: подсказка про кнопку' % module)
+            self.assertIn(in_dialog, src, '%s: подсказка про команду' % module)
+            self.assertNotRegex(in_browser, r'/[A-Za-z]',
+                '%s: в браузере не должно быть команды' % module)
+            self.assertRegex(in_dialog, r'/[A-Za-z]',
+                '%s: без браузера команда — единственный путь' % module)
+
+    def test_the_browser_text_is_chosen_by_the_face(self):
+        for module, in_browser, in_dialog in self.PAIRS:
+            src = pawn(module)
+            start = src.index(in_browser)
+            head = src[max(0, start - 320):start]
+            self.assertIn('RW_CefOn(', head, '%s: выбор по лицу, а не наугад' % module)
+
+    def test_a_gifted_key_does_not_send_anyone_to_the_chat(self):
+        garage = pawn('garage')
+        self.assertIn('RW_Ok(target, "Car key received: it lies in your pockets.");', garage)
+        self.assertNotIn('Car key received. /inv', garage)
 
 
 if __name__ == '__main__':

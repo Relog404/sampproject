@@ -411,7 +411,9 @@ stock RW_PropSell(playerid, id)
 stock RW_PropToggleDoors(playerid, id)
 {
     if (!RW_PropMine(playerid, id)) return RW_Error(playerid, "Only the owner opens these doors.");
-    if (gPropMissed[id] >= PROP_TAX_LIMIT) return RW_Error(playerid, "The city sealed the doors: pay the tax with /paytax.");
+    if (gPropMissed[id] >= PROP_TAX_LIMIT) return RW_Error(playerid, RW_CefOn(playerid)
+        ? ("The city sealed the doors: press the tax row in the property panel.")
+        : ("The city sealed the doors: pay the tax with /paytax."));
     gPropDoorOpen[id] = gPropDoorOpen[id] ? (0) : (1);
     RW_PropSave(id);
     new message[128];

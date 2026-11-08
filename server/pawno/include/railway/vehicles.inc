@@ -250,7 +250,9 @@ stock RW_Veh_Enforce(playerid)
         gEnforceLastTick[playerid] = GetTickCount();
 
         if (!gVeh[slot][vsKey]) {
-            RW_Info(playerid, "No key in the ignition. Use /key to insert it.");
+            RW_Info(playerid, RW_CefOn(playerid)
+                ? ("No key in the ignition: press the key row in the car card (Y on the car).")
+                : ("No key in the ignition. Use /key to insert it."));
         }
     }
     return 0;

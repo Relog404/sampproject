@@ -890,7 +890,9 @@ stock bool:RW_JobVehicleOk(playerid)
 stock RW_JobTaskTake(playerid)
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
-    if (gJob[playerid] == JOB_NONE) return RW_Error(playerid, "Сначала устройтесь на работу: /job на бирже труда.");
+    if (gJob[playerid] == JOB_NONE) return RW_Error(playerid, RW_CefOn(playerid)
+        ? ("Сначала устройтесь: подойдите к точке найма и нажмите Y.")
+        : ("Сначала устройтесь на работу: /job на бирже труда."));
     if (gJobStage[playerid] > 0) return RW_Info(playerid, "Доделайте взятое задание.");
     if (GetTickCount() - gJobTick[playerid] < JOB_COOLDOWN_MS) return RW_Info(playerid, "Переведите дух: одну секунду.");
     if (gJob[playerid] == JOB_TRUCKER && !RW_JobVehicleOk(playerid))
@@ -898,7 +900,9 @@ stock RW_JobTaskTake(playerid)
     if (gJob[playerid] == JOB_LOADER && GetPlayerState(playerid) != PLAYER_STATE_ONFOOT)
         return RW_Error(playerid, "Грузчик работает пешком: выйдите из машины.");
     if (gJob[playerid] == JOB_TAXI)
-        return RW_Error(playerid, "Таксист берёт заказы в приложении Uber Drive: /uber или /taxi.");
+        return RW_Error(playerid, RW_CefOn(playerid)
+            ? ("Таксист берёт заказы в приложении Uber Drive: иконка такси в телефоне.")
+            : ("Таксист берёт заказы в приложении Uber Drive: /uber или /taxi."));
     if (gJob[playerid] == JOB_BUS && !RW_InModelList(RW_JobVehicleModel(playerid), gBusModels, sizeof gBusModels))
         return RW_Error(playerid, "Маршрут — на автобусе: возьмите его в парке Эль-Корона.");
     gJobMeet[playerid] = 0;
@@ -1024,7 +1028,9 @@ stock RW_JobTaskDone(playerid)
 stock RW_WorkCommand(playerid)
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
-    if (gJob[playerid] == JOB_NONE) return RW_Error(playerid, "Сначала устройтесь на работу: /job на бирже труда.");
+    if (gJob[playerid] == JOB_NONE) return RW_Error(playerid, RW_CefOn(playerid)
+        ? ("Сначала устройтесь: подойдите к точке найма и нажмите Y.")
+        : ("Сначала устройтесь на работу: /job на бирже труда."));
     if (gJobStage[playerid] == 0) return RW_JobTaskTake(playerid);
     if (GetTickCount() - gJobTick[playerid] < 1000) return 1;
     gJobTick[playerid] = GetTickCount();
@@ -1114,7 +1120,9 @@ stock RW_EconomyPayday(playerid)
     new salary = RW_DonateBonus(playerid, RW_JobSalary(gJob[playerid]) * gJobLevel[playerid]);
     new interest = gBank[playerid] * BANK_INTEREST_PERCENT / 100;
     if (interest > BANK_INTEREST_MAX) interest = BANK_INTEREST_MAX;
-    if (salary <= 0 && interest <= 0) return RW_Info(playerid, "Зарплата: платить нечего. Устройтесь: /job на бирже труда.");
+    if (salary <= 0 && interest <= 0) return RW_Info(playerid, RW_CefOn(playerid)
+        ? ("Зарплата: платить нечего. Устройтесь: подойдите к точке найма и нажмите Y.")
+        : ("Зарплата: платить нечего. Устройтесь: /job на бирже труда."));
     gBank[playerid] += salary + interest;
     RW_EconomySave(playerid);
     new message[192];

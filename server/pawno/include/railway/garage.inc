@@ -355,7 +355,7 @@ stock RW_KeyMenuGrant(playerid, row)
     new uid = RW_InvGrant(target, ITEM_CAR_KEY, data);
     if (!uid) return RW_InvExplainGrant(playerid, target, ITEM_CAR_KEY, data);
     printf("[garage] admin account=%d grants key token=%d uid=%d to account=%d from menu", gAccountId[playerid], data, uid, gAccountId[target]);
-    RW_Ok(target, "Car key received. /inv");
+    RW_Ok(target, "Car key received: it lies in your pockets.");
     new message[128]; format(message, sizeof message, "Key for token %d granted to id %d (item %d).", data, target, uid);
     RW_Ok(playerid, message);
     return RW_UI_Close(playerid);

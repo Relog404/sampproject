@@ -145,6 +145,7 @@ forward RW_LawyerCallFor(playerid, target);
 #define CEF_MODE_MAP                (26)
 #define CEF_MODE_INPUT            (27)
 #define CEF_MODE_GPS              (28)
+#define CEF_MODE_IMPOUND          (29)
 
 /*  ------------------------------ поле ввода ------------------------------ */
 #define INPUT_NONE          (0)

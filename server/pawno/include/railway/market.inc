@@ -379,12 +379,16 @@ stock RW_MarketBuy(playerid, lot)
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
     if (lot <= 0) return RW_Error(playerid, "Нет такого лота.");
-    if (RW_MarketLotField(lot, "status") != MARKET_OPEN) return RW_Error(playerid, "Этот лот уже на аукционе: ставка — /bid <лот> <сумма>.");
+    if (RW_MarketLotField(lot, "status") != MARKET_OPEN) return RW_Error(playerid, RW_CefOn(playerid)
+        ? ("Этот лот на аукционе: выберите его — под списком появится кнопка ставки.")
+        : ("Этот лот уже на аукционе: ставка — /bid <лот> <сумма>."));
     new type = RW_MarketLotField(lot, "type"), data = RW_MarketLotField(lot, "data");
     new amount = RW_MarketLotField(lot, "amount"), price = RW_MarketLotField(lot, "price");
     new seller = RW_MarketLotField(lot, "seller");
     if (type <= 0 || amount < 1 || price <= 0 || seller <= 0) return RW_Error(playerid, "Лот уже закрыт.");
-    if (seller == gAccountId[playerid]) return RW_Error(playerid, "Свой лот покупать нельзя: снимите его командой /cancel <лот>.");
+    if (seller == gAccountId[playerid]) return RW_Error(playerid, RW_CefOn(playerid)
+        ? ("Свой лот покупать нельзя: выберите его — под списком появится кнопка снятия.")
+        : ("Свой лот покупать нельзя: снимите его командой /cancel <лот>."));
     if (gMoney[playerid] < price) return RW_Error(playerid, "Не хватает наличных.");
     new uid = RW_MarketGive(playerid, type, data, amount);
     if (uid <= 0) return RW_Error(playerid, "В инвентаре нет места: освободите слот и повторите.");
@@ -532,7 +536,9 @@ public RW_MarketPulse()
         format(q, sizeof q, "UPDATE market_lots SET status=%d,claim=%d WHERE id=%d", MARKET_CLAIM, winner, id);
         RW_DB_Exec(q);
         for (new p; p < MAX_PLAYERS; p++) if (IsPlayerConnected(p) && gAccountId[p] == winner)
-            RW_Info(p, "Аукцион закончился. Заберите предмет на складе выдачи: /take.");
+            RW_Info(p, RW_CefOn(p)
+                ? ("Аукцион закончился: заберите предмет кнопкой «Забрать со склада».")
+                : ("Аукцион закончился. Заберите предмет на складе выдачи: /take."));
         for (new p; p < MAX_PLAYERS; p++) if (IsPlayerConnected(p) && gAccountId[p] == seller && money > 0)
             RW_Info(p, "Лот продан с аукциона. Деньги на счёте в банке.");
         db_next_row(r);

@@ -46,7 +46,10 @@ new Float:gFuel[VEHICLE_SLOTS];              /* литров в баке                */
 new gTune[VEHICLE_SLOTS][TUNE_PARTS];        /* уровень детали 0..5          */
 new gTrunkTarget[MAX_PLAYERS];               /* слот машины для меню         */
 new gTrunkIds[MAX_PLAYERS][6];               /* uid предметов на странице    */
+#define IMPOUND_ROWS            (6)     /* 6 cars per page on the impound lot */
+
 new gTrunkCount[MAX_PLAYERS], gTrunkPage[MAX_PLAYERS];
+new gImpoundIds[MAX_PLAYERS][IMPOUND_ROWS], gImpoundCount[MAX_PLAYERS];
 new gPickCar[MAX_PLAYERS], gPickStep[MAX_PLAYERS], gPickSeq[MAX_PLAYERS][PICK_STEPS];
 new gPickTick[MAX_PLAYERS], gPickStamp[MAX_PLAYERS];
 new gTransTick[MAX_PLAYERS];                 /* защита от спама              */
@@ -642,9 +645,11 @@ stock RW_ServiceTow(playerid, vehicleid)
     RW_PoliceSqlName(nick, safe, sizeof safe);
     format(query, sizeof query, "INSERT OR REPLACE INTO impounds(token,mechanic,reason,stamp) VALUES(%d,'%s','Towed by a mechanic',%d)", token, safe, gettime());
     RW_DB_Exec(query);
-    format(nick, sizeof nick, "%s", "Your car was towed to the impound lot. /impound to get it back.");
     for (new i; i < MAX_PLAYERS; i++) {
         if (!IsPlayerConnected(i) || !gLogged[i] || gAccountId[i] != gVeh[slot][vsOwnerAcc]) continue;
+        format(nick, sizeof nick, "%s", RW_CefOn(i)
+            ? ("Your car was towed to the impound lot: press Y there to buy it back.")
+            : ("Your car was towed to the impound lot. /impound to get it back."));
         RW_Error(i, nick);
     }
     new message[110];
@@ -684,13 +689,107 @@ stock RW_ImpoundList(playerid)
         db_next_row(r);
     }
     db_free_result(r);
-    return RW_Info(playerid, "/unimpound <token> - pay the fee at the impound lot and take the car.");
+    return RW_Info(playerid, RW_CefOn(playerid)
+        ? ("The list is on the lot: press Y there and pay from the panel.")
+        : ("/unimpound <token> - pay the fee at the impound lot and take the car."));
 }
-stock RW_ImpoundRelease(playerid, const params[])
+/*  ----------------------------- impound panel ----------------------------- */
+/* The list is read from the database on every open, so a click pays for the
+   car that stands on that line. /unimpound stays as the chat way. */
+stock bool:RW_ImpoundNear(playerid)
 {
-    new word[32];
-    if (!RW_PhoneWord(params, 0, word, sizeof word) || !RW_IsNumeric(word)) return RW_Error(playerid, "Use: /unimpound <token>. /impound lists them.");
-    new token = strval(word), query[240];
+    new Float:x, Float:y, Float:z;
+    GetPlayerPos(playerid, x, y, z);
+    return VectorSize(x - IMPOUND_X, y - IMPOUND_Y, z - IMPOUND_Z) <= 20.0;
+}
+stock bool:RW_ImpoundMayOpen(playerid)
+{
+    if (!gLogged[playerid]) return false;
+    if (RW_MechOnDuty(playerid) || gAdminLevel[playerid] >= 2) return true;
+    return RW_OwnsImpounded(playerid);
+}
+stock RW_ImpoundRows(playerid)
+{
+    new count, query[260];
+    for (new i; i < IMPOUND_ROWS; i++) gImpoundIds[playerid][i] = 0;
+    format(query, sizeof query,
+        "SELECT i.token,c.model,i.mechanic FROM impounds i LEFT JOIN owned_cars c ON c.id=i.token OR c.token=i.token ORDER BY i.stamp DESC LIMIT %d",
+        IMPOUND_ROWS);
+    new DBResult:r = db_query(gDB, query);
+    if (r != DBResult:0) {
+        while (count < IMPOUND_ROWS && db_num_rows(r) > count) {
+            new name[48], who[32], label[96], note[72];
+            RW_VehicleName(db_get_field_assoc_int(r, "model"), name, sizeof name);
+            db_get_field_assoc(r, "mechanic", who, sizeof who);
+            format(label, sizeof label, "%s (token %d)", name, db_get_field_assoc_int(r, "token"));
+            format(note, sizeof note, "towed by %s, fee %d", who, IMPOUND_FEE);
+            gImpoundIds[playerid][count] = db_get_field_assoc_int(r, "token");
+            #if RAILWAY_CEF
+                if (RW_CefOn(playerid)) { RW_CefRow(playerid, count, label, "", "car", note); count++; db_next_row(r); continue; }
+            #endif
+            RW_UI_Row(playerid, count, label, "car");
+            count++;
+            db_next_row(r);
+        }
+        db_free_result(r);
+    }
+    gImpoundCount[playerid] = count;
+    if (!count) {
+        #if RAILWAY_CEF
+            if (RW_CefOn(playerid)) { RW_CefRow(playerid, 0, "The impound lot is empty", "", "car", "Come back later"); return 0; }
+        #endif
+        RW_UI_Row(playerid, 0, "The impound lot is empty", "car");
+    }
+    return count;
+}
+stock RW_ImpoundCef(playerid)
+{
+    new subtitle[64];
+    format(subtitle, sizeof subtitle, "Fee %d for a car, the lot at 1635 / -1700", IMPOUND_FEE);
+    if (!RW_CefOpen(playerid, CEF_MODE_IMPOUND, "Impound lot", subtitle)) return RW_ImpoundPanel(playerid);
+    RW_ImpoundRows(playerid);
+    RW_CefAction(playerid, 8, "Close", "danger");
+    return RW_CefEnd(playerid);
+}
+stock RW_ImpoundPanel(playerid)
+{
+    new subtitle[64];
+    format(subtitle, sizeof subtitle, "Fee %d for a car, the lot at 1635 / -1700", IMPOUND_FEE);
+    RW_UI_Panel(playerid, UI_IMPOUND, "Impound lot", subtitle);
+    RW_ImpoundRows(playerid);
+    RW_UI_Row(playerid, 7, "Close", "close");
+    return 1;
+}
+stock RW_ImpoundRender(playerid)
+{
+    #if RAILWAY_CEF
+        if (RW_CefOn(playerid)) return RW_ImpoundCef(playerid);
+    #endif
+    return RW_ImpoundPanel(playerid);
+}
+stock RW_ImpoundOpen(playerid)
+{
+    if (!RW_ImpoundMayOpen(playerid)) return RW_Error(playerid, "Only a mechanic on duty or the owner can look at the impound lot.");
+    return RW_ImpoundRender(playerid);
+}
+stock RW_ImpoundAction(playerid, row, bool:cef)
+{
+    if (row == (cef ? 8 : 7)) return RW_UI_Close(playerid);
+    if (row < 0 || row >= IMPOUND_ROWS) return 1;
+    new token = gImpoundIds[playerid][row];
+    if (token <= 0) return 1;
+    RW_ImpoundTake(playerid, token);
+    return RW_ImpoundRender(playerid);
+}
+stock RW_ImpoundCefClick(playerid, row) { return RW_ImpoundAction(playerid, row, true); }
+stock RW_ImpoundClick(playerid, row) { return RW_ImpoundAction(playerid, row, false); }
+
+/* The fee and the release: one function for the click and for the command. */
+stock RW_ImpoundTake(playerid, token)
+{
+    if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
+    if (token <= 0) return RW_Error(playerid, "That car is not impounded.");
+    new query[240];
     format(query, sizeof query, "SELECT token FROM impounds WHERE token=%d", token);
     new DBResult:r = db_query(gDB, query);
     if (r == DBResult:0 || db_num_rows(r) == 0) {
@@ -715,6 +814,12 @@ stock RW_ImpoundRelease(playerid, const params[])
         return 1;
     }
     return RW_Ok(playerid, "Paid: the car is out of the impound. Take it from the garage.");
+}
+stock RW_ImpoundRelease(playerid, const params[])
+{
+    new word[32];
+    if (!RW_PhoneWord(params, 0, word, sizeof word) || !RW_IsNumeric(word)) return RW_Error(playerid, "Use: /unimpound <token>. /impound lists them.");
+    return RW_ImpoundTake(playerid, strval(word));
 }
 
 /*  ---------------------------------- тюнинг ------------------------------- */

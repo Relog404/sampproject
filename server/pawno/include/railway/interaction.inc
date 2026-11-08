@@ -49,6 +49,9 @@ stock RW_SelfMenu(playerid)
     if (RW_JobHandOver(playerid)) return 1;
     /* На стоянке такси Y вызывает машину. */
     if (RW_TaxiRankCall(playerid)) return 1;
+    /* На штрафстоянке Y открывает список: выкуп машины по строке, а не по
+       токену из чата. Сюда же попадает механик на службе. */
+    if (RW_ImpoundNear(playerid) && RW_ImpoundMayOpen(playerid)) return RW_ImpoundOpen(playerid);
     if (RW_PhoneHasItem(playerid) <= 0) return RW_Error(playerid, "You have no phone. Buy one at a 24/7 shop.");
     if (gPhoneNum[playerid] <= 0) return RW_Error(playerid, "No SIM card: buy one and insert it with /sim.");
     return RW_PhoneOpen(playerid);
@@ -226,6 +229,10 @@ stock RW_UI_Click(playerid, row)
         if (GetTickCount()-gControlTick[playerid] < 250) return 1;
         gControlTick[playerid] = GetTickCount();
         return RW_TrunkClick(playerid, row);
+    } else if (mode == UI_IMPOUND) {
+        if (GetTickCount()-gControlTick[playerid] < 250) return 1;
+        gControlTick[playerid] = GetTickCount();
+        return RW_ImpoundClick(playerid, row);
     } else if (mode == UI_LOCKPICK) {
         return RW_PickClick(playerid, row, false);
     } else if (mode == UI_SERVICE) {

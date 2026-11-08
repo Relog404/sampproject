@@ -371,7 +371,8 @@ stock RW_CommandProcess(playerid, cmdtext[])
     if (!strcmp(cmd, "trunk", true)) return RW_TrunkCommand(playerid);
     if (!strcmp(cmd, "repair", true)) return RW_RepairCommand(playerid);
     if (!strcmp(cmd, "tow", true)) return RW_TowCommand(playerid);
-    if (!strcmp(cmd, "impound", true)) return RW_ImpoundList(playerid);
+    /* В браузере список открывается панелью: выкуп — по строке. */
+    if (!strcmp(cmd, "impound", true)) return RW_CefOn(playerid) ? RW_ImpoundOpen(playerid) : RW_ImpoundList(playerid);
     if (!strcmp(cmd, "unimpound", true)) return RW_UnimpoundCommand(playerid, params);
     if (!strcmp(cmd, "tune", true)) return RW_TuneCommand(playerid);
     if (!strcmp(cmd, "shop", true)) return RW_ShopCommand(playerid);

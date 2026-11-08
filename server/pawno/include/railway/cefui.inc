@@ -401,6 +401,7 @@ public RW_CefClick(playerid, browserid, id)
     if (gCefMode[playerid] == CEF_MODE_MDT) return RW_MdtCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_EMS) return RW_EmsCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_TRUNK) return RW_TrunkCefClick(playerid, id);
+    if (gCefMode[playerid] == CEF_MODE_IMPOUND) return RW_ImpoundCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_LOCKPICK) return RW_PickCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_SERVICE) return RW_ServiceCefClick(playerid, id);
     if (gCefMode[playerid] == CEF_MODE_SHOP) return RW_ShopCefClick(playerid, id);

@@ -36,6 +36,7 @@
 #define UI_GOV 29
 #define UI_INPUT 30                /* поле ввода: цена, ставка, сумма */
 #define UI_GPS 31                  /* навигатор: куда ехать            */
+#define UI_IMPOUND 32              /* штрафстоянка: выкуп машины        */
 /* Тексдрав-превью удалено: машину в карточке рисует страница. */
 new bool:gUIInput[MAX_PLAYERS];
 new bool:gUIRussianDialogs[MAX_PLAYERS];   /* старый переключатель, оставлен для совместимости */
@@ -147,6 +148,7 @@ stock RW_UI_CefMode(mode)
     if (mode == UI_MARKET) return CEF_MODE_MARKET;
     if (mode == UI_INPUT) return CEF_MODE_INPUT;
     if (mode == UI_GPS) return CEF_MODE_GPS;
+    if (mode == UI_IMPOUND) return CEF_MODE_IMPOUND;
     if (mode == UI_CRIME) return CEF_MODE_CRIME;
     if (mode == UI_FAMILY) return CEF_MODE_FAMILY;
     if (mode == UI_GOV) return CEF_MODE_GOV;

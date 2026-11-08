@@ -352,18 +352,18 @@ class ServiceTest(unittest.TestCase):
 
     def test_the_impound_lot_is_behind_a_fee(self):
         self.assertRegex(CORE, r'#define IMPOUND_FEE\s+500')
-        release = block(TRANS, 'stock RW_ImpoundRelease(playerid, const params[])')
+        release = block(TRANS, 'stock RW_ImpoundTake(playerid, token)')
         self.assertIn('if (!RW_TakeMoney(playerid, IMPOUND_FEE)) return RW_Error(playerid, "Not enough cash for the fee.");', release)
         self.assertIn(sql(TRANS, 'DELETE FROM impounds WHERE token=%d'), release)
 
     def test_only_the_mechanic_the_owner_or_an_administrator_looks_at_the_lot(self):
         listing = block(TRANS, 'stock RW_ImpoundList(playerid)')
         self.assertIn('if (!RW_MechOnDuty(playerid) && gAdminLevel[playerid] < 2 && !RW_OwnsImpounded(playerid))', listing)
-        release = block(TRANS, 'stock RW_ImpoundRelease(playerid, const params[])')
+        release = block(TRANS, 'stock RW_ImpoundTake(playerid, token)')
         self.assertIn('IsPlayerInRangeOfPoint(playerid, 20.0, IMPOUND_X, IMPOUND_Y, IMPOUND_Z)', release)
 
     def test_releases_come_back_next_to_the_player(self):
-        release = block(TRANS, 'stock RW_ImpoundRelease(playerid, const params[])')
+        release = block(TRANS, 'stock RW_ImpoundTake(playerid, token)')
         self.assertIn('SetVehiclePos(gVeh[s][vsVehicleId], x + 4.0 * floatsin(-a, degrees), y + 4.0 * floatcos(-a, degrees), z + 0.5);', release)
 
 
@@ -416,6 +416,76 @@ class TuneTest(unittest.TestCase):
         self.assertIn('SetVehicleVelocity(vehicleid, vx*scale, vy*scale, vz*scale);', pulse)
 
 
+class ImpoundPanelTest(unittest.TestCase):
+    """Штрафстоянка: список панелью, выкуп по строке, а не по токену из чата."""
+
+    IMPOUND_ROWS = 6
+
+    def setUp(self):
+        self.db = sqlite3.connect(':memory:', isolation_level=None)
+        self.db.execute(sql(TRANS, 'CREATE TABLE IF NOT EXISTS impounds '))
+        self.db.execute("CREATE TABLE owned_cars (id INT, token INT, model INT, owner INT)")
+        self.db.execute("INSERT INTO owned_cars VALUES(7, 501, 411, 3)")
+
+    def tearDown(self):
+        self.db.close()
+
+    def rows(self):
+        """Список панели: тот же запрос, что шлёт сервер."""
+        query = sql(TRANS, 'SELECT i.token,c.model,i.mechanic FROM impounds i LEFT JOIN')
+        return self.db.execute(query % self.IMPOUND_ROWS).fetchall()
+
+    def test_the_list_comes_from_the_database(self):
+        self.db.execute(sql(TRANS, 'INSERT OR REPLACE INTO impounds(') % (501, 'Ivan', 1000))
+        self.assertEqual(self.rows(), [(501, 411, 'Ivan')])
+
+    def test_the_newest_car_is_on_the_first_row(self):
+        """Свежая эвакуация выше: токену не нужно угадывать номер строки."""
+        self.db.execute("DELETE FROM owned_cars")
+        for token, stamp in ((502, 900), (501, 1200)):
+            self.db.execute("INSERT INTO owned_cars VALUES(%d, %d, 411, 3)" % (token + 100, token))
+            self.db.execute(sql(TRANS, 'INSERT OR REPLACE INTO impounds(') % (token, 'Ivan', stamp))
+        self.assertEqual([row[0] for row in self.rows()], [501, 502])
+
+    def test_the_panel_is_a_mode_of_its_own(self):
+        self.assertRegex(UI, r'#define UI_IMPOUND 3[0-9]')
+        self.assertRegex(CORE, r'#define CEF_MODE_IMPOUND\s+\(29\)')
+        self.assertIn('if (mode == UI_IMPOUND) return CEF_MODE_IMPOUND;', UI)
+        self.assertIn('if (gCefMode[playerid] == CEF_MODE_IMPOUND) return RW_ImpoundCefClick(playerid, id);', CEFUI)
+        self.assertIn('else if (mode == UI_IMPOUND) {', INTER)
+        self.assertIn('return RW_ImpoundClick(playerid, row);', INTER)
+
+    def test_a_row_pays_the_fee_and_opens_the_list_again(self):
+        action = block(TRANS, 'stock RW_ImpoundAction(playerid, row, bool:cef)')
+        self.assertIn('if (row == (cef ? 8 : 7)) return RW_UI_Close(playerid);', action)
+        self.assertIn('new token = gImpoundIds[playerid][row];', action)
+        self.assertIn('RW_ImpoundTake(playerid, token);', action)
+        self.assertIn('return RW_ImpoundRender(playerid);', action)
+        rows = block(TRANS, 'stock RW_ImpoundRows(playerid)')
+        self.assertIn('gImpoundIds[playerid][count] = db_get_field_assoc_int(r, "token");', rows)
+        self.assertIn('db_free_result(r);', rows)
+
+    def test_the_click_and_the_command_share_one_function(self):
+        self.assertIn('stock RW_ImpoundTake(playerid, token)', TRANS)
+        release = block(TRANS, 'stock RW_ImpoundRelease(playerid, const params[])')
+        self.assertIn('return RW_ImpoundTake(playerid, strval(word));', release)
+        self.assertNotIn('DELETE FROM impounds', release)
+
+    def test_y_on_the_lot_opens_the_panel(self):
+        menu = block(INTER, 'stock RW_SelfMenu(playerid)')
+        self.assertIn('if (RW_ImpoundNear(playerid) && RW_ImpoundMayOpen(playerid)) return RW_ImpoundOpen(playerid);', menu)
+        self.assertIn('stock bool:RW_ImpoundNear(playerid)', TRANS)
+        self.assertIn('return RW_OwnsImpounded(playerid);', block(TRANS, 'stock bool:RW_ImpoundMayOpen(playerid)'))
+
+    def test_the_command_opens_the_panel_in_the_browser(self):
+        self.assertIn('RW_CefOn(playerid) ? RW_ImpoundOpen(playerid) : RW_ImpoundList(playerid)', CMDS)
+
+    def test_the_owner_is_told_about_the_button_not_the_command(self):
+        self.assertIn('"Your car was towed to the impound lot: press Y there to buy it back."', TRANS)
+        self.assertIn('"Your car was towed to the impound lot. /impound to get it back."', TRANS)
+        self.assertIn('"The list is on the lot: press Y there and pay from the panel."', TRANS)
+
+
 class TransportWiringTest(unittest.TestCase):
     """The slice is wired into the menus, the commands and the game mode."""
 
@@ -457,17 +527,19 @@ class TransportWiringTest(unittest.TestCase):
     def test_commands_exist_in_both_faces(self):
         for cmd, stock in (('fuel', 'RW_FuelCommand'), ('refuel', 'RW_RefuelCommand'), ('trunk', 'RW_TrunkCommand'),
                            ('repair', 'RW_RepairCommand'), ('tow', 'RW_TowCommand'), ('tune', 'RW_TuneCommand'),
-                           ('impound', 'RW_ImpoundList'), ('unimpound', 'RW_UnimpoundCommand')):
+                           ('unimpound', 'RW_UnimpoundCommand')):
             self.assertIn('if (!strcmp(cmd, "%s", true)) return %s(playerid' % (cmd, stock), CMDS)
         self.assertIn('Транспорт: /fuel, /refuel, /trunk, /tune, /repair, /tow, /impound, /unimpound; Y на машине.', CMDS)
 
     def test_every_menu_has_a_text_draw_twin(self):
-        for cef, td in (('RW_CefTrunk', 'RW_TrunkPanel'), ('RW_CefPick', 'RW_PickPanel'), ('RW_CefService', 'RW_ServicePanel')):
+        for cef, td in (('RW_CefTrunk', 'RW_TrunkPanel'), ('RW_CefPick', 'RW_PickPanel'),
+                        ('RW_CefService', 'RW_ServicePanel'), ('RW_ImpoundCef', 'RW_ImpoundPanel')):
             self.assertIn('stock %s(playerid)' % cef, TRANS)
             self.assertIn('stock %s(playerid)' % td, TRANS)
         self.assertIn('if (RW_CefOn(playerid)) return RW_CefTrunk(playerid);', TRANS)
         self.assertIn('if (RW_CefOn(playerid)) return RW_CefPick(playerid);', TRANS)
         self.assertIn('if (RW_CefOn(playerid)) return RW_CefService(playerid);', TRANS)
+        self.assertIn('if (RW_CefOn(playerid)) return RW_ImpoundCef(playerid);', TRANS)
 
     def test_no_cyrillic_reaches_the_player(self):
         """Comments are Russian, every string the player can read is English."""
