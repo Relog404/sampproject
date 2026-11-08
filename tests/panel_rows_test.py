@@ -372,6 +372,14 @@ class HintTest(unittest.TestCase):
          'Сначала устройтесь на работу: /job на бирже труда.'),
         ('economy', 'Таксист берёт заказы в приложении Uber Drive: иконка такси в телефоне.',
          'Таксист берёт заказы в приложении Uber Drive: /uber или /taxi.'),
+        ('family', 'Предмет ушёл на склад семьи: забрать его — нажатием на строку склада.',
+         'Забрать: /ftake <номер>, список: /fstore list.'),
+        ('family', 'Машина передана семье: ключи лежат на складе, забрать — нажатием.',
+         'ключи лежат на складе. Взять: /ftake <номер>.'),
+        ('property', 'You are already inside: \\"Go outside\\" in the panel takes you out.',
+         'You are already inside. /exit gets you out.'),
+        ('cabin', 'Aim at a plane and press Y: the card there has a \\"board\\" row. Max 20 people.',
+         'Aim at a plane, or use /board <vehicle id>. Max 20 people.'),
     ]
 
     def test_the_browser_names_the_button_and_the_dialog_the_command(self):

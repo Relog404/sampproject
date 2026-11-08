@@ -361,6 +361,7 @@ stock RW_FamilyStoreSlot(playerid, slot)
     for (new E_INV_ITEM:j; j < E_INV_ITEM; j++) gInv[playerid][slot][j] = 0;
     RW_InvAttach(playerid);
     if (gUIMode[playerid] == UI_INVENTORY) RW_InvRender(playerid);
+    if (RW_CefOn(playerid)) return RW_Ok(playerid, "Предмет ушёл на склад семьи: забрать его — нажатием на строку склада.");
     return RW_Ok(playerid, "Предмет ушёл на склад семьи. Забрать: /ftake <номер>, список: /fstore list.");
 
 }
@@ -474,6 +475,7 @@ stock RW_FamilyGiveCar(playerid)
     for (new E_INV_ITEM:j; j < E_INV_ITEM; j++) gInv[playerid][slot][j] = 0;
     RW_InvAttach(playerid);
     if (gUIMode[playerid] == UI_INVENTORY) RW_InvRender(playerid);
+    if (RW_CefOn(playerid)) return RW_Ok(playerid, "Машина передана семье: ключи лежат на складе, забрать — нажатием.");
     return RW_Ok(playerid, "Машина передана семье: ключи лежат на складе. Взять: /ftake <номер>.");
 }
 /* Слот с ключом от машины, в которой сидит или которую держит игрок. */

@@ -424,7 +424,10 @@ stock RW_PropEnter(playerid, id)
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
     if (id < 0 || id >= PROP_MAX) return RW_Error(playerid, "No such property.");
-    if (gPropAt[playerid] >= 0) return RW_Info(playerid, "You are already inside. /exit gets you out.");
+    if (gPropAt[playerid] >= 0) {
+        if (RW_CefOn(playerid)) return RW_Info(playerid, "You are already inside: \"Go outside\" in the panel takes you out.");
+        return RW_Info(playerid, "You are already inside. /exit gets you out.");
+    }
     if (!RW_PropMine(playerid, id) && !gPropDoorOpen[id])
         return RW_Error(playerid, "The door is locked. Only the owner can open it.");
     if (!RW_PropNear(playerid)) return RW_Error(playerid, "Stand at the door.");

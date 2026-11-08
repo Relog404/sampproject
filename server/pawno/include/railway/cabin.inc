@@ -148,7 +148,10 @@ stock RW_CabinCommand(playerid, const params[])
     RW_ParseCommand(params, a, sizeof a, rest, sizeof rest);
     if (!a[0]) {
         new v = RW_ControlTarget(playerid);
-        if (v <= 0 || v >= MAX_VEHICLES) return RW_Info(playerid, "Aim at a plane, or use /board <vehicle id>. Max 20 people.");
+        if (v <= 0 || v >= MAX_VEHICLES) {
+            if (RW_CefOn(playerid)) return RW_Info(playerid, "Aim at a plane and press Y: the card there has a \"board\" row. Max 20 people.");
+            return RW_Info(playerid, "Aim at a plane, or use /board <vehicle id>. Max 20 people.");
+        }
         return RW_CabinBoard(playerid, v);
     }
     if (!RW_IsNumeric(a) || strval(a) <= 0 || strval(a) >= MAX_VEHICLES) return RW_Info(playerid, "/board <vehicle id> - aim at a plane or give its id.");
