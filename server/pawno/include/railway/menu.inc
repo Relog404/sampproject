@@ -116,5 +116,5 @@ stock RW_KeyCommand(playerid, const params[])
 stock RW_SettingsCommand(playerid)
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
-    return RW_UI_Settings(playerid);
+    return RW_SettingsOpen(playerid);
 }

@@ -267,8 +267,8 @@ class InlinePanelTest(unittest.TestCase):
                     'панель %s: строка %d на нажатие не отвечает' % (name, row))
 
     def test_the_settings_are_known_at_all(self):
-        self.assertEqual(self.emitted('settings'), [0, 1, 2, 3, 4, 5, 6])
-        self.assertEqual(sorted(self.answers('settings')), [0, 1, 2, 3, 4, 6])
+        self.assertEqual(self.emitted('settings'), [0, 1, 2, 3, 4, 5, 6, 7])
+        self.assertEqual(sorted(self.answers('settings')), [0, 1, 2, 3, 4, 5, 6, 7, 8])
         self.assertEqual(self.emitted('downed'), [0, 1])
         self.assertEqual(sorted(self.answers('downed')), [0, 1])
 
@@ -303,6 +303,33 @@ class InlinePanelTest(unittest.TestCase):
         self.assertIn('if (row == (cef ? 9 : 6)) {', action)
         self.assertIn('RW_GpsClear(playerid);', action)
         self.assertIn('return RW_GpsOpen(playerid);', action)
+
+    def test_the_screen_settings_are_switched_by_a_row(self):
+        """/set <hints|speedo|names|markers|welcome> — теперь и строка в панели."""
+        inter = pawn('interaction')
+        panel = block(inter, 'stock RW_UI_Settings(playerid)')
+        self.assertIn('RW_SettingsRow(playerid, 0, "Key hints", SET_HINTS, "info");', panel)
+        self.assertIn('RW_SettingsRow(playerid, 1, "Speedometer", SET_SPEEDO, "car");', panel)
+        self.assertIn('RW_SettingsRow(playerid, 2, "Player names", SET_NAMES, "users");', panel)
+        self.assertIn('RW_SettingsRow(playerid, 3, "Player markers", SET_MARKERS, "map");', panel)
+        self.assertIn('RW_SettingsRow(playerid, 4, "Welcome message", SET_WELCOME, "check");', panel)
+        self.assertIn('RW_UI_Row(playerid, 6, "Back: keys", "back");', panel)
+        self.assertIn('RW_UI_Row(playerid, 5, "Screen: hints, speedo, names", "eye");', panel)
+        row = block(inter, 'stock RW_SettingsRow(playerid, row, const text[], flag, const icon[])')
+        self.assertIn('RW_SettingsOn(playerid, flag) ? ("on") : ("off")', row)
+        branch = block(inter, 'if (mode == UI_SETTINGS) {')
+        self.assertIn('if (row == 0) RW_SettingsFlip(playerid, SET_HINTS);', branch)
+        self.assertIn('else if (row == 4) RW_SettingsFlip(playerid, SET_WELCOME);', branch)
+        self.assertIn('if (row == 5) { gSettingsMode[playerid] = 1; RW_UI_Settings(playerid); }', branch)
+
+    def test_the_panel_opens_on_the_first_screen(self):
+        """Закрыл на экране настроек — открыл снова и снова видишь клавиши."""
+        inter = pawn('interaction')
+        self.assertIn('stock RW_SettingsOpen(playerid)', inter)
+        self.assertIn('gSettingsMode[playerid] = 0;', block(inter, 'stock RW_SettingsOpen(playerid)'))
+        self.assertIn('return RW_SettingsOpen(playerid);', pawn('menu'))
+        branch = block(inter, 'if (mode == UI_SETTINGS) {')
+        self.assertIn('if (row == 8) { gSettingsMode[playerid] = 0; return RW_UI_Close(playerid); }', branch)
 
     def test_the_key_choice_swaps_two_keys(self):
         branch = block(pawn('interaction'), 'if (mode == UI_BIND) {')

@@ -11,6 +11,7 @@ stock RW_InteractionReset(playerid)
     gControlKeys[playerid][0] = KEY_CTRL_BACK;
     gControlKeys[playerid][1] = KEY_NO;
     gControlKeys[playerid][2] = KEY_YES;
+    gSettingsMode[playerid] = 0;
 }
 stock RW_ControlNotify(playerid, const text[]) { return RW_UI_Notify(playerid, text); }
 stock RW_KeyName(key, dest[], size)
@@ -28,7 +29,7 @@ stock RW_KeyName(key, dest[], size)
 stock RW_ControlOpen(playerid, bool:settings)
 {
     if (!gLogged[playerid]) return 1;
-    if (settings) { gControlMode[playerid] = 1; return RW_UI_Settings(playerid); }
+    if (settings) { gControlMode[playerid] = 1; return RW_SettingsOpen(playerid); }
     new v = RW_ControlTarget(playerid);
     if (v <= 0 || v >= MAX_VEHICLES || v == INVALID_VEHICLE_ID || gVehSlotOf[v] < 0) {
         new target = RW_PlayerTarget(playerid);
@@ -100,8 +101,35 @@ stock RW_PlayerMenu(playerid, target)
     format(message, sizeof message, "%s saved your number %d.", mynick, gPhoneNum[playerid]);
     return RW_Ok(target, message);
 }
+/* Открытие панели всегда с первого экрана: иначе после закрытия на экране
+   настроек игрок вернулся бы не туда, откуда пришёл. */
+stock RW_SettingsOpen(playerid)
+{
+    gSettingsMode[playerid] = 0;
+    return RW_UI_Settings(playerid);
+}
+/* Строка переключателя: названием и тем, что будет после нажатия. */
+stock RW_SettingsRow(playerid, row, const text[], flag, const icon[])
+{
+    new label[72];
+    format(label, sizeof label, "%s: %s", text, RW_SettingsOn(playerid, flag) ? ("on") : ("off"));
+    RW_UI_Row(playerid, row, label, icon);
+    return 1;
+}
 stock RW_UI_Settings(playerid)
 {
+    if (gSettingsMode[playerid]) {
+        RW_UI_Panel(playerid, UI_SETTINGS, "Settings", "What the screen shows: press a row to switch");
+        RW_SettingsRow(playerid, 0, "Key hints", SET_HINTS, "info");
+        RW_SettingsRow(playerid, 1, "Speedometer", SET_SPEEDO, "car");
+        RW_SettingsRow(playerid, 2, "Player names", SET_NAMES, "users");
+        RW_SettingsRow(playerid, 3, "Player markers", SET_MARKERS, "map");
+        RW_SettingsRow(playerid, 4, "Welcome message", SET_WELCOME, "check");
+        RW_UI_Row(playerid, 6, "Back: keys", "back");
+        RW_UI_Row(playerid, 7, "Close", "close");
+        if (RW_CefOn(playerid)) RW_CefAction(playerid, 8, "Close", "danger");
+        return 1;
+    }
     RW_UI_Panel(playerid, UI_SETTINGS, "Settings", "Select an action to change its key");
     new label[64], key[16];
     for (new i; i < 3; i++) {
@@ -111,8 +139,9 @@ stock RW_UI_Settings(playerid)
     }
     RW_UI_Row(playerid, 3, RW_HudIsOn(playerid) ? ("HUD: on (press to hide)") : ("HUD: off (press to show)"), "eye");
     RW_UI_Row(playerid, 4, RW_HudMouseIsOn(playerid) ? ("Mouse: on (press to take the cursor away)") : ("Mouse: off (press to take the cursor)"), "cursor");
-    RW_UI_Row(playerid, 5, "Saved for this session", "check");
+    RW_UI_Row(playerid, 5, "Screen: hints, speedo, names", "eye");
     RW_UI_Row(playerid, 6, "Reset: H / N / Y", "refresh");
+    RW_UI_Row(playerid, 7, "Close", "close");
     if (RW_CefOn(playerid)) RW_CefAction(playerid, 8, "Close", "danger");
     return 1;
 }
@@ -176,6 +205,20 @@ stock RW_UI_Click(playerid, row)
     if (gUIInput[playerid]) return 1;
     new mode = gUIMode[playerid];
     if (mode == UI_SETTINGS) {
+        /* Кнопка «Закрыть» (8) приходит и из браузера: панель закрывается,
+           а экран настроек сбрасывается на первый. */
+        if (row == 8) { gSettingsMode[playerid] = 0; return RW_UI_Close(playerid); }
+        if (gSettingsMode[playerid]) {
+            if (row == 6) { gSettingsMode[playerid] = 0; return RW_UI_Settings(playerid); }
+            if (row == 7) { gSettingsMode[playerid] = 0; return RW_UI_Close(playerid); }
+            /* Тот же переключатель, что и /set <имя>, только по строке. */
+            if (row == 0) RW_SettingsFlip(playerid, SET_HINTS);
+            else if (row == 1) RW_SettingsFlip(playerid, SET_SPEEDO);
+            else if (row == 2) RW_SettingsFlip(playerid, SET_NAMES);
+            else if (row == 3) RW_SettingsFlip(playerid, SET_MARKERS);
+            else if (row == 4) RW_SettingsFlip(playerid, SET_WELCOME);
+            return RW_UI_Settings(playerid);
+        }
         if (row < 3) {
             gUIBind[playerid] = row;
             RW_UI_Panel(playerid, UI_BIND, "Choose key", "Assigned keys will swap");
@@ -185,7 +228,9 @@ stock RW_UI_Click(playerid, row)
             if (RW_CefOn(playerid)) RW_CefAction(playerid, 8, "Close", "danger");
         } else if (row == 3) { RW_HudToggle(playerid, true); RW_UI_Settings(playerid); }
         else if (row == 4) { RW_HudMouseToggle(playerid); RW_UI_Settings(playerid); }
+        else if (row == 5) { gSettingsMode[playerid] = 1; RW_UI_Settings(playerid); }
         else if (row == 6) { RW_InteractionReset(playerid); gControlMode[playerid] = 1; RW_UI_Settings(playerid); }
+        else if (row == 7) { gSettingsMode[playerid] = 0; return RW_UI_Close(playerid); }
     } else if (mode == UI_BIND) {
         if (row < 4) {
             static const keys[] = { KEY_YES, KEY_NO, KEY_CTRL_BACK, KEY_WALK };

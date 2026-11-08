@@ -312,6 +312,7 @@ new bool:gRegPending[MAX_PLAYERS];
 new gRegPassword[MAX_PLAYERS][65];
 new Float:gMapPoint[MAX_PLAYERS][3];
 new gControlKeys[MAX_PLAYERS][3], gControlVehicle[MAX_PLAYERS], gControlMode[MAX_PLAYERS], gControlTick[MAX_PLAYERS];
+new gSettingsMode[MAX_PLAYERS];            /* 0 клавиши, 1 экран            */
 new DB:gDB;
 new bool:gDBWritable;
 

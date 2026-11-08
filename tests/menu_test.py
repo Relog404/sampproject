@@ -104,7 +104,7 @@ class SettingsServerTest(unittest.TestCase):
         self.assertNotIn('RW_MenuOpen', flip)
 
     def test_the_settings_panel_is_a_small_panel(self):
-        self.assertIn('return RW_UI_Settings(playerid);', block(MENU, 'stock RW_SettingsCommand(playerid)'))
+        self.assertIn('return RW_SettingsOpen(playerid);', block(MENU, 'stock RW_SettingsCommand(playerid)'))
         self.assertIn('stock RW_UI_Settings(playerid)', INTERACTION)
 
 
