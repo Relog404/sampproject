@@ -13,6 +13,11 @@
   `GetVehicleParamsEx`, `SetTimerEx` и остальные).
 - **База.** `db_open("railway.db")` в open.mp, как и в SA-MP, ищет файл
   в `<каталог сервера>/scriptfiles/` — `railway.db` остаётся на месте.
+- **Модули AMX.** `floatsin`, `floatcos`, `gettime`, `random` живут не в
+  нативах, а в модулях AMX: open.mp инициализирует float, time, core,
+  string и file для каждого скрипта (`Script/Script.cpp`, вызовы
+  `amx_FloatInit` / `amx_TimeInit` при загрузке) — камера входа и
+  генерация машин работают.
 - **Порт CEF.** Компонент берёт игровой порт и прибавляет два
   (7777 → 7779), настройки `cef.*` необязательны.
 - **Единственное расхождение — номера таймеров.** SA-MP нумерует их с
