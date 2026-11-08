@@ -240,6 +240,7 @@ class InlinePanelTest(unittest.TestCase):
         ('settings', 5): 'ключи сохраняются сами: нажимать нечего',
         ('map', 1): '«нет» — панель просто закрывается',
         ('phone', 0): 'баланс и тариф: строка-справка',
+        ('downed', 2): 'номер вызова скорой: строка-справка, а не кнопка',
     }
 
     def emitted(self, name):
@@ -269,7 +270,7 @@ class InlinePanelTest(unittest.TestCase):
     def test_the_settings_are_known_at_all(self):
         self.assertEqual(self.emitted('settings'), [0, 1, 2, 3, 4, 5, 6, 7])
         self.assertEqual(sorted(self.answers('settings')), [0, 1, 2, 3, 4, 5, 6, 7, 8])
-        self.assertEqual(self.emitted('downed'), [0, 1])
+        self.assertEqual(self.emitted('downed'), [0, 1, 2])
         self.assertEqual(sorted(self.answers('downed')), [0, 1])
 
     def test_the_hud_and_the_cursor_are_switched_by_a_row(self):
@@ -481,7 +482,19 @@ class HintTest(unittest.TestCase):
         ('phoneapps', 'You are already in a group: the group app has a leave row.',
          'You are already in a group. /gleave first.'),
         ('police', 'You already have an open case: close it in the lawyer app.',
-         'You already have an open case: /endcase first.'),        ('cabin', 'Aim at a plane and press Y: the card there has a \\"board\\" row. Max 20 people.',
+         'You already have an open case: /endcase first.'),
+        ('city', 'Начало: устройтесь на точке найма во дворе Эль-Корона, подойдя и нажав Y.',
+         'Начало: /job во дворе Эль-Корона, затем /work - задание.'),
+        ('city', 'Донат-меню: клавиша C. Экранный интерфейс и клавиши: Alt + H.',
+         'Донат-меню: /donate. Экранный интерфейс: /hud, /set и /key.'),
+        ('family', 'Захват: кнопкой в панели семьи, стоя на точке 120 секунд.',
+         'Захват: /fcap, стоя на точке 120 секунд.'),
+        ('family', 'Вас никто не звал: пусть лидер или старший пригласит строкой в панели семьи.',
+         'Вас никто не звал: пусть лидер или старший напишет /finvite <id>.'),
+        ('transport', 'Drive to a gas station: the car menu there has a refuel row.',
+         'Drive to a gas station: /fuel shows the level.'),
+        ('medical', 'The ambulance is on its way: lie still, your call is on the panel.',
+         'The ambulance is on its way. Lie still: /calls shows your call to the medics.'),        ('cabin', 'Aim at a plane and press Y: the card there has a \\"board\\" row. Max 20 people.',
          'Aim at a plane, or use /board <vehicle id>. Max 20 people.'),
     ]
 

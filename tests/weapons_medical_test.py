@@ -151,6 +151,15 @@ class MedicalSourceTest(unittest.TestCase):
         self.assertIn('RW_MedPulse();',INV)
         self.assertIn('UI_DOWNED',pawn('ui'))
         self.assertIn('if (gDowned[playerid]) return RW_Error(playerid, "You are downed and cannot reach your backpack.");',INV)
+    def test_the_downed_panel_shows_the_call_instead_of_hiding_it(self):
+        """/calls печатал номер вызова в чат: теперь он виден на панели."""
+        self.assertIn('"Вызов №%d: скорая в пути"', MED)
+        self.assertIn('gDownCall[playerid] = id;', MED)
+        self.assertIn('RW_MedRender(playerid);', MED)
+        self.assertIn('your call is on the panel', MED)
+        self.assertIn('gDownCall[playerid] = 0;', MED)
+        self.assertIn('new gDownCall[MAX_PLAYERS];', pawn('core'))
+
     def test_syringe_revives_a_downed_player_nearby(self):
         syringe=MED.split('stock RW_UseSyringe',1)[1].split('public RW_MedSyringeDone',1)[0]
         self.assertIn('No downed player within 3 metres',syringe)

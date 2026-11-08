@@ -112,8 +112,13 @@ stock RW_CityWelcome(playerid)
     RW_GetNick(playerid, nick);
     RW_Accent(playerid, "--- Добро пожаловать на Unity Station ---");
     RW_Info(playerid, "Это ролевой сервер: играйте роль, говорите от лица персонажа, а /b - для разговора вне роли.");
-    RW_Info(playerid, "Начало: /job во дворе Эль-Корона, затем /work - задание. Деньги приходят на /payday.");
-    RW_Info(playerid, "Донат-меню: /donate. Экранный интерфейс: /hud, /set и /key.");
+    if (RW_CefOn(playerid)) {
+        RW_Info(playerid, "Начало: устройтесь на точке найма во дворе Эль-Корона, подойдя и нажав Y. Задание — строка в панели работы, деньги — в приложении Bank.");
+        RW_Info(playerid, "Донат-меню: клавиша C. Экранный интерфейс и клавиши: Alt + H.");
+    } else {
+        RW_Info(playerid, "Начало: /job во дворе Эль-Корона, затем /work - задание. Деньги приходят на /payday.");
+        RW_Info(playerid, "Донат-меню: /donate. Экранный интерфейс: /hud, /set и /key.");
+    }
     if (gMoney[playerid] <= 0 && gBank[playerid] <= 0) {
         RW_AddMoney(playerid, CITY_START_CASH);
         RW_BankAdd(playerid, CITY_START_BANK);

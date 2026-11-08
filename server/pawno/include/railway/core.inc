@@ -330,6 +330,7 @@ new bool:gDowned[MAX_PLAYERS];
 new gDownEnd[MAX_PLAYERS], gDownStamp[MAX_PLAYERS];
 new Float:gDownX[MAX_PLAYERS], Float:gDownY[MAX_PLAYERS], Float:gDownZ[MAX_PLAYERS];
 new bool:gMedBusy[MAX_PLAYERS], gMedCooldown[MAX_PLAYERS], gMedTick[MAX_PLAYERS];
+new gDownCall[MAX_PLAYERS];             /* номер вызова скорой у раненого  */
 /* Тексдрав-экран раненого удалён: его рисует страница. */
 
 new bool:gLogged[MAX_PLAYERS];         /* игрок авторизован                  */

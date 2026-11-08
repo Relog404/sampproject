@@ -240,7 +240,10 @@ stock RW_FamilyJoin(playerid)
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Сначала войдите в аккаунт.");
     if (gFamily[playerid] != FAMILY_NONE) return RW_Error(playerid, "Вы уже в семье.");
-    if (gFamilyInvite[playerid] == FAMILY_NONE) return RW_Error(playerid, "Вас никто не звал: пусть лидер или старший напишет /finvite <id>.");
+    if (gFamilyInvite[playerid] == FAMILY_NONE) {
+        if (RW_CefOn(playerid)) return RW_Error(playerid, "Вас никто не звал: пусть лидер или старший пригласит строкой в панели семьи.");
+        return RW_Error(playerid, "Вас никто не звал: пусть лидер или старший напишет /finvite <id>.");
+    }
     new family = gFamilyInvite[playerid];
     new query[200];
     format(query, sizeof query, "INSERT OR REPLACE INTO family_members(family,player_id,rank) VALUES(%d,%d,%d)", family, gAccountId[playerid], FAMILY_RANK_MEMBER);
@@ -440,7 +443,8 @@ stock RW_FamilyStorageList(playerid)
     if (r == DBResult:0) return RW_Info(playerid, "Склад семьи пуст.");
     new rows = db_num_rows(r);
     if (!rows) { db_free_result(r); return RW_Info(playerid, "Склад семьи пуст."); }
-    RW_Accent(playerid, "Склад семьи (взять: /ftake <номер>):");
+    if (RW_CefOn(playerid)) RW_Accent(playerid, "Склад семьи (взять: нажмите на вещь в панели):");
+    else RW_Accent(playerid, "Склад семьи (взять: /ftake <номер>):");
     for (new i; i < rows; i++) {
         new id = db_get_field_assoc_int(r, "id"), type = db_get_field_assoc_int(r, "type");
         new data = db_get_field_assoc_int(r, "data"), amount = db_get_field_assoc_int(r, "amount");
@@ -570,6 +574,7 @@ stock RW_FamilyZonesCommand(playerid)
         format(line, sizeof line, "%s (%d, %d) — %s", gFamilyZoneName[i], floatround(gFamilyZone[i][0]), floatround(gFamilyZone[i][1]), name);
         SendClientMessage(playerid, COLOR_GREY, line);
     }
+    if (RW_CefOn(playerid)) return RW_Info(playerid, "Захват: кнопкой в панели семьи, стоя на точке 120 секунд.");
     return RW_Info(playerid, "Захват: /fcap, стоя на точке 120 секунд.");
 }
 /* Захват идёт в общем таймере криминала: держим точку, пока игрок рядом. */

@@ -176,7 +176,10 @@ stock RW_FuelRefuel(playerid, vehicleid)
     new Float:need = FUEL_MAX - gFuel[slot];
     if (need <= 0.5) return RW_Info(playerid, "The tank is full.");
     new bool:mech = RW_MechOnDuty(playerid);
-    if (!mech && !RW_TransportAtGas(playerid)) return RW_Error(playerid, "Drive to a gas station: /fuel shows the level.");
+    if (!mech && !RW_TransportAtGas(playerid)) {
+        if (RW_CefOn(playerid)) return RW_Error(playerid, "Drive to a gas station: the car menu there has a refuel row.");
+        return RW_Error(playerid, "Drive to a gas station: /fuel shows the level.");
+    }
     new cost = floatround(need) * FUEL_PRICE;
     if (!mech && !RW_TakeMoney(playerid, cost)) return RW_Error(playerid, "Not enough cash for a full tank.");
     new ms = mech ? 5000 : (1000 + floatround(need) * 80);

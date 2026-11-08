@@ -120,7 +120,7 @@ class FamilyRosterTest(unittest.TestCase):
 
     def test_joining_needs_an_invitation(self):
         join = block(FAMILY, 'stock RW_FamilyJoin(playerid)')
-        self.assertIn('if (gFamilyInvite[playerid] == FAMILY_NONE) return RW_Error', join)
+        self.assertIn('if (gFamilyInvite[playerid] == FAMILY_NONE) {', join)
         self.assertIn('FAMILY_RANK_MEMBER', join)
         self.assertIn('gFamilyInvite[playerid] = FAMILY_NONE;', join)
 

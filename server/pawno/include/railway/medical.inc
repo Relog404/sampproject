@@ -38,7 +38,7 @@ stock RW_MedHide(playerid)
 stock RW_MedReset(playerid)
 {
     RW_MedHide(playerid);
-    gDowned[playerid] = false; gDownEnd[playerid] = 0;
+    gDowned[playerid] = false; gDownEnd[playerid] = 0; gDownCall[playerid] = 0;
     gMedBusy[playerid] = false; gMedCooldown[playerid] = 0; gMedTick[playerid] = 0;
     return 1;
 }
@@ -64,6 +64,9 @@ stock RW_MedCall(playerid)
 {
     new id = RW_EmsCall(playerid, 3, gDownX[playerid], gDownY[playerid], gDownZ[playerid]);
     if (!id) return RW_Error(playerid, "The call did not go through. Try again in a second.");
+    gDownCall[playerid] = id;
+    RW_MedRender(playerid);
+    if (RW_CefOn(playerid)) return RW_Ok(playerid, "The ambulance is on its way: lie still, your call is on the panel.");
     return RW_Ok(playerid, "The ambulance is on its way. Lie still: /calls shows your call to the medics.");
 }
 /* Подождать ещё семь минут. */
@@ -83,6 +86,12 @@ stock RW_MedCef(playerid)
     RW_UI_Panel(playerid, UI_DOWNED, "Вы ранены", subtitle);
     RW_UI_Row(playerid, 0, "Вызвать скорую", "band");
     RW_UI_Row(playerid, 1, "Подождать ещё 7 минут", "clock");
+    /* Свой вызов видно здесь же: раньше его показывала только /calls. */
+    if (gDownCall[playerid] > 0) {
+        new line[96];
+        format(line, sizeof line, "Вызов №%d: скорая в пути", gDownCall[playerid]);
+        RW_UI_Row(playerid, 2, line, "info");
+    }
     return 1;
 }
 stock RW_MedCefClick(playerid, id)

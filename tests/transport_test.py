@@ -204,7 +204,8 @@ class FuelTest(unittest.TestCase):
 
     def test_refuelling_needs_a_station_or_a_mechanic(self):
         refuel = block(TRANS, 'stock RW_FuelRefuel(playerid, vehicleid)')
-        self.assertIn('if (!mech && !RW_TransportAtGas(playerid)) return RW_Error(playerid, "Drive to a gas station: /fuel shows the level.");', refuel)
+        self.assertIn('if (!mech && !RW_TransportAtGas(playerid)) {', refuel)
+        self.assertIn('Drive to a gas station: the car menu there has a refuel row.', refuel)
         self.assertIn('new cost = floatround(need) * FUEL_PRICE;', refuel)
         self.assertIn('if (!mech && !RW_TakeMoney(playerid, cost)) return RW_Error(playerid, "Not enough cash for a full tank.");', refuel)
         self.assertIn('SetTimerEx("RW_TransRefuelDone", ms, false, "iif", playerid, vehicleid, need);', refuel)
