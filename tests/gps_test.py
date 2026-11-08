@@ -150,6 +150,21 @@ class ScrollbarTest(unittest.TestCase):
         self.assertIn('scrollbar-width: none;', CSS)
         self.assertIn('overscroll-behavior: none;', CSS)
 
+    def test_a_long_panel_scrolls_inside_the_card(self):
+        """Десять строк GPS или восемь лотов рынка не должны уезжать за экран."""
+        sheet = block(CSS, '.sheet {', '}')
+        self.assertIn('max-height: 88vh;', sheet)
+        self.assertIn('display: flex;', sheet)
+        self.assertIn('flex-direction: column;', sheet)
+        rows = block(CSS, '.rows {', '}')
+        self.assertIn('overflow-y: auto;', rows)
+        self.assertIn('min-height: 0;', rows)
+        self.assertIn('overscroll-behavior: contain;', rows)
+        card = block(CSS, '.card {', '}')
+        self.assertIn('min-height: 0;', card)
+        self.assertIn('flex: 1 1 auto;', card)
+        self.assertIn('.sheet-head { padding: 0 6px 14px; text-align: center; flex: 0 0 auto; }', CSS)
+
 
 class ClickThroughTest(unittest.TestCase):
     """Окно выше меню не должно съедать нажатия."""
