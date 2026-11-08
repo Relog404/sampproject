@@ -53,7 +53,10 @@ stock RW_SelfMenu(playerid)
        токену из чата. Сюда же попадает механик на службе. */
     if (RW_ImpoundNear(playerid) && RW_ImpoundMayOpen(playerid)) return RW_ImpoundOpen(playerid);
     if (RW_PhoneHasItem(playerid) <= 0) return RW_Error(playerid, "You have no phone. Buy one at a 24/7 shop.");
-    if (gPhoneNum[playerid] <= 0) return RW_Error(playerid, "No SIM card: buy one and insert it with /sim.");
+    if (gPhoneNum[playerid] <= 0) {
+        if (RW_CefOn(playerid)) return RW_Error(playerid, "No SIM card: buy one at a 24/7 shop and insert it from your pockets (Alt + U).");
+        return RW_Error(playerid, "No SIM card: buy one and insert it with /sim.");
+    }
     return RW_PhoneOpen(playerid);
 }
 stock RW_PlayerTarget(playerid)

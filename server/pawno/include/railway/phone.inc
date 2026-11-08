@@ -658,7 +658,10 @@ stock RW_PhoneOpen(playerid)
 {
     if (!gLogged[playerid]) return RW_Error(playerid, "Log in first.");
     if (RW_PhoneHasItem(playerid) <= 0) return RW_Error(playerid, "You have no phone. Buy one at a 24/7 shop.");
-    if (gPhoneNum[playerid] <= 0) return RW_Error(playerid, "No SIM card: buy one and insert it with /sim.");
+    if (gPhoneNum[playerid] <= 0) {
+        if (RW_CefOn(playerid)) return RW_Error(playerid, "No SIM card: buy one at a 24/7 shop and insert it from your pockets (Alt + U).");
+        return RW_Error(playerid, "No SIM card: buy one and insert it with /sim.");
+    }
     #if RAILWAY_CEF
         if (RW_CefOn(playerid)) return RW_CefPhoneOpen(playerid);
     #endif

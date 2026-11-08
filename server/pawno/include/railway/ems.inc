@@ -662,6 +662,7 @@ stock RW_EmsCallsCommand(playerid)
         db_next_row(r);
     }
     db_free_result(r);
+    if (RW_CefOn(playerid)) return RW_Info(playerid, "The calls are rows in the tablet: Y with a badge or a medkit opens it.");
     return RW_Info(playerid, "/take <id> - take a call, /mdt - the tablet.");
 }
 stock RW_EmsTakeCommand(playerid, const params[])

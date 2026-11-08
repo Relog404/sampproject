@@ -410,7 +410,13 @@ class HintTest(unittest.TestCase):
         ('city', 'Метка стоит: езжайте за ней. Снять — кнопка в навигаторе.',
          'Метка стоит: езжайте за ней. Снять — /gps off.'),
         ('vehicles', 'Your car-menu key opens the card: doors, key and engine are rows in it.',
-         '/door{FFFFFF} - unlock; /key - insert key'),        ('cabin', 'Aim at a plane and press Y: the card there has a \\"board\\" row. Max 20 people.',
+         '/door{FFFFFF} - unlock; /key - insert key'),
+        ('ems', 'The calls are rows in the tablet: Y with a badge or a medkit opens it.',
+         '/take <id> - take a call, /mdt - the tablet.'),
+        ('interaction', 'No SIM card: buy one at a 24/7 shop and insert it from your pockets (Alt + U).',
+         'No SIM card: buy one and insert it with /sim.'),
+        ('phone', 'No SIM card: buy one at a 24/7 shop and insert it from your pockets (Alt + U).',
+         'No SIM card: buy one and insert it with /sim.'),        ('cabin', 'Aim at a plane and press Y: the card there has a \\"board\\" row. Max 20 people.',
          'Aim at a plane, or use /board <vehicle id>. Max 20 people.'),
     ]
 
