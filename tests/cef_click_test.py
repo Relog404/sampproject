@@ -115,8 +115,8 @@ class DownedScreenTest(unittest.TestCase):
         self.assertNotIn('PlayerTextDraw', open_)
         screen = block(MEDICAL, 'stock RW_MedCef(playerid)')
         self.assertIn('RW_UI_Panel(playerid, UI_DOWNED, "Вы ранены", subtitle);', screen)
-        self.assertIn('RW_UI_Row(playerid, 0, "Вызвать скорую");', screen)
-        self.assertIn('RW_UI_Row(playerid, 1, "Подождать ещё 7 минут");', screen)
+        self.assertIn('RW_UI_Row(playerid, 0, "Вызвать скорую", "band");', screen)
+        self.assertIn('RW_UI_Row(playerid, 1, "Подождать ещё 7 минут", "clock");', screen)
 
     def test_the_timer_is_shared(self):
         render = block(MEDICAL, 'stock RW_MedRender(playerid)')
@@ -162,8 +162,8 @@ class SettingsScreenTest(unittest.TestCase):
 
     def test_binding_lists_the_keys(self):
         settings = block(self.interaction, 'stock RW_UI_Settings(playerid)')
-        self.assertIn('RW_UI_Row(playerid, i, label);', settings)
-        self.assertIn('RW_UI_Row(playerid, 6, "Reset: H / N / Y");', settings)
+        self.assertIn('RW_UI_Row(playerid, i, label, i == 0 ? ("door") : (i == 1 ? ("engine") : ("car")));', settings)
+        self.assertIn('RW_UI_Row(playerid, 6, "Reset: H / N / Y", "refresh");', settings)
 
 
 class GarageScreenTest(unittest.TestCase):

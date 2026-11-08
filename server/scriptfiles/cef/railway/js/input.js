@@ -76,6 +76,10 @@
 
     ok.addEventListener('click', send);
     cancel.addEventListener('click', abort);
+    /* Клик по затемнению вокруг карточки — отмена, как у панели. */
+    root.addEventListener('click', function (event) {
+      if (event.target === root) abort();
+    });
     field.addEventListener('keydown', function (event) {
       if (event.key === 'Enter') { event.preventDefault(); send(); }
       if (event.key === 'Escape') { event.preventDefault(); abort(); }

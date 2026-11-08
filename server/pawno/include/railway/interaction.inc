@@ -101,10 +101,10 @@ stock RW_UI_Settings(playerid)
     for (new i; i < 3; i++) {
         RW_KeyName(gControlKeys[playerid][i], key, sizeof key);
         format(label, sizeof label, "%s: [%s]", i == 0 ? ("Doors") : (i == 1 ? ("Engine") : ("Car menu")), key);
-        RW_UI_Row(playerid, i, label);
+        RW_UI_Row(playerid, i, label, i == 0 ? ("door") : (i == 1 ? ("engine") : ("car")));
     }
-    RW_UI_Row(playerid, 5, "Saved for this session");
-    RW_UI_Row(playerid, 6, "Reset: H / N / Y");
+    RW_UI_Row(playerid, 5, "Saved for this session", "check");
+    RW_UI_Row(playerid, 6, "Reset: H / N / Y", "refresh");
     if (RW_CefOn(playerid)) RW_CefAction(playerid, 8, "Close", "danger");
     return 1;
 }
@@ -171,8 +171,8 @@ stock RW_UI_Click(playerid, row)
         if (row < 3) {
             gUIBind[playerid] = row;
             RW_UI_Panel(playerid, UI_BIND, "Choose key", "Assigned keys will swap");
-            RW_UI_Row(playerid, 0, "Y"); RW_UI_Row(playerid, 1, "N");
-            RW_UI_Row(playerid, 2, "H"); RW_UI_Row(playerid, 3, "LALT");
+            RW_UI_Row(playerid, 0, "Y", "key"); RW_UI_Row(playerid, 1, "N", "key");
+            RW_UI_Row(playerid, 2, "H", "key"); RW_UI_Row(playerid, 3, "LALT", "key");
             RW_UI_Row(playerid, 7, "Back");
             if (RW_CefOn(playerid)) RW_CefAction(playerid, 8, "Close", "danger");
         } else if (row == 6) { RW_InteractionReset(playerid); gControlMode[playerid] = 1; RW_UI_Settings(playerid); }
@@ -364,8 +364,8 @@ stock RW_MapPrompt(playerid)
     new coords[64]; format(coords, sizeof coords, "Marker: %.0f, %.0f", gMapPoint[playerid][0], gMapPoint[playerid][1]);
     gMapPending[playerid] = true;
     RW_UI_Panel(playerid, UI_MAP, "Teleport to marker?", coords);
-    RW_UI_Row(playerid, 0, "Yes, teleport");
-    RW_UI_Row(playerid, 1, "No, stay here");
+    RW_UI_Row(playerid, 0, "Yes, teleport", "map");
+    RW_UI_Row(playerid, 1, "No, stay here", "close");
     if (RW_CefOn(playerid)) RW_CefAction(playerid, 8, "Close", "danger");
     return 1;
 }

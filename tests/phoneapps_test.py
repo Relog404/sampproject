@@ -295,7 +295,7 @@ class PhoneAppWiringTest(unittest.TestCase):
 
     def test_the_text_draw_phone_has_an_applications_row(self):
         menu = PHONE.split('stock RW_PhoneMenu(playerid)', 1)[1].split('\n}', 1)[0]
-        self.assertIn('RW_UI_Row(playerid, 6, "Applications");', menu)
+        self.assertIn('RW_UI_Row(playerid, 6, "Applications", "info");', menu)
         click = PHONE.split('stock RW_PhoneClick(playerid, row, mode)', 1)[1]
         self.assertIn('if (row == 6) return RW_PhoneAppList(playerid);', click)
         self.assertIn('else if (mode == UI_PHONE_APP) {', INTER)

@@ -28,7 +28,7 @@ class CompactRussianUiTest(unittest.TestCase):
         """Строка панели уходит в браузер, а без браузера — в нативный диалог:
         отдельных хитбоксов у строк больше нет."""
         row = self.ui.split('stock RW_UI_Row(', 1)[1].split('\nstock ', 1)[0]
-        self.assertIn('if (gUIOnCef[playerid]) { RW_CefRow(playerid, row, text, "", "bag"); return RW_UI_ScheduleCef(playerid); }', row)
+        self.assertIn('if (gUIOnCef[playerid]) { RW_CefRow(playerid, row, text, "", icon); return RW_UI_ScheduleCef(playerid); }', row)
         # страница рисуется один раз, когда все строки уже отправлены
         self.assertIn('SetTimerEx("RW_UI_FlushCef", 50, false, "i", playerid)', self.ui)
         self.assertIn('format(gUINativeRows[playerid][row], 128, "%s", text);', row)

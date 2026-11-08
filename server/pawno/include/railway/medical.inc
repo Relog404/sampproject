@@ -81,8 +81,8 @@ stock RW_MedCef(playerid)
     RW_MedTimeLeft(playerid, time, sizeof time);
     format(subtitle, sizeof subtitle, "Кровотечение: %s", time);
     RW_UI_Panel(playerid, UI_DOWNED, "Вы ранены", subtitle);
-    RW_UI_Row(playerid, 0, "Вызвать скорую");
-    RW_UI_Row(playerid, 1, "Подождать ещё 7 минут");
+    RW_UI_Row(playerid, 0, "Вызвать скорую", "band");
+    RW_UI_Row(playerid, 1, "Подождать ещё 7 минут", "clock");
     return 1;
 }
 stock RW_MedCefClick(playerid, id)

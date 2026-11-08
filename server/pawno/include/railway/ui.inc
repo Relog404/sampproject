@@ -179,9 +179,11 @@ stock RW_UI_Panel(playerid, mode, const title[], const subtitle[])
     gUIOnCef[playerid] = false;
     return RW_UI_ScheduleNative(playerid);
 }
-stock RW_UI_Row(playerid, row, const text[])
+/* »конку можно не передавать: по умолчанию строка получает Ђсумкуї, как
+   раньше. ѕанели, где иконка важна (ключи, метка, бинт), называют еЄ сами. */
+stock RW_UI_Row(playerid, row, const text[], const icon[] = "bag")
 {
-    if (gUIOnCef[playerid]) { RW_CefRow(playerid, row, text, "", "bag"); return RW_UI_ScheduleCef(playerid); }
+    if (gUIOnCef[playerid]) { RW_CefRow(playerid, row, text, "", icon); return RW_UI_ScheduleCef(playerid); }
     format(gUINativeRows[playerid][row], 128, "%s", text);
     return RW_UI_ScheduleNative(playerid);
 }

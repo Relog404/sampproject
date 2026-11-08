@@ -22,6 +22,7 @@ def pawn(path):
     return path.read_text(encoding='cp1251')
 
 CEFUI_SRC = pawn(CEFUI)
+UI_SRC = pawn(UI)
 
 
 def block(src, signature):
@@ -39,6 +40,79 @@ def block(src, signature):
 
 def strings(code):
     return re.findall(r'"([^"\r\n]+)"', code)
+
+
+class IconTest(unittest.TestCase):
+    """Иконка строки: сервер называет то, что страница умеет рисовать.
+
+    Неизвестное имя страница молча заменяет на «шеврон» — строка выглядит
+    пустой и непонятно, что нажать. Сверяем все имена из Pawn с ICONS в ui.js.
+    """
+
+    def split_args(self, text):
+        args, cur, depth, i = [], '', 0, 0
+        while i < len(text):
+            c = text[i]
+            if c == '"':
+                j = i + 1
+                while j < len(text) and text[j] != '"':
+                    j += 2 if text[j] == '\\' else 1
+                cur += text[i:j + 1]
+                i = j + 1
+                continue
+            if c in '([':
+                depth += 1
+            elif c in ')]':
+                depth -= 1
+                if depth < 0:
+                    break
+            if c == ',' and depth == 0:
+                args.append(cur.strip())
+                cur = ''
+                i += 1
+                continue
+            cur += c
+            i += 1
+        args.append(cur.strip())
+        return args
+
+    def server_icons(self):
+        icons = set()
+        for name in ('core', 'ui', 'interaction', 'economy', 'ems', 'police', 'transport',
+                     'garage', 'market', 'property', 'crime', 'family', 'government',
+                     'city', 'phone', 'phoneapps', 'medical', 'donate', 'story'):
+            src = pawn(INC / 'railway' / ('%s.inc' % name))
+            for match in re.finditer(r'RW_CefRow\(', src):
+                end = src.find(');', match.end())
+                if end < 0:
+                    continue
+                args = self.split_args(src[match.end():end])
+                if len(args) >= 5 and args[4].startswith('"'):
+                    icons.add(args[4].strip('"'))
+        return icons
+
+    def page_icons(self):
+        js = (PAGES / 'js/ui.js').read_text(encoding='utf-8')
+        return set(re.findall(r'^\s{4}(\w+):', js, re.M))
+
+    def test_every_icon_the_server_names_is_drawn(self):
+        known, used = self.page_icons(), self.server_icons()
+        self.assertTrue(used, 'иконок не нашлось: проверь тест')
+        self.assertEqual(used - known, set(), 'нет в ICONS: %s' % sorted(used - known))
+
+    def test_the_icons_everyone_needs_exist(self):
+        for name in ('wallet', 'cash', 'info', 'phone', 'settings', 'map', 'key',
+                     'band', 'clock', 'door', 'engine', 'car', 'close', 'check', 'refresh'):
+            self.assertIn(name, self.page_icons(), name)
+
+    def test_a_row_can_name_its_icon(self):
+        row = block(UI_SRC, 'stock RW_UI_Row(playerid, row, const text[], const icon[] = "bag")')
+        self.assertIn('RW_CefRow(playerid, row, text, "", icon);', row)
+        inter = pawn(INTER)
+        self.assertIn('RW_UI_Row(playerid, 0, "Yes, teleport", "map");', inter)
+        self.assertIn('RW_UI_Row(playerid, 1, "No, stay here", "close");', inter)
+        self.assertIn('RW_UI_Row(playerid, 0, "Вызвать скорую", "band");', pawn(INC / 'railway' / 'medical.inc'))
+        self.assertIn('RW_UI_Row(playerid, 0, row, "wallet");', pawn(INC / 'railway' / 'phone.inc'))
 
 
 class ClosedCardTest(unittest.TestCase):

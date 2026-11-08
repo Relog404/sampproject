@@ -233,8 +233,8 @@ class EmsCallTest(unittest.TestCase):
         # страница: две кнопки и таймер кровотечения
         screen = block(MED, 'stock RW_MedCef(playerid)')
         self.assertIn('RW_UI_Panel(playerid, UI_DOWNED, "Вы ранены", subtitle);', screen)
-        self.assertIn('RW_UI_Row(playerid, 0, "Вызвать скорую");', screen)
-        self.assertIn('RW_UI_Row(playerid, 1, "Подождать ещё 7 минут");', screen)
+        self.assertIn('RW_UI_Row(playerid, 0, "Вызвать скорую", "band");', screen)
+        self.assertIn('RW_UI_Row(playerid, 1, "Подождать ещё 7 минут", "clock");', screen)
         self.assertIn('Кровотечение: %s', screen)
 
     def test_taking_a_call_marks_it_on_the_map(self):

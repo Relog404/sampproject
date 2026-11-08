@@ -23,6 +23,10 @@
     band: '<rect x="3" y="7" width="18" height="10" rx="3"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/>',
     shot: '<path d="M7 4h10"/><path d="M9 4v6l-2 6a3 3 0 0 0 2.8 4h4.4A3 3 0 0 0 17 16l-2-6V4"/><path d="M8 13h8"/>',
     vest: '<path d="M6 5l4 2h4l4-2 2 5-3 2v7H7v-7L4 10z"/><path d="M10 7v12"/>',
+    wallet: '<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 9.8h18"/><circle cx="16.6" cy="13.6" r="1.2"/>',
+    cash: '<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 12h.01M18 12h.01"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.6"/><path d="M12 7.6v.4"/>',
+    phone: '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.6h3"/>',
     chevron: '<path d="M9 5l7 7-7 7"/>'
   };
 

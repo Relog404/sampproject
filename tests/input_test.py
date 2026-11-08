@@ -73,6 +73,8 @@ class InputProtocolTest(unittest.TestCase):
     def test_the_card_closes_by_every_road(self):
         """Esc, клик мимо и «Отмена» не оставляют игру с занятыми клавишами."""
         self.assertIn("if (event.key === 'Escape') { event.preventDefault(); abort(); }", SCRIPT)
+        self.assertIn("root.addEventListener('click', function (event) {", SCRIPT)
+        self.assertIn('if (event.target === root) abort();', SCRIPT)
         self.assertIn("RW.emit('ui:closed')", SCRIPT)
         closed = block(CEFUI, 'public RW_CefClosed(playerid, browserid)')
         self.assertIn('if (RW_InputBusy(playerid)) return RW_InputCancel(playerid);', closed)
