@@ -64,6 +64,17 @@ class InstallerTest(unittest.TestCase):
         self.assertIn('Сейчас в components:', PS1)
         self.assertIn('Стало в components:', PS1)
 
+    def test_it_installs_the_client_from_the_same_release(self):
+        """The server encrypts resources; only a matching client reads them."""
+        self.assertIn('client-files-v$Version.zip', PS1)
+        self.assertIn("Join-Path $gtaDir 'gta_sa.exe'", PS1)
+
+    def test_it_wipes_the_old_client_before_extracting(self):
+        """A mix of 1.3.0 and 1.4.0 client files does not start at all."""
+        self.assertIn("Join-Path $gtaDir 'cef'", PS1)
+        self.assertIn("Join-Path $gtaDir 'cef.asi'", PS1)
+        self.assertIn('Expand-Archive -Path $clientTmp -DestinationPath $gtaDir', PS1)
+
     def test_the_bat_runs_it_without_an_execution_policy_hassle(self):
         self.assertIn('-ExecutionPolicy Bypass', BAT)
         self.assertIn('install-cef-omp.ps1', BAT)

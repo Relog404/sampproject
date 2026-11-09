@@ -205,9 +205,26 @@ public OnCefReady(playerid)
     if (gCefEnabled) RW_CefStart(playerid);
     return 1;
 }
+/*  Handshake result. The code says more than "failed": is the client
+ *  a different version, did the cookie/key exchange fall apart, or did
+ *  the client never answer at all. An empty log means it never got
+ *  that far. */
 public OnCefInitialize(playerid, bool:success, E_CEF_INIT_REASON:reason, const message[])
 {
-    if (!success) printf("[cef] player %d: init failed (reason %d): %s", playerid, _:reason, message);
+    new cause[24];
+    switch (reason) {
+        case CEF_INIT_OK:               format(cause, sizeof cause, "ok");
+        case CEF_INIT_TIMEOUT:          format(cause, sizeof cause, "timeout");
+        case CEF_INIT_VERSION_MISMATCH: format(cause, sizeof cause, "version mismatch");
+        case CEF_INIT_HANDSHAKE_FAILED: format(cause, sizeof cause, "handshake failed");
+        case CEF_INIT_IP_MISMATCH:      format(cause, sizeof cause, "ip mismatch");
+        default:                        format(cause, sizeof cause, "unknown");
+    }
+    if (success) {
+        printf("[cef] player %d: init ok (%s)", playerid, cause);
+        return 1;
+    }
+    printf("[cef] player %d: init failed (%s): %s", playerid, cause, message);
     return 1;
 }
 public OnCefBrowserCreated(playerid, browserid, bool:success, E_CEF_CREATE_STATUS:code, const reason[])

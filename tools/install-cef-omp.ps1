@@ -222,6 +222,47 @@ if (Test-Path $pak) {
 
 Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
 
+# ---------------------------------------------------------------- клиент
+Say ''
+Say 'Клиент нужен из того же релиза: pak зашифрован AES-ключом, и старый'
+Say 'client.dll его просто не прочитает.'
+$gtaAnswer = Read-Host 'Папка с GTA (где лежит gta_sa.exe), Enter — пропустить'
+if ($gtaAnswer -and $gtaAnswer.Trim() -ne '') {
+    $gtaDir = $gtaAnswer.Trim().Trim('"')
+    if (-not (Test-Path (Join-Path $gtaDir 'gta_sa.exe'))) {
+        Say "В $gtaDir нет gta_sa.exe — клиент не трогаю."
+    } else {
+        $clientZip = "client-files-v$Version.zip"
+        $clientUrl = "https://github.com/aurora-mp/omp-cef/releases/download/v$Version/$clientZip"
+        $clientTmp = Join-Path $env:TEMP $clientZip
+        Say "Скачиваю $clientUrl (архив большой, может занять минуту)"
+        try {
+            Invoke-WebRequest -Uri $clientUrl -OutFile $clientTmp -UseBasicParsing
+            Say "Скачано: $((Get-Item $clientTmp).Length) байт"
+        } catch {
+            Say "Не скачалось: $($_.Exception.Message)"
+        }
+        if (Test-Path $clientTmp) {
+            Say 'Удаляю прежние cef.asi и папку cef\ — смесь версий не запускается.'
+            Remove-Item (Join-Path $gtaDir 'cef') -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item (Join-Path $gtaDir 'cef.asi') -Force -ErrorAction SilentlyContinue
+            Say "Распаковываю в $gtaDir"
+            try {
+                Expand-Archive -Path $clientTmp -DestinationPath $gtaDir -Force
+                Say ('cef.asi: ' + (Test-Path (Join-Path $gtaDir 'cef.asi')))
+                Say ('cef\client.dll: ' + (Test-Path (Join-Path $gtaDir 'cef/client.dll')))
+                Say ('cef\renderer.exe: ' + (Test-Path (Join-Path $gtaDir 'cef/renderer.exe')))
+            } catch {
+                Say "Не распаковалось: $($_.Exception.Message)"
+                Say 'Закройте игру и запустите скрипт снова.'
+            }
+        }
+    }
+} else {
+    Say 'Клиент пропущен. Если страница молчит, поставьте его вручную из'
+    Say "client-files-v$Version.zip: cef.asi — рядом с gta_sa.exe, папку cef\ — в корень игры."
+}
+
 # ---------------------------------------------------------------- итог
 Say ''
 Say 'Все найденные Cef.dll в папке сервера:'
