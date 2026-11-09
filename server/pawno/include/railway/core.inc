@@ -365,6 +365,8 @@ new bool:gCefEnabled;                /* the CEF plugin answered the probe    */
 new bool:gCefDeadSeen;              /* про немой браузер уже сказали в лог   */
 new bool:gCefReady[MAX_PLAYERS];
 new bool:gCefPong[MAX_PLAYERS];      /* страница ответила на cef:ping      */
+new bool:gCefHello[MAX_PLAYERS];     /* страница сама поздоровалась: скрипт */
+                                     /* запустился и события доходят     */
 new bool:gCefDead[MAX_PLAYERS];      /* из браузера не доходит ни одного   */
                                      /* события: меню — нативные диалоги   */
 new gCefPingTry[MAX_PLAYERS];

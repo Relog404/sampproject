@@ -112,6 +112,8 @@ stock RW_CefInit()
     CEF_RegisterEvent("auth:native", "RW_CefAuthNative");
     /* Ответ страницы на cef:ping: без него браузер считается немым. */
     CEF_RegisterEvent("cef:pong", "RW_CefPong");
+    /* Страница здоровается сама: значит её скрипт запустился. */
+    CEF_RegisterEvent("ui:hello", "RW_CefHello");
     SetTimer("RW_CefPulse", 1000, true);
     print("[cef] browser interface ready (resource railway).");
     return 1;
@@ -126,6 +128,7 @@ stock RW_CefStart(playerid)
 {
     if (gCefReady[playerid]) return 1;
     gCefReady[playerid] = true;
+    printf("[cef] player %d: client CEF detected; browsers created", playerid);
     /* Спрашиваем страницу: плагин есть у всех, а вот события от неё
        приходят не у каждого — старые сборки SA-MP их не доставляют. */
     gCefPong[playerid] = false;
@@ -175,6 +178,7 @@ stock RW_CefReset(playerid)
         CEF_DestroyBrowser(playerid, CEF_UI_AUTH);
     }
     gCefReady[playerid] = false; gCefMode[playerid] = CEF_MODE_NONE;
+    gCefHello[playerid] = false;
     gCefPong[playerid] = false; gCefDead[playerid] = false; gCefPingTry[playerid] = 0;
     return 1;
 }
@@ -390,6 +394,17 @@ public RW_CefPong(playerid, browserid)
     if (!gLogged[playerid]) RW_UI_OpenAuth(playerid);
     return 1;
 }
+/*  Страница здоровается при загрузке. Нет этой строки — JS вообще не
+    выполнился: пустая страница, не тот клиент, ресурсы не прочитаны. */
+public RW_CefHello(playerid, browserid)
+{
+    #pragma unused browserid
+    if (gCefHello[playerid]) return 1;
+    gCefHello[playerid] = true;
+    printf("[cef] player %d: page script is running (ui:hello)", playerid);
+    return 1;
+}
+
 /*  Окно браузера рисуется поверх игры. Пока оно висит — пусть даже
     немым — нативный диалог оказывается под ним, и игрок не видит ни
     диалога, ни своих кнопок. Поэтому гасим все страницы сразу. */

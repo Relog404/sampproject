@@ -40,14 +40,27 @@
     if (!polling) polling = window.setInterval(flush, 50);
   };
 
+  /* One hello as soon as the bridge is there. If the server never sees it,
+     the page script is not talking back: either it never ran, or events do
+     not travel from the page to Pawn at all. */
+  var helloed = false;
+
+  function hello() {
+    if (helloed || !RW.ready()) return;
+    helloed = true;
+    RW.emit('ui:hello');
+  }
+
   /* Binds everything again if the bridge showed up after the scripts ran. */
   function flush() {
     if (!RW.ready()) return;
     while (queue.length) bind(queue.shift());
     window.clearInterval(polling);
     polling = 0;
+    hello();
   }
   flush();
+  hello();
 
   RW.emit = function (name) {
     var args = Array.prototype.slice.call(arguments, 1);
