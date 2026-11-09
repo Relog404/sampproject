@@ -33,6 +33,17 @@
 Пересобирать `railway.amx` не нужно: open.mp выполняет AMX, собранный
 для SA-MP.
 
+## Установка одной кнопкой
+
+`tools/install-cef-omp.bat` (двойной клик) делает всё сам: читает
+разрядность `omp-server.exe`, качает `cef-omp-v1.4.0-x86.zip` или
+`-x64.zip`, кладёт `Cef.dll` в `components/`, убирает `cef` из строки
+`plugins` в `server.cfg`, удаляет `plugins/cef.dll` и кэш
+`scriptfiles/cef/railway.pak`. Скрипт спросит, можно ли остановить
+`omp-server.exe`, если тот запущен: без остановки `Cef.dll` занят.
+
+Руками то же самое делается так:
+
 ## Шаги
 
 1. **Скачать open.mp** (Windows):
