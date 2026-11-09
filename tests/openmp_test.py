@@ -1,9 +1,8 @@
 """open.mp compatibility: the gamemode must run there without a rebuild.
 
-The same Pawn scripts run on SA-MP 0.3.7 and on open.mp, but the two hosts
-disagree on one thing the gamemode stores: timer ids. SA-MP numbers them
-from one, open.mp from zero, and `0` is a live timer there, not "nothing".
-Everything here keeps that difference out of the game logic.
+The same AMX runs on SA-MP 0.3.7 and on open.mp. These tests pin down
+the handful of host assumptions the scripts are allowed to make; the
+rest of the gamemode must stay host-agnostic.
 """
 import unittest
 from pathlib import Path
@@ -19,38 +18,47 @@ def pawn(name):
 CORE = pawn('core')
 UI = pawn('ui')
 ACCOUNTS = pawn('accounts')
+CEFUI = pawn('cefui')
 MAIN = (ROOT / 'server/gamemodes/railway.pwn').read_text(encoding='cp1251')
 SOURCES = {'core.inc': CORE, 'ui.inc': UI, 'accounts.inc': ACCOUNTS, 'railway.pwn': MAIN}
 
 
 class TimerIdTest(unittest.TestCase):
-    """A stored timer id is shifted by one, so 0 always means "no timer"."""
+    """0 means "no timer" on SA-MP and on open.mp alike.
 
-    def test_the_shift_lives_in_one_place(self):
-        self.assertIn('stock RW_TimerArm(&slot, id)', CORE)
-        self.assertIn('slot = id + 1;', CORE)
-        self.assertIn('stock RW_TimerStop(&slot)', CORE)
-        self.assertIn('KillTimer(slot - 1);', CORE)
-        self.assertIn('slot = 0;', CORE)
+    open.mp numbers timers from one (timers.hpp: `idx = 1`) and returns
+    0 only when the timer could not be created, so a stored id can be
+    handed straight to KillTimer. Verified by reading the source -- keep
+    it that way instead of introducing a host-specific offset.
+    """
 
-    def test_every_stored_timer_goes_through_the_helpers(self):
-        self.assertIn('RW_TimerArm(gUINativeTimer[playerid], SetTimerEx("RW_UI_FlushNative"', UI)
-        self.assertIn('RW_TimerStop(gUINativeTimer[playerid]);', UI)
-        self.assertIn('RW_TimerArm(gUICefTimer[playerid], SetTimerEx("RW_UI_FlushCef"', UI)
-        self.assertIn('RW_TimerStop(gUICefTimer[playerid]);', UI)
-        self.assertIn('RW_TimerArm(gAuthTimer[playerid], SetTimerEx("RW_AuthCamera"', ACCOUNTS)
-        self.assertTrue(ACCOUNTS.count('RW_TimerStop(gAuthTimer[playerid]);') >= 2)
-
-    def test_no_stored_timer_is_killed_by_hand(self):
-        """KillTimer(id) with a raw stored id is the bug this prevents."""
+    def test_no_timer_id_is_ever_shifted(self):
         for name, src in SOURCES.items():
-            self.assertNotIn('KillTimer(gAuthTimer', src, name)
-            self.assertNotIn('KillTimer(gUINativeTimer', src, name)
-            self.assertNotIn('KillTimer(gUICefTimer', src, name)
+            self.assertNotIn('RW_TimerArm', src, name)
+            self.assertNotIn('RW_TimerStop', src, name)
 
-    def test_the_flush_helpers_still_guard_on_zero(self):
+    def test_a_stored_timer_is_killed_as_is(self):
+        for name, src in SOURCES.items():
+            for token in ('gAuthTimer', 'gUINativeTimer', 'gUICefTimer'):
+                self.assertNotIn(f'KillTimer({token}[playerid] - 1)', src, name)
+                self.assertNotIn(f'KillTimer({token}[playerid] + 1)', src, name)
+
+    def test_the_zero_guards_are_intact(self):
         self.assertIn('if (gUINativeTimer[playerid] == 0)', UI)
         self.assertIn('if (gUICefTimer[playerid] == 0)', UI)
+        self.assertIn('if (gAuthTimer[playerid] != 0)', ACCOUNTS)
+        self.assertIn('if (gAuthTimer[playerid] != 0)', MAIN)
+
+    def test_a_cancelled_timer_clears_its_slot(self):
+        """Otherwise the next KillTimer would hit a reused id."""
+        self.assertIn('KillTimer(gAuthTimer[playerid]);', ACCOUNTS)
+        self.assertIn('gAuthTimer[playerid] = 0;', ACCOUNTS)
+        self.assertIn('KillTimer(gAuthTimer[playerid]);', MAIN)
+        self.assertIn('gAuthTimer[playerid] = 0;', MAIN)
+        self.assertIn('KillTimer(gUINativeTimer[playerid]);', UI)
+        self.assertIn('gUINativeTimer[playerid] = 0;', UI)
+        self.assertIn('KillTimer(gUICefTimer[playerid]);', UI)
+        self.assertIn('gUICefTimer[playerid] = 0;', UI)
 
 
 class HostAgnosticTest(unittest.TestCase):
@@ -62,11 +70,17 @@ class HostAgnosticTest(unittest.TestCase):
         self.assertNotIn('gamemodes/', ACCOUNTS)
 
     def test_the_browser_state_lives_outside_the_cef_module(self):
-        """Plugins come and go; the state the rest of the gamemode reads
-        must compile in both builds (RAILWAY_CEF 0 and 1)."""
+        """The plugin comes and goes; the state the rest of the gamemode
+        reads must compile in both builds (RAILWAY_CEF 0 and 1)."""
         self.assertIn('new bool:gCefEnabled;', CORE)
         self.assertIn('new bool:gCefReady[MAX_PLAYERS];', CORE)
         self.assertIn('new bool:gCefPong[MAX_PLAYERS];', CORE)
+
+    def test_a_silent_browser_falls_back_to_native_dialogs(self):
+        """On a host whose CEF never delivers events, the game must go on."""
+        self.assertIn('the page never answered', CEFUI)
+        self.assertIn('SA-MP builds before 1.4.0 deliver no browser events', CEFUI)
+        self.assertIn('Update server/plugins/cef.dll', CEFUI)
 
 
 if __name__ == '__main__':

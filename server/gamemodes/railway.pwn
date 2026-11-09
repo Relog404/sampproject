@@ -271,7 +271,10 @@ public OnPlayerDisconnect(playerid, reason)
     RW_SaveAccount(playerid);
     RW_Veh_OnPlayerDisconnect(playerid);
 
-    RW_TimerStop(gAuthTimer[playerid]);
+    if (gAuthTimer[playerid] != 0) {
+        KillTimer(gAuthTimer[playerid]);
+        gAuthTimer[playerid] = 0;
+    }
     gLogged[playerid] = false;
     gAccountId[playerid] = -1;
     gAdminLevel[playerid] = 0;

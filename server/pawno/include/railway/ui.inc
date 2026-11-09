@@ -53,23 +53,25 @@ new gUINativeTitle[MAX_PLAYERS][64], gUINativeSubtitle[MAX_PLAYERS][96];
 new gUINativeRows[MAX_PLAYERS][UI_ROWS][128], gUINativeMap[MAX_PLAYERS][UI_ROWS];
 stock RW_UI_ScheduleNative(playerid)
 {
-    if (gUINativeTimer[playerid] == 0) RW_TimerArm(gUINativeTimer[playerid], SetTimerEx("RW_UI_FlushNative", 50, false, "i", playerid));
+    if (gUINativeTimer[playerid] == 0) gUINativeTimer[playerid] = SetTimerEx("RW_UI_FlushNative", 50, false, "i", playerid);
     return 1;
 }
 stock RW_UI_CancelNative(playerid)
 {
-    return RW_TimerStop(gUINativeTimer[playerid]);
+    if (gUINativeTimer[playerid] != 0) KillTimer(gUINativeTimer[playerid]);
+    gUINativeTimer[playerid] = 0;
 }
 /* Строки браузеру приходят по одной: отрисовать страницу надо один раз,
    когда все уже отправлены — тем же трюком, что и нативный диалог. */
 stock RW_UI_ScheduleCef(playerid)
 {
-    if (gUICefTimer[playerid] == 0) RW_TimerArm(gUICefTimer[playerid], SetTimerEx("RW_UI_FlushCef", 50, false, "i", playerid));
+    if (gUICefTimer[playerid] == 0) gUICefTimer[playerid] = SetTimerEx("RW_UI_FlushCef", 50, false, "i", playerid);
     return 1;
 }
 stock RW_UI_CancelCef(playerid)
 {
-    return RW_TimerStop(gUICefTimer[playerid]);
+    if (gUICefTimer[playerid] != 0) KillTimer(gUICefTimer[playerid]);
+    gUICefTimer[playerid] = 0;
 }
 public RW_UI_FlushCef(playerid)
 {

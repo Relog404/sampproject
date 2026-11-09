@@ -351,24 +351,6 @@ new gLoginAttempts[MAX_PLAYERS];
 new gLastSpcarTick[MAX_PLAYERS];
 
 new gAuthTimer[MAX_PLAYERS];           /* таймер камеры на экране входа      */
-
-/*  Номера таймеров. SA-MP нумерует их с единицы, open.mp — с нуля, и в
- *  чужой системе номер 0 уже чей-то живой таймер. Поэтому номер хранится
- *  со сдвигом на единицу: 0 по-прежнему значит «таймера нет» везде,
- *  где гейммод проверяет его. */
-stock RW_TimerArm(&slot, id)
-{
-    slot = id + 1;
-    return id;
-}
-stock RW_TimerStop(&slot)
-{
-    if (slot != 0) {
-        KillTimer(slot - 1);
-        slot = 0;
-    }
-    return 1;
-}
 new gAuthCardAt[MAX_PLAYERS];          /* карточка входа висит, клика не было */
 #define SKIN_MAX (16)
 new gSkinTxd[SKIN_MAX][32];         /* client-side TXD names (arm/*.txd)      */

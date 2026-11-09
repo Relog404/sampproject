@@ -520,7 +520,10 @@ forward RW_AuthCamera(playerid);
 public RW_AuthCamera(playerid)
 {
     if (!IsPlayerConnected(playerid) || gLogged[playerid]) {
-        RW_TimerStop(gAuthTimer[playerid]);
+        if (gAuthTimer[playerid] != 0) {
+            KillTimer(gAuthTimer[playerid]);
+            gAuthTimer[playerid] = 0;
+        }
         return 0;
     }
 
@@ -543,8 +546,10 @@ stock RW_StartAuthCamera(playerid)
 {
     gCamAngle[playerid] = random(360);
 
-    RW_TimerStop(gAuthTimer[playerid]);
-    RW_TimerArm(gAuthTimer[playerid], SetTimerEx("RW_AuthCamera", 60, true, "i", playerid));
+    if (gAuthTimer[playerid] != 0) {
+        KillTimer(gAuthTimer[playerid]);
+    }
+    gAuthTimer[playerid] = SetTimerEx("RW_AuthCamera", 60, true, "i", playerid);
 
     RW_AuthCamera(playerid);
 
