@@ -165,10 +165,22 @@ try {
 Say 'Стало в components:'
 Say ('  ' + (Describe $target))
 
-$fileVersion = Get-FileVersion $target
-if ($fileVersion -notlike "$Version*") {
+# Релиз 1.4.0 собран с version.hpp, где VERSION_MINOR всё ещё 3: любой
+# бинарник из него честно сообщает «1.3.0.0». Версия файла поэтому не
+# годится как признак успеха — сверяем содержимое с архивом.
+$hashSource = (Get-FileHash $source -Algorithm MD5).Hash
+$hashTarget = (Get-FileHash $target -Algorithm MD5).Hash
+if ($hashSource -eq $hashTarget) {
+    Say "Совпадает с файлом из архива (MD5 $hashTarget), значит подмена удалась."
     Say ''
-    Say "ВНИМАНИЕ: в components лежит версия $fileVersion, а ожидалась $Version."
+    Say "В ресурсах файла версия всё равно будет 1.3.0.0: в релизе $Version"
+    Say 'апстрим забыл поднять VERSION_MINOR, и в логе сервера тоже будет 1.3.0.'
+    Say 'Ориентируйтесь не на версию, а на то, отвечает ли страница на cef:ping.'
+} else {
+    Say ''
+    Say "ВНИМАНИЕ: components\Cef.dll не совпадает с файлом из архива."
+    Say "  из архива: $hashSource"
+    Say "  установлен: $hashTarget"
     Say 'Значит файл подменился не там, откуда его читает open.mp.'
 }
 
@@ -222,10 +234,11 @@ if ($found.Count -eq 0) {
 
 Say ''
 Say '============================================'
-Say ' Готово. Запустите omp-server.exe и в логе ждите:'
-Say "   Successfully loaded component Cef Component ($Version.0)"
-Say "   [CEF] Component initialized (v$Version)."
-Say ' Если там по-прежнему 1.3.0.0 — пришлите этот лог.'
+Say ' Готово. Запустите omp-server.exe.'
+Say ' В логе НЕ будет 1.4.0: релиз 1.4.0 собран с версией 1.3.0 внутри,'
+Say ' так что строку «Cef Component (1.3.0.0)» игнорируйте.'
+Say ' Проверка одна: после входа в логе не должно быть'
+Say ' «the page never answered».'
 Say " Лог лежит тут: $LogPath"
 Say '============================================'
 Read-Host 'Enter — выход'

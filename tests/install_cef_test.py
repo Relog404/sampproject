@@ -37,9 +37,15 @@ class InstallerTest(unittest.TestCase):
     def test_it_removes_the_stale_resource_cache(self):
         self.assertIn('scriptfiles/cef/railway.pak', PS1)
 
-    def test_it_reports_the_installed_file_version(self):
-        self.assertIn('FileVersionInfo', PS1)
-        self.assertIn('ВНИМАНИЕ: в components лежит версия', PS1)
+    def test_it_compares_the_installed_file_with_the_archive(self):
+        """The 1.4.0 release still stamps 1.3.0.0 into the binary, so the
+        version resource proves nothing: compare the bytes instead."""
+        self.assertIn('Get-FileHash $source -Algorithm MD5', PS1)
+        self.assertIn('Get-FileHash $target -Algorithm MD5', PS1)
+        self.assertIn('Совпадает с файлом из архива', PS1)
+
+    def test_it_knows_the_release_lies_about_its_version(self):
+        self.assertIn('апстрим забыл поднять VERSION_MINOR', PS1)
 
     def test_it_writes_a_log_next_to_itself(self):
         """A double-clicked window can be closed too fast to read."""
