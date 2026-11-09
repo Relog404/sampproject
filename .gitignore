@@ -20,3 +20,6 @@ desktop.ini
 
 # Python test caches
 __pycache__/
+
+# Лог установщика CEF
+install-cef-omp.log

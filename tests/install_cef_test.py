@@ -39,7 +39,24 @@ class InstallerTest(unittest.TestCase):
 
     def test_it_reports_the_installed_file_version(self):
         self.assertIn('FileVersionInfo', PS1)
-        self.assertIn('Версия файла', PS1)
+        self.assertIn('ВНИМАНИЕ: в components лежит версия', PS1)
+
+    def test_it_writes_a_log_next_to_itself(self):
+        """A double-clicked window can be closed too fast to read."""
+        self.assertIn("Join-Path $PSScriptRoot 'install-cef-omp.log'", PS1)
+        self.assertIn('Add-Content -Path $LogPath', PS1)
+
+    def test_it_finds_the_server_under_any_of_its_names(self):
+        self.assertIn("'omp-server.exe'", PS1)
+
+    def test_it_shows_every_cef_dll_it_can_find(self):
+        """The real failure so far was a copy landing in the wrong folder."""
+        self.assertIn('Все найденные Cef.dll', PS1)
+        self.assertIn('Get-ChildItem -Path $ServerDir -Filter Cef.dll -Recurse', PS1)
+
+    def test_it_describes_what_was_there_before_replacing(self):
+        self.assertIn('Сейчас в components:', PS1)
+        self.assertIn('Стало в components:', PS1)
 
     def test_the_bat_runs_it_without_an_execution_policy_hassle(self):
         self.assertIn('-ExecutionPolicy Bypass', BAT)

@@ -6,10 +6,19 @@
 #
 # Скрипт сам определяет разрядность omp-server.exe, качает нужный
 # архив, кладёт Cef.dll в components/, убирает cef из строки plugins
-# в server.cfg и удаляет кэш ресурсов прошлой версии.
+# в server.cfg и удаляет кэш ресурсов прошлой версии. Всё, что делает,
+# пишет в install-cef-omp.log рядом с собой.
 
 $ErrorActionPreference = 'Stop'
 $Version = '1.4.0'
+
+$LogPath = Join-Path $PSScriptRoot 'install-cef-omp.log'
+'' | Out-File -FilePath $LogPath -Encoding utf8
+
+function Say([string]$Text = '') {
+    Write-Host $Text
+    Add-Content -Path $LogPath -Value $Text -Encoding utf8
+}
 
 function Get-PeMachine([string]$Path) {
     $fs = [IO.File]::OpenRead($Path)
@@ -26,11 +35,34 @@ function Get-PeMachine([string]$Path) {
     }
 }
 
+function Get-FileVersion([string]$Path) {
+    if (-not (Test-Path $Path)) { return '(нет файла)' }
+    $v = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($Path).FileVersion
+    if ($v) { return $v }
+    return '(версия не читается)'
+}
+
+function Describe([string]$Path) {
+    if (-not (Test-Path $Path)) { return "$Path — нет файла" }
+    $i = Get-Item $Path
+    return ('{0} | {1} байт | {2} | версия {3}' -f $i.FullName, $i.Length, $i.LastWriteTime, (Get-FileVersion $Path))
+}
+
+function Find-ServerExe([string]$Dir) {
+    foreach ($name in @('omp-server.exe', 'open.mp-server.exe', 'openmp-server.exe', 'server.exe')) {
+        $candidate = Join-Path $Dir $name
+        if (Test-Path $candidate) { return $candidate }
+    }
+    $any = @(Get-ChildItem -Path $Dir -Filter *.exe -File -ErrorAction SilentlyContinue | Select-Object -First 1)
+    if ($any.Count -gt 0) { return $any[0].FullName }
+    return $null
+}
+
 function Stop-OpenMpServer {
     $procs = @(Get-Process -Name 'omp-server' -ErrorAction SilentlyContinue)
     if ($procs.Count -eq 0) { return $false }
-    Write-Host ''
-    Write-Host 'Запущен omp-server.exe — с ним Cef.dll занят и не заменится.'
+    Say ''
+    Say 'Запущен omp-server.exe — с ним Cef.dll занят и не заменится.'
     $answer = Read-Host 'Остановить его сейчас? (Y/n)'
     if ($answer -eq '' -or $answer -match '^[yYдД]') {
         $procs | Stop-Process -Force
@@ -40,28 +72,33 @@ function Stop-OpenMpServer {
     return $false
 }
 
+Say '=== Установка omp-cef ' + $Version + ' от ' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') + ' ==='
+
 # ---------------------------------------------------------------- папка сервера
 $ServerDir = Join-Path (Split-Path -Parent $PSScriptRoot) 'server'
-if (-not (Test-Path (Join-Path $ServerDir 'omp-server.exe'))) {
-    $ServerDir = $PSScriptRoot
-}
-if (-not (Test-Path (Join-Path $ServerDir 'omp-server.exe'))) {
-    $ServerDir = Get-Location
-}
-$serverExe = Join-Path $ServerDir 'omp-server.exe'
-if (-not (Test-Path $serverExe)) {
-    Write-Host 'Не найден omp-server.exe. Положите скрипт в папку tools/ рядом с server/ и запустите снова.'
+if (-not (Test-Path (Join-Path $ServerDir 'server.cfg'))) { $ServerDir = $PSScriptRoot }
+if (-not (Test-Path (Join-Path $ServerDir 'server.cfg'))) { $ServerDir = (Get-Location).Path }
+
+$serverExe = Find-ServerExe $ServerDir
+if (-not $serverExe) {
+    Say "Не нашёл exe сервера в $ServerDir"
+    Say 'Положите скрипт в папку tools/ рядом с server/ и запустите снова.'
     Read-Host 'Enter — выход'
     exit 1
 }
 
 $arch = Get-PeMachine $serverExe
 if ($arch -ne 'x86' -and $arch -ne 'x64') {
-    Write-Host "Не удалось определить разрядность omp-server.exe: $arch"
+    Say "Не удалось определить разрядность: $arch"
     Read-Host 'Enter — выход'
     exit 1
 }
-Write-Host "Сервер: $serverExe ($arch)"
+Say "Папка сервера: $ServerDir"
+Say "Сервер: $serverExe ($arch)"
+
+$target = Join-Path $ServerDir 'components/Cef.dll'
+Say 'Сейчас в components:'
+Say ('  ' + (Describe $target))
 
 # ---------------------------------------------------------------- скачивание
 $zipName = "cef-omp-v$Version-$arch.zip"
@@ -69,68 +106,70 @@ $url = "https://github.com/aurora-mp/omp-cef/releases/download/v$Version/$zipNam
 $zip = Join-Path $env:TEMP $zipName
 $tmp = Join-Path $env:TEMP ('cef-omp-extract-' + [guid]::NewGuid().ToString('N'))
 
-Write-Host "Скачиваю $url"
+Say ''
+Say "Скачиваю $url"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 try {
     Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
+    Say "Скачано: $((Get-Item $zip).Length) байт"
 } catch {
-    Write-Host ''
-    Write-Host "Не скачалось: $($_.Exception.Message)"
-    Write-Host "Скачайте руками: $url"
+    Say "Не скачалось: $($_.Exception.Message)"
+    Say "Скачайте руками: $url"
     Read-Host 'Enter — выход'
     exit 1
 }
 
-Write-Host 'Распаковываю...'
+Say 'Распаковываю...'
 if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
 Expand-Archive -Path $zip -DestinationPath $tmp -Force
 
 $source = Join-Path $tmp 'components/Cef.dll'
 if (-not (Test-Path $source)) {
-    Write-Host "В архиве нет components\Cef.dll — странный архив, прерываюсь."
+    Say 'В архиве нет components\Cef.dll — прерываюсь.'
     Read-Host 'Enter — выход'
     exit 1
 }
 
 $sourceArch = Get-PeMachine $source
 if ($sourceArch -ne $arch) {
-    Write-Host "Разрядность не совпала: сервер $arch, а в архиве $sourceArch."
+    Say "Разрядность не совпала: сервер $arch, а в архиве $sourceArch."
     Read-Host 'Enter — выход'
     exit 1
 }
+Say ('В архиве: ' + (Describe $source))
 
 # ---------------------------------------------------------------- установка
 $componentsDir = Join-Path $ServerDir 'components'
 if (-not (Test-Path $componentsDir)) { New-Item -ItemType Directory -Path $componentsDir | Out-Null }
-$target = Join-Path $componentsDir 'Cef.dll'
 
-Write-Host "Копирую в $target"
+Say ''
+Say "Копирую в $target"
 try {
     Copy-Item $source $target -Force
 } catch {
+    Say "Не получилось: $($_.Exception.Message)"
     if (Stop-OpenMpServer) {
         try { Copy-Item $source $target -Force }
         catch {
-            Write-Host "Не заменилось: $($_.Exception.Message)"
+            Say "Снова не заменилось: $($_.Exception.Message)"
             Read-Host 'Enter — выход'
             exit 1
         }
     } else {
-        Write-Host 'Без остановки сервера Cef.dll не заменить.'
+        Say 'Без остановки сервера Cef.dll не заменить.'
         Read-Host 'Enter — выход'
         exit 1
     }
 }
-Write-Host "Готово: $(Get-PeMachine $target)"
 
-$fileVersion = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($target).FileVersion
-if ($fileVersion) {
-    Write-Host "Версия файла: $fileVersion"
-    if ($fileVersion -notlike "$Version*") {
-        Write-Host "ВНИМАНИЕ: ожидалась версия $Version, а в файле $fileVersion."
-    }
-} else {
-    Write-Host 'Версию файла прочитать не удалось — проверьте по строке загрузки в логе.'
+Say 'Стало в components:'
+Say ('  ' + (Describe $target))
+
+$fileVersion = Get-FileVersion $target
+if ($fileVersion -notlike "$Version*") {
+    Say ''
+    Say "ВНИМАНИЕ: в components лежит версия $fileVersion, а ожидалась $Version."
+    Say 'Значит файл подменился не там, откуда его читает open.mp.'
 }
 
 # ---------------------------------------------------------------- server.cfg
@@ -143,38 +182,50 @@ if (Test-Path $cfg) {
         if ($line -match '^\s*plugins\s') {
             $rest = @($line -split '\s+' | Where-Object { $_ -and $_ -ne 'plugins' -and $_ -ne 'cef' })
             if ($rest.Count -gt 0) { $out.Add('plugins ' + ($rest -join ' ')) }
-            $changed = $true
+            if ($line -match '\bcef\b') { $changed = $true }
             continue
         }
         $out.Add($line)
     }
     if ($changed) {
         [IO.File]::WriteAllText($cfg, (($out -join "`r`n") + "`r`n"))
-        Write-Host 'Убрал cef из строки plugins в server.cfg'
+        Say 'Убрал cef из строки plugins в server.cfg'
+    } else {
+        Say 'В server.cfg строки plugins с cef нет — уже чисто.'
     }
 }
 
 # ---------------------------------------------------------------- мусор
 $oldPlugin = Join-Path $ServerDir 'plugins/cef.dll'
 if (Test-Path $oldPlugin) {
-    try { Remove-Item $oldPlugin -Force; Write-Host 'Удалил plugins\cef.dll' }
-    catch { Write-Host 'plugins\cef.dll занят (сервер запущен) — удалите вручную' }
+    try { Remove-Item $oldPlugin -Force; Say 'Удалил plugins\cef.dll' }
+    catch { Say 'plugins\cef.dll занят (сервер запущен) — удалите вручную' }
 }
 
 $pak = Join-Path $ServerDir 'scriptfiles/cef/railway.pak'
 if (Test-Path $pak) {
-    try { Remove-Item $pak -Force; Write-Host 'Удалил кэш scriptfiles\cef\railway.pak' }
-    catch { Write-Host 'railway.pak занят — удалите вручную' }
+    try { Remove-Item $pak -Force; Say 'Удалил кэш scriptfiles\cef\railway.pak' }
+    catch { Say 'railway.pak занят — удалите вручную' }
 }
 
 Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
 
-Write-Host ''
-Write-Host '============================================'
-Write-Host " Компонент omp-cef $Version ($arch) установлен."
-Write-Host ' Запустите omp-server.exe и в логе ждите:'
-Write-Host "   Successfully loaded component Cef Component ($Version.0)"
-Write-Host "   [CEF] Component initialized (v$Version)."
-Write-Host ' Если там по-прежнему 1.3.0.0 — файл подменился не там.'
-Write-Host '============================================'
+# ---------------------------------------------------------------- итог
+Say ''
+Say 'Все найденные Cef.dll в папке сервера:'
+$found = @(Get-ChildItem -Path $ServerDir -Filter Cef.dll -Recurse -File -ErrorAction SilentlyContinue)
+if ($found.Count -eq 0) {
+    Say '  не найдено ни одного — это плохо'
+} else {
+    foreach ($f in $found) { Say ('  ' + (Describe $f.FullName)) }
+}
+
+Say ''
+Say '============================================'
+Say ' Готово. Запустите omp-server.exe и в логе ждите:'
+Say "   Successfully loaded component Cef Component ($Version.0)"
+Say "   [CEF] Component initialized (v$Version)."
+Say ' Если там по-прежнему 1.3.0.0 — пришлите этот лог.'
+Say " Лог лежит тут: $LogPath"
+Say '============================================'
 Read-Host 'Enter — выход'
